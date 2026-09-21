@@ -193,6 +193,7 @@ class OptionInterpreter:
             KwargInfo('yield', bool, default=options.DEFAULT_YIELDING, since='0.45.0'),
         ],
         unknown_kwargs=True,
+        flatten=False,
     )
     def func_option(self, args: T.Tuple[str], kwargs: 'FuncOptionArgs') -> None:
         opt_name = args[0]

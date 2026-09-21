@@ -5,7 +5,6 @@ from __future__ import annotations
 
 from .. import mparser
 from .exceptions import InvalidCode, InvalidArguments
-from .helpers import flatten
 from .operator import MesonOperator
 from ..mesonlib import HoldableObject, MesonBugException, SimpleABC, SubProject, ROOT_SUBPROJECT
 import textwrap
@@ -114,8 +113,6 @@ class InterpreterObject:
             ) -> TYPE_var | None:
         if method_name in self.METHODS:
             method = self.METHODS[method_name]
-            if not getattr(method, 'no-args-flattening', False):
-                args = flatten(args)
             return method(self, args, kwargs)
 
         ustr = f'Unknown method "{method_name}" in object {self} of type {type(self).__name__}.'

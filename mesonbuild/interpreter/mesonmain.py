@@ -19,7 +19,6 @@ from ..interpreter.type_checking import (
     ENV_METHOD_KW, ENV_SEPARATOR_KW, ENV_PARG, env_convertor,
 )
 from ..interpreterbase import (MesonInterpreterObject, FeatureNew, FeatureDeprecated, FeatureBroken,
-                               noArgsFlattening,
                                TypedArgs, KwargInfo, InterpreterException, InterpreterObject,
                                PosArgInfo, VarArgInfo)
 from .decorators import apply_machine_map
@@ -441,25 +440,23 @@ class MesonMain(MesonInterpreterObject):
                 return fallback
             raise InterpreterException(f'Unknown property for {machine.get_lower_case_name()} machine: {propname}')
 
-    @noArgsFlattening
     @FeatureDeprecated('meson.get_cross_property', '0.58.0', 'Use meson.get_external_property() instead')
     @TypedArgs(
         'meson.get_cross_property',
-        pos_types=[STR_PARG],
-        opt_types=[OBJ_OARG],
+        pos_types=[STR_PARG], opt_types=[OBJ_OARG],
+        flatten=False
     )
     @InterpreterObject.method('get_cross_property')
     def get_cross_property_method(self, args: T.Tuple[str, T.Optional[object]], kwargs: 'TYPE_kwargs') -> object:
         propname, fallback = args
         return self.__get_external_property_impl(propname, fallback, MachineChoice.HOST)
 
-    @noArgsFlattening
     @FeatureNew('meson.get_external_property', '0.54.0')
     @TypedArgs(
         'meson.get_external_property',
-        pos_types=[STR_PARG],
-        opt_types=[OBJ_OARG],
+        pos_types=[STR_PARG], opt_types=[OBJ_OARG],
         kw_types=[NATIVE_KW],
+        flatten=False,
     )
     @InterpreterObject.method('get_external_property')
     @apply_machine_map

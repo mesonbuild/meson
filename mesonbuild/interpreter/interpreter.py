@@ -28,7 +28,7 @@ from ..programs import ExternalProgram, NonExistingExternalProgram, Program
 from ..dependencies import Dependency
 from ..depfile import DepFile
 from ..interpreterbase import ContainerTypeInfo, InterpreterBase, KwargInfo, TypedArgs, PosArgInfo, OptArgInfo, VarArgInfo
-from ..interpreterbase import noArgsFlattening, unholder_return
+from ..interpreterbase import unholder_return
 from .decorators import apply_machine_map
 from ..interpreterbase import InterpreterException, InvalidArguments, InvalidCode, SubdirDoneRequest
 from ..interpreterbase import Disabler, disablerIfNotFound
@@ -1432,8 +1432,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         except InvalidArguments as e:
             raise InvalidArguments(f'{func_name}(): {str(e)}')
 
-    @noArgsFlattening
-    @TypedArgs('message', var_types=OBJ_VARG.evolve(variadic_since='0.54.0'))
+    @TypedArgs('message', var_types=OBJ_VARG.evolve(variadic_since='0.54.0'), flatten=False)
     def func_message(self, node: mparser.BaseNode, args: tuple[list[TYPE_var]], kwargs: TYPE_kwargs) -> None:
         args_str = self._stringify_user_arguments(args[0], 'message')
         self.message_impl(args_str)
@@ -1441,7 +1440,6 @@ class Interpreter(InterpreterBase, HoldableObject):
     def message_impl(self, args: mlog.TV_LoggableList | list[str]) -> None:
         mlog.log(mlog.bold('Message:'), *args)
 
-    @noArgsFlattening
     @FeatureNew('summary', '0.53.0')
     @TypedArgs(
         'summary',
@@ -1452,6 +1450,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             KwargInfo('bool_yn', bool, default=False),
             KwargInfo('list_sep', (str, NoneType), since='0.54.0')
         ],
+        flatten=False,
     )
     def func_summary(self, node: mparser.BaseNode, args: T.Tuple[T.Union[str, T.Dict[str, T.Any]], T.Optional[T.Any]],
                      kwargs: 'kwtypes.Summary') -> None:
@@ -1535,22 +1534,19 @@ class Interpreter(InterpreterBase, HoldableObject):
                     project.dump_summary()
         self.current_build_project().dump_summary()
 
-    @noArgsFlattening
     @FeatureNew('warning', '0.44.0')
-    @TypedArgs('warning', var_types=OBJ_VARG.evolve(variadic_since='0.54.0'))
+    @TypedArgs('warning', var_types=OBJ_VARG.evolve(variadic_since='0.54.0'), flatten=False)
     def func_warning(self, node: mparser.BaseNode, args: tuple[list[TYPE_var]], kwargs: TYPE_kwargs) -> None:
         args_str = self._stringify_user_arguments(args[0], 'warning')
         mlog.warning(*args_str, location=node)
 
-    @noArgsFlattening
-    @TypedArgs('error', var_types=OBJ_VARG.evolve(variadic_since='0.54.0'))
+    @TypedArgs('error', var_types=OBJ_VARG.evolve(variadic_since='0.54.0'), flatten=False)
     def func_error(self, node: mparser.BaseNode, args: tuple[list[TYPE_var]], kwargs: TYPE_kwargs) -> T.NoReturn:
         args_str = self._stringify_user_arguments(args[0], 'error')
         raise InterpreterException('Problem encountered: ' + ' '.join(args_str))
 
-    @noArgsFlattening
     @FeatureNew('debug', '0.63.0')
-    @TypedArgs('debug', var_types=OBJ_VARG)
+    @TypedArgs('debug', var_types=OBJ_VARG, flatten=False)
     def func_debug(self, node: mparser.BaseNode, args: tuple[list[TYPE_var]], kwargs: TYPE_kwargs) -> None:
         args_str = self._stringify_user_arguments(args[0], 'debug')
         mlog.debug('Debug:', *args_str)
@@ -2642,8 +2638,8 @@ class Interpreter(InterpreterBase, HoldableObject):
         'structured_sources',
         pos_types=[TGT_PARG],
         opt_types=[OptArgInfo(dict)],  # TODO: ContainerType cannot represent dict[str, list[...Ts]]
+        flatten=False,
     )
-    @noArgsFlattening
     def func_structured_sources(
             self, node: mparser.BaseNode,
             args: T.Tuple[list[str | mesonlib.File | build.GeneratedTypes], T.Optional[T.Dict[str, object]]],
@@ -3334,11 +3330,11 @@ class Interpreter(InterpreterBase, HoldableObject):
         for lang in kwargs['language']:
             argsdict[lang] = argsdict.get(lang, []) + args
 
-    @noArgsFlattening
     @TypedArgs(
         'environment',
         opt_types=[OptArgInfo((str, list, dict), since='0.52.0')],
         kw_types=[ENV_METHOD_KW, ENV_SEPARATOR_KW.evolve(since='0.62.0')],
+        flatten=False,
     )
     def func_environment(self, node: mparser.FunctionNode, args: T.Tuple[T.Union[None, str, T.List['TYPE_var'], T.Dict[str, 'TYPE_var']]],
                          kwargs: kwtypes.FuncEnvironment) -> EnvironmentVariables:
@@ -4243,8 +4239,8 @@ class Interpreter(InterpreterBase, HoldableObject):
             STR_PARG.evolve(validator=lambda x: f'Invalid variable name: "{x}"' if mparser.IDENT_RE.fullmatch(x) is None else None),
             PosArgInfo((object, DefaultObject), accept_second_level_holder=True),
         ],
+        flatten=False,
     )
-    @noArgsFlattening
     def func_set_variable(self, node: mparser.BaseNode, args: T.Tuple[str, TYPE_var | InterpreterObject], kwargs: 'TYPE_kwargs') -> None:
         self.set_variable(*args, holderify=True)
 
@@ -4252,8 +4248,8 @@ class Interpreter(InterpreterBase, HoldableObject):
         'get_variable',
         pos_types=[PosArgInfo((str, Disabler, DefaultObject))],
         opt_types=[OBJ_OARG],
+        flatten=False,
     )
-    @noArgsFlattening
     @unholder_return
     def func_get_variable(self, node: mparser.BaseNode, args: T.Tuple[T.Union[str, Disabler], T.Optional[TYPE_var | InterpreterObject]],
                           kwargs: 'TYPE_kwargs') -> TYPE_var | InterpreterObject:

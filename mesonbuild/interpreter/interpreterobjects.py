@@ -20,8 +20,8 @@ from ..interpreterbase import (PosArgInfo, OptArgInfo, VarArgInfo,
                                MesonInterpreterObject, ObjectHolder, MutableInterpreterObject,
                                FeatureNew, FeatureDeprecated,
                                TypedArgs, typed_operator,
-                               noArgsFlattening, unholder_return,
-                               flatten, Feature, FeatureValue,
+                               unholder_return,
+                               Feature, FeatureValue,
                                InterpreterException, InvalidArguments, InvalidCode)
 from ..interpreter.type_checking import (
     NoneType, ENV_KW, ENV_SEPARATOR_KW, PKGCONFIG_DEFINE_KW, TGT_VARG, STR_PARG,
@@ -921,8 +921,8 @@ class SubprojectHolder(MesonInterpreterObject):
                 ustr += f' Did you mean "{close_matches[0]}"?'
             raise InvalidArguments(ustr)
 
-    @TypedArgs('subproject.get_variable', pos_types=[STR_PARG], opt_types=[OBJ_OARG])
-    @noArgsFlattening
+    @TypedArgs('subproject.get_variable', flatten=False,
+               pos_types=[STR_PARG], opt_types=[OBJ_OARG])
     @InterpreterObject.method('get_variable')
     def get_variable_method(self, args: T.Tuple[str, T.Optional[str]], kwargs: TYPE_kwargs) -> T.Union[TYPE_var, InterpreterObject]:
         return self.get_variable(args, kwargs)
@@ -938,8 +938,6 @@ class ModuleObjectHolder(ObjectHolder[ModuleObject]):
             if close_matches:
                 ustr += f' Did you mean "{close_matches[0]}"?'
             raise InvalidCode(ustr)
-        if not getattr(method, 'no-args-flattening', False):
-            args = flatten(args)
         if not self.interpreter.active_projectname:
             assert isinstance(modobj, (ExtensionModule, NewExtensionModule)), 'for mypy'
             full_method_name = f'{modobj.INFO.name}.{method_name}'
