@@ -2985,8 +2985,8 @@ class AllPlatformTests(BasePlatformTests):
             out = self.init(testdir, extra_args=['--profile-self', '--fatal-meson-warnings'])
             self.assertNotIn('[default: true]', out)
             obj = mesonbuild.coredata.load(self.builddir)
-            self.assertEqual(obj.optstore.get_value_for_untyped('default_library'), 'static')
-            self.assertEqual(obj.optstore.get_value_for_untyped('warning_level'), '1')
+            self.assertEqual(obj.optstore.get_value_for_untyped(OptionKey('default_library')), 'static')
+            self.assertEqual(obj.optstore.get_value_for_untyped(OptionKey('warning_level')), '1')
             self.assertEqual(obj.optstore.get_value_for_untyped(OptionKey('set_sub_opt', '')), True)
             self.assertEqual(obj.optstore.get_value_for_untyped(OptionKey('subp_opt', 'subp')), 'default3')
         self.wipe()
@@ -2996,26 +2996,26 @@ class AllPlatformTests(BasePlatformTests):
         with self.subTest('--warnlevel'):
             self.init(testdir, extra_args=['--warnlevel=2', '--fatal-meson-warnings'])
             obj = mesonbuild.coredata.load(self.builddir)
-            self.assertEqual(obj.optstore.get_value_for_untyped('warning_level'), '2')
+            self.assertEqual(obj.optstore.get_value_for_untyped(OptionKey('warning_level')), '2')
             self.setconf('--warnlevel=3')
             obj = mesonbuild.coredata.load(self.builddir)
-            self.assertEqual(obj.optstore.get_value_for_untyped('warning_level'), '3')
+            self.assertEqual(obj.optstore.get_value_for_untyped(OptionKey('warning_level')), '3')
             self.setconf('--warnlevel=everything')
             obj = mesonbuild.coredata.load(self.builddir)
-            self.assertEqual(obj.optstore.get_value_for_untyped('warning_level'), 'everything')
+            self.assertEqual(obj.optstore.get_value_for_untyped(OptionKey('warning_level')), 'everything')
         self.wipe()
 
         # But when using -D syntax, it should be 'warning_level'
         with self.subTest('-Dwarning_level'):
             self.init(testdir, extra_args=['-Dwarning_level=2', '--fatal-meson-warnings'])
             obj = mesonbuild.coredata.load(self.builddir)
-            self.assertEqual(obj.optstore.get_value_for_untyped('warning_level'), '2')
+            self.assertEqual(obj.optstore.get_value_for_untyped(OptionKey('warning_level')), '2')
             self.setconf('-Dwarning_level=3')
             obj = mesonbuild.coredata.load(self.builddir)
-            self.assertEqual(obj.optstore.get_value_for_untyped('warning_level'), '3')
+            self.assertEqual(obj.optstore.get_value_for_untyped(OptionKey('warning_level')), '3')
             self.setconf('-Dwarning_level=everything')
             obj = mesonbuild.coredata.load(self.builddir)
-            self.assertEqual(obj.optstore.get_value_for_untyped('warning_level'), 'everything')
+            self.assertEqual(obj.optstore.get_value_for_untyped(OptionKey('warning_level')), 'everything')
         self.wipe()
 
         # Mixing --option and -Doption is forbidden
@@ -3042,15 +3042,15 @@ class AllPlatformTests(BasePlatformTests):
         with self.subTest('default-library override'):
             self.init(testdir, extra_args=['--default-library=both', '--fatal-meson-warnings'])
             obj = mesonbuild.coredata.load(self.builddir)
-            self.assertEqual(obj.optstore.get_value_for_untyped('default_library'), 'both')
+            self.assertEqual(obj.optstore.get_value_for_untyped(OptionKey('default_library')), 'both')
             self.setconf('--default-library=shared')
             obj = mesonbuild.coredata.load(self.builddir)
-            self.assertEqual(obj.optstore.get_value_for_untyped('default_library'), 'shared')
+            self.assertEqual(obj.optstore.get_value_for_untyped(OptionKey('default_library')), 'shared')
             if self.backend is Backend.ninja:
                 # reconfigure target works only with ninja backend
                 self.build('reconfigure')
                 obj = mesonbuild.coredata.load(self.builddir)
-                self.assertEqual(obj.optstore.get_value_for_untyped('default_library'), 'shared')
+                self.assertEqual(obj.optstore.get_value_for_untyped(OptionKey('default_library')), 'shared')
         self.wipe()
 
         # Should fail on unknown options
@@ -3146,25 +3146,25 @@ class AllPlatformTests(BasePlatformTests):
         # Verify default values when passing no args
         self.init(testdir)
         obj = mesonbuild.coredata.load(self.builddir)
-        self.assertEqual(obj.optstore.get_value_for_untyped('warning_level'), '0')
+        self.assertEqual(obj.optstore.get_value_for_untyped(OptionKey('warning_level')), '0')
         self.wipe()
 
         # verify we can override w/ --warnlevel
         self.init(testdir, extra_args=['--warnlevel=1'])
         obj = mesonbuild.coredata.load(self.builddir)
-        self.assertEqual(obj.optstore.get_value_for_untyped('warning_level'), '1')
+        self.assertEqual(obj.optstore.get_value_for_untyped(OptionKey('warning_level')), '1')
         self.setconf('--warnlevel=0')
         obj = mesonbuild.coredata.load(self.builddir)
-        self.assertEqual(obj.optstore.get_value_for_untyped('warning_level'), '0')
+        self.assertEqual(obj.optstore.get_value_for_untyped(OptionKey('warning_level')), '0')
         self.wipe()
 
         # verify we can override w/ -Dwarning_level
         self.init(testdir, extra_args=['-Dwarning_level=1'])
         obj = mesonbuild.coredata.load(self.builddir)
-        self.assertEqual(obj.optstore.get_value_for_untyped('warning_level'), '1')
+        self.assertEqual(obj.optstore.get_value_for_untyped(OptionKey('warning_level')), '1')
         self.setconf('-Dwarning_level=0')
         obj = mesonbuild.coredata.load(self.builddir)
-        self.assertEqual(obj.optstore.get_value_for_untyped('warning_level'), '0')
+        self.assertEqual(obj.optstore.get_value_for_untyped(OptionKey('warning_level')), '0')
         self.wipe()
 
     def test_feature_check_usage_subprojects(self):
