@@ -1,5 +1,5 @@
 ---
-short-description: Localization with GNU Gettext
+short-description: Localisation with GNU Gettext
 ...
 
 # Localisation
@@ -17,7 +17,7 @@ In your main meson.build file include the `po` subdirectory in the build process
 In this `po` subdirectory we need:
 - `LINGUAS`: Space separated list of languages
 - `POTFILES`: List of source files to scan for translatable strings.
-- `meson.build`: Localization specific Meson file
+- `meson.build`: Localisation specific Meson file
 
 ### LINGUAS
 
@@ -39,7 +39,7 @@ root. A sample POTFILES might look like this.
 
 ### meson.build
 
-Localization specific Meson file. It imports and uses the `i18n`
+Localisation specific Meson file. It imports and uses the `i18n`
 module. If not defined before it needs to define the `GETTEXT_PACKAGE`
 global.
 
