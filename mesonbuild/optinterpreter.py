@@ -96,14 +96,10 @@ class OptionInterpreter:
             try:
                 self.current_node = cur
                 self.evaluate_statement(cur)
-            except mesonlib.MesonException as e:
-                e.lineno = cur.lineno
-                e.colno = cur.colno
-                e.file = option_file
-                raise e
+            except mesonlib.MesonException:
+                raise
             except Exception as e:
-                raise mesonlib.MesonException(
-                    str(e), lineno=cur.lineno, colno=cur.colno, file=option_file)
+                raise mesonlib.MesonException.from_node(str(e), node=self.current_node)
 
     def reduce_single(self, arg: T.Union[str, mparser.BaseNode]) -> 'TYPE_var':
         if isinstance(arg, str):
@@ -118,49 +114,58 @@ class OptionInterpreter:
             d = {}
             for k, v in arg.args.kwargs.items():
                 if not isinstance(k, mparser.StringNode):
-                    raise OptionException('Dictionary keys must be a string literal')
+                    raise OptionException.from_node(
+                        'Dictionary keys must be a string literal', node=self.current_node)
                 d[k.value] = self.reduce_single(v)
             return d
         elif isinstance(arg, mparser.UMinusNode):
             res = self.reduce_single(arg.value)
             if not isinstance(res, (int, float)):
-                raise OptionException('Token after "-" is not a number')
+                raise OptionException.from_node(
+                    'Token after "-" is not a number', node=self.current_node)
             FeatureNew.single_use('negative numbers in meson_options.txt', '0.54.1', self.subproject)
             return -res
         elif isinstance(arg, mparser.NotNode):
             res = self.reduce_single(arg.value)
             if not isinstance(res, bool):
-                raise OptionException('Token after "not" is not a a boolean')
+                raise OptionException.from_node(
+                    'Token after "not" is not a a boolean', node=self.current_node)
             FeatureNew.single_use('negation ("not") in meson_options.txt', '0.54.1', self.subproject)
             return not res
         elif isinstance(arg, mparser.ArithmeticNode):
             l = self.reduce_single(arg.left)
             r = self.reduce_single(arg.right)
             if not (arg.operation == '+' and isinstance(l, str) and isinstance(r, str)):
-                raise OptionException('Only string concatenation with the "+" operator is allowed')
+                raise OptionException.from_node(
+                    'Only string concatenation with the "+" operator is allowed', node=self.current_node)
             FeatureNew.single_use('string concatenation in meson_options.txt', '0.55.0', self.subproject)
             return l + r
         else:
-            raise OptionException('Arguments may only be string, int, bool, or array of those.')
+            raise OptionException.from_node(
+                'Arguments may only be string, int, bool, or array of those.', node=self.current_node)
 
     def reduce_arguments(self, args: mparser.ArgumentNode) -> T.Tuple['TYPE_var', 'TYPE_kwargs']:
         if args.incorrect_order():
-            raise OptionException('All keyword arguments must be after positional arguments.')
+            raise OptionException.from_node(
+                'All keyword arguments must be after positional arguments.', node=self.current_node)
         reduced_pos = [self.reduce_single(arg) for arg in args.arguments]
         reduced_kw = {}
         for key in args.kwargs.keys():
             if not isinstance(key, mparser.IdNode):
-                raise OptionException('Keyword argument name is not a string.')
+                raise OptionException.from_node(
+                    'Keyword argument name is not a string.', node=self.current_node)
             a = args.kwargs[key]
             reduced_kw[key.value] = self.reduce_single(a)
         return reduced_pos, reduced_kw
 
     def evaluate_statement(self, node: mparser.BaseNode) -> None:
         if not isinstance(node, mparser.FunctionNode):
-            raise OptionException('Option file may only contain option definitions')
+            raise OptionException.from_node(
+                'Option file may only contain option definitions', node=self.current_node)
         func_name = node.func_name.value
         if func_name != 'option':
-            raise OptionException('Only calls to option() are allowed in option files.')
+            raise OptionException.from_node(
+                'Only calls to option() are allowed in option files.', node=self.current_node)
         (posargs, kwargs) = self.reduce_arguments(node.args)
         self.func_option(posargs, kwargs)
 
@@ -194,7 +199,8 @@ class OptionInterpreter:
         opt_name = args[0]
         key = OptionKey.from_string(opt_name).evolve(subproject=self.subproject)
         if self.optionstore.is_reserved_name(key):
-            raise OptionException('Option name %s is reserved.' % opt_name)
+            raise OptionException.from_node(
+                f'Option name {opt_name} is reserved.', node=self.current_node)
 
         opt_type = kwargs['type']
         parser = self.option_types[opt_type]
@@ -287,7 +293,8 @@ class OptionInterpreter:
             if value.startswith('['):
                 FeatureDeprecated('String value for array option', '1.3.0').use(self.subproject)
             else:
-                raise mesonlib.MesonException('Value does not define an array: ' + value)
+                raise mesonlib.MesonException.from_node(
+                    f'Value does not define an array: {value}', node=self.current_node)
         name, description, yielding, deprecated = args
         return options.UserStringArrayOption(
             name, description, value,
