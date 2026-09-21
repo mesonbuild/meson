@@ -9,13 +9,11 @@ on:
   push:
     branches:
       - master
-    paths:
+    paths: &shared_paths
       - .github/workflows/website.yml
       - docs/**
   pull_request:
-    paths:
-      - .github/workflows/website.yml
-      - docs/**
+    paths: *shared_paths
   workflow_dispatch:
   release:
     types:
