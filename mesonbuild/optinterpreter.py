@@ -95,52 +95,53 @@ class OptionInterpreter:
         for cur in ast.lines:
             try:
                 self.current_node = cur
-                self.evaluate_statement(cur)
+                self.evaluate_statement()
             except mesonlib.MesonException:
                 raise
             except Exception as e:
                 raise mesonlib.MesonException.from_node(str(e), node=self.current_node)
 
     def reduce_single(self, arg: mparser.BaseNode) -> 'TYPE_var':
-        if isinstance(arg, mparser.ParenthesizedNode):
-            return self.reduce_single(arg.inner)
-        elif isinstance(arg, (mparser.StringNode, mparser.BooleanNode, mparser.NumberNode)):
-            return arg.value
-        elif isinstance(arg, mparser.ArrayNode):
-            return [self.reduce_single(curarg) for curarg in arg.args.arguments]
-        elif isinstance(arg, mparser.DictNode):
-            d = {}
-            for k, v in arg.args.kwargs.items():
-                if not isinstance(k, mparser.StringNode):
+        match arg:
+            case mparser.ParenthesizedNode(inner=inner):
+                return self.reduce_single(inner)
+            case mparser.StringNode(value=value) | mparser.BooleanNode(value=value) | mparser.NumberNode(value=value):
+                return value
+            case mparser.ArrayNode(args=args):
+                return [self.reduce_single(curarg) for curarg in args.arguments]
+            case mparser.DictNode(args=args):
+                d = {}
+                for k, v in arg.args.kwargs.items():
+                    if not isinstance(k, mparser.StringNode):
+                        raise OptionException.from_node(
+                            'Dictionary keys must be a string literal', node=self.current_node)
+                    d[k.value] = self.reduce_single(v)
+                return d
+            case mparser.UMinusNode(value=value):
+                res = self.reduce_single(value)
+                if not isinstance(res, (int, float)):
                     raise OptionException.from_node(
-                        'Dictionary keys must be a string literal', node=self.current_node)
-                d[k.value] = self.reduce_single(v)
-            return d
-        elif isinstance(arg, mparser.UMinusNode):
-            res = self.reduce_single(arg.value)
-            if not isinstance(res, (int, float)):
+                        'Token after "-" is not a number', node=self.current_node)
+                FeatureNew.single_use('negative numbers in meson_options.txt', '0.54.1', self.subproject)
+                return -res
+            case mparser.NotNode(value=value):
+                res = self.reduce_single(value)
+                if not isinstance(res, bool):
+                    raise OptionException.from_node(
+                        'Token after "not" is not a a boolean', node=self.current_node)
+                FeatureNew.single_use('negation ("not") in meson_options.txt', '0.54.1', self.subproject)
+                return not res
+            case mparser.ArithmeticNode(operation=op, left=left, right=right):
+                l = self.reduce_single(left)
+                r = self.reduce_single(right)
+                if not (op == '+' and isinstance(l, str) and isinstance(r, str)):
+                    raise OptionException.from_node(
+                        'Only string concatenation with the "+" operator is allowed', node=self.current_node)
+                FeatureNew.single_use('string concatenation in meson_options.txt', '0.55.0', self.subproject)
+                return l + r
+            case _:
                 raise OptionException.from_node(
-                    'Token after "-" is not a number', node=self.current_node)
-            FeatureNew.single_use('negative numbers in meson_options.txt', '0.54.1', self.subproject)
-            return -res
-        elif isinstance(arg, mparser.NotNode):
-            res = self.reduce_single(arg.value)
-            if not isinstance(res, bool):
-                raise OptionException.from_node(
-                    'Token after "not" is not a a boolean', node=self.current_node)
-            FeatureNew.single_use('negation ("not") in meson_options.txt', '0.54.1', self.subproject)
-            return not res
-        elif isinstance(arg, mparser.ArithmeticNode):
-            l = self.reduce_single(arg.left)
-            r = self.reduce_single(arg.right)
-            if not (arg.operation == '+' and isinstance(l, str) and isinstance(r, str)):
-                raise OptionException.from_node(
-                    'Only string concatenation with the "+" operator is allowed', node=self.current_node)
-            FeatureNew.single_use('string concatenation in meson_options.txt', '0.55.0', self.subproject)
-            return l + r
-        else:
-            raise OptionException.from_node(
-                'Arguments may only be string, int, bool, or array of those.', node=self.current_node)
+                    'Arguments may only be string, int, bool, or array of those.', node=self.current_node)
 
     def reduce_arguments(self, args: mparser.ArgumentNode) -> T.Tuple['TYPE_var', 'TYPE_kwargs']:
         if args.incorrect_order():
@@ -156,15 +157,15 @@ class OptionInterpreter:
             reduced_kw[key.value] = self.reduce_single(a)
         return reduced_pos, reduced_kw
 
-    def evaluate_statement(self, node: mparser.BaseNode) -> None:
-        if not isinstance(node, mparser.FunctionNode):
+    def evaluate_statement(self) -> None:
+        if not isinstance(self.current_node, mparser.FunctionNode):
             raise OptionException.from_node(
                 'Option file may only contain option definitions', node=self.current_node)
-        func_name = node.func_name.value
+        func_name = self.current_node.func_name.value
         if func_name != 'option':
             raise OptionException.from_node(
                 'Only calls to option() are allowed in option files.', node=self.current_node)
-        (posargs, kwargs) = self.reduce_arguments(node.args)
+        (posargs, kwargs) = self.reduce_arguments(self.current_node.args)
         self.func_option(posargs, kwargs)
 
     @TypedArgs(
