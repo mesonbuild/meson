@@ -202,6 +202,7 @@ class BasicPythonExternalProgram(ExternalProgram):
             'version': '0.0',
         }
         self.pure: bool = True
+        self.limited_api: str = ''
 
     @property
     def version(self) -> str:

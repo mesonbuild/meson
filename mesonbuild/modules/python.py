@@ -54,12 +54,13 @@ if T.TYPE_CHECKING:
         disabler: bool
         modules: T.List[str]
         pure: T.Optional[bool]
+        limited_api: str
 
     class ExtensionModuleKw(SharedModuleKw):
 
         # Yes, these are different between SharedModule and ExtensionModule
         install_dir: T.Union[str, bool, None]  # type: ignore[misc]
-        limited_api: str
+        limited_api: T.Optional[str]
         subdir: NotRequired[T.Optional[str]]
 
     class PythonFuncDependency(FuncDependency):
@@ -129,7 +130,7 @@ class PythonExternalProgram(BasicPythonExternalProgram):
 
 _PURE_KW = KwargInfo('pure', (bool, NoneType))
 _SUBDIR_KW = KwargInfo('subdir', str, default='')
-_LIMITED_API_KW = KwargInfo('limited_api', str, default='', since='1.3.0', validator=limited_api_kwarg_validator)
+_LIMITED_API_KW = KwargInfo('limited_api', (str, NoneType), since='1.3.0', validator=limited_api_kwarg_validator)
 _DEFAULTABLE_SUBDIR_KW = KwargInfo('subdir', (str, NoneType))
 
 class PythonInstallation(ProgramHolder['PythonExternalProgram']):
@@ -161,6 +162,7 @@ class PythonInstallation(ProgramHolder['PythonExternalProgram']):
         self.variables = info['variables']
         self.paths = info['paths']
         self.pure = python.pure
+        self.limited_api = python.limited_api
         self.platlib_install_path = os.path.join(prefix, python.platlib)
         self.purelib_install_path = os.path.join(prefix, python.purelib)
 
@@ -260,6 +262,8 @@ class PythonInstallation(ProgramHolder['PythonExternalProgram']):
         # python.allow_limited_api option. The 'X.Y' format is checked by the kwarg validator.
         if not self.interpreter.environment.coredata.optstore.get_value_for(OptionKey('python.allow_limited_api')):
             return ''
+        if limited_api is None:
+            limited_api = self.limited_api
         if not limited_api:
             return ''
         if mesonlib.version_compare(limited_api, '>' + self.version):
@@ -294,7 +298,7 @@ class PythonInstallation(ProgramHolder['PythonExternalProgram']):
         kw_types=[
             *DEPENDENCY_KWS,
             KwargInfo('embed', bool, default=False, since='0.53.0'),
-            KwargInfo('limited_api', (str, NoneType), since='1.13.0', validator=limited_api_kwarg_validator)
+            _LIMITED_API_KW.evolve(since='1.13.0'),
         ],
     )
     @disablerIfNotFound
@@ -529,6 +533,7 @@ class PythonModule(ExtensionModule):
             KwargInfo('disabler', bool, default=False, since='0.49.0'),
             KwargInfo('modules', ContainerTypeInfo(list, str), listify=True, default=[], since='0.51.0'),
             _PURE_KW.evolve(default=True, since='0.64.0'),
+            _LIMITED_API_KW.evolve(default='', since='1.13.0'),
         ],
     )
     def find_installation(self, state: 'ModuleState', args: T.Tuple[T.Optional[str]],
@@ -597,6 +602,7 @@ class PythonModule(ExtensionModule):
             assert isinstance(python, PythonExternalProgram), 'for mypy'
             python = copy.copy(python)
             python.pure = kwargs['pure']
+            python.limited_api = kwargs['limited_api']
             return python
 
         raise mesonlib.MesonBugException('Unreachable code was reached (PythonModule.find_installation).')

@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2016-2021 The Meson development team
 
-import glob, os, pathlib, shutil, subprocess, sys, unittest
+import glob, os, pathlib, re, shutil, subprocess, sys, unittest
 
 from run_tests import (
     Backend
@@ -97,27 +97,36 @@ python = pymod.find_installation('python3', required: true)
         if not is_windows():
             return self.skipTest('Test only run on Windows.')
 
+        if shutil.which('dumpbin'):
+            # MSVC
+            dependents_cmd = ['dumpbin', '/DEPENDENTS']
+        elif shutil.which('objdump'):
+            # mingw
+            dependents_cmd = ['objdump', '-p']
+        else:
+            raise self.skipTest('Test needs either dumpbin(MSVC) or objdump(mingw).')
+
         testdir = os.path.join(self.src_root, 'test cases', 'python', '9 extmodule limited api')
 
         self.init(testdir)
         self.build()
 
+        def dependents(name: str, suffix: str) -> str:
+            path = os.path.join(self.builddir, f'{name}{suffix}')
+            self.assertPathExists(path)
+            return subprocess.check_output(dependents_cmd + [path], stderr=subprocess.STDOUT).decode()
+
         from importlib.machinery import EXTENSION_SUFFIXES
+        full_suffix = EXTENSION_SUFFIXES[0]
         limited_suffix = EXTENSION_SUFFIXES[1]
-
-        limited_library_path = os.path.join(self.builddir, f'limited{limited_suffix}')
-        self.assertPathExists(limited_library_path)
-
         limited_dep_name = 'python3.dll'
-        if shutil.which('dumpbin'):
-            # MSVC
-            output = subprocess.check_output(['dumpbin', '/DEPENDENTS', limited_library_path],
-                                            stderr=subprocess.STDOUT)
-            self.assertIn(limited_dep_name, output.decode())
-        elif shutil.which('objdump'):
-            # mingw
-            output = subprocess.check_output(['objdump', '-p', limited_library_path],
-                                             stderr=subprocess.STDOUT)
-            self.assertIn(limited_dep_name, output.decode())
-        else:
-            raise self.skipTest('Test needs either dumpbin(MSVC) or objdump(mingw).')
+        # Match python314.dll or libpython3.14.dll (MSYS2)
+        versioned_dep = re.compile(rf'python{sys.version_info.major}\.?{sys.version_info.minor}\.dll')
+
+        for name in ('limited', 'limited_inherited'):
+            self.assertIn(limited_dep_name, dependents(name, limited_suffix))
+
+        for name in ('not_limited', 'not_limited_inherited_overridden'):
+            output = dependents(name, full_suffix)
+            self.assertRegex(output, versioned_dep)
+            self.assertNotIn(limited_dep_name, output)

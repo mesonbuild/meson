@@ -33,3 +33,28 @@ static_library('limited_dependency',
   'limited_lib.c',
   dependencies: [py_dep_limited],
 )
+
+# Check that limited_api is inherited by the dependency
+py_limited = py_mod.find_installation(limited_api: '3.7')
+
+static_library('limited_dependency_inherited',
+  'limited_lib.c',
+  dependencies: [py_limited.dependency()],
+)
+
+static_library('not_limited_dependency_inherited_overridden',
+  'not_limited.c',
+  dependencies: [py_limited.dependency(limited_api: '')],
+)
+
+# Check that limited_api is inherited by the extension
+py_limited.extension_module('limited_inherited',
+  'limited.c',
+  install: true,
+)
+
+py_limited.extension_module('not_limited_inherited_overridden',
+  'not_limited.c',
+  install: true,
+  limited_api: '',
+)
