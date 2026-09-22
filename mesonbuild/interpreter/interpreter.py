@@ -1878,16 +1878,39 @@ class Interpreter(InterpreterBase, HoldableObject):
             return self.find_program_fallback(fallback, args, for_machine, default_options, required, extra_info)
 
         progobj = self.program_from_file_for(for_machine, args)
-        if progobj is None:
-            progobj = self.program_from_system(args, search_dirs, extra_info)
-        if progobj is None and args[0].endswith('python3'):
-            prog = ExternalProgram('python3', mesonlib.python_command, silent=True)
-            progobj = prog if prog.found() else None
+        if progobj is not None:
+            if isinstance(progobj, ExternalProgram) and version_arg:
+                progobj.version_arg = version_arg
+            if not self.check_program_version(progobj, wanted, version_func, for_machine, extra_info):
+                progobj = None
 
-        if isinstance(progobj, ExternalProgram) and version_arg:
-            progobj.version_arg = version_arg
-        if progobj and not self.check_program_version(progobj, wanted, version_func, for_machine, extra_info):
-            progobj = None
+        # Try each alternate name separately so a found binary that fails the
+        # version check can fall through to later names (meson#14141).
+        if progobj is None:
+            version_fail_info: T.List[mlog.TV_Loggable] = []
+            for arg in args:
+                candidate_extra: T.List[mlog.TV_Loggable] = []
+                candidate = self.program_from_system([arg], search_dirs, candidate_extra)
+                if candidate is None and isinstance(arg, str) and arg.endswith('python3'):
+                    prog = ExternalProgram('python3', mesonlib.python_command, silent=True)
+                    if not prog.found():
+                        continue
+                    candidate = prog
+                if candidate is None:
+                    continue
+                if isinstance(candidate, ExternalProgram) and version_arg:
+                    candidate.version_arg = version_arg
+                ver_info: T.List[mlog.TV_Loggable] = []
+                if self.check_program_version(candidate, wanted, version_func, for_machine, ver_info):
+                    extra_info.extend(candidate_extra)
+                    extra_info.extend(ver_info)
+                    progobj = candidate
+                    break
+                else:
+                    version_fail_info.extend(candidate_extra)
+                    version_fail_info.extend(ver_info)
+            else:
+                extra_info.extend(version_fail_info)
 
         if progobj is None and fallback and required:
             progobj = self.notfound_program(args)
