@@ -565,6 +565,19 @@ class JNISystemDependency(SystemDependency):
 
         m = self.env.machines[self.for_machine]
 
+        if m.is_android():
+            if kwargs.get('version'):
+                mlog.warning('Ignoring JNI version requirements because there is no mechanism to',
+                             'determine the version on Android',
+                             fatal=False)
+
+            self.is_found, _ = self.clib_compiler.has_header('jni.h', '', environment, dependencies=[self])
+            if kwargs.get('modules'):
+                mlog.warning('Android does not provide JNI modules', fatal=False)
+                self.is_found = False
+
+            return
+
         if 'java' not in environment.coredata.compilers[self.for_machine]:
             detect_compiler(self.name, environment, self.for_machine, 'java')
         self.javac = environment.coredata.compilers[self.for_machine]['java']
