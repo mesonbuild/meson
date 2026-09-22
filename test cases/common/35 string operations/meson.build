@@ -62,6 +62,8 @@ assert(true.to_string() == 'true', 'bool string conversion failed')
 assert(false.to_string() == 'false', 'bool string conversion failed')
 assert(true.to_string('yes', 'no') == 'yes', 'bool string conversion with args failed')
 assert(false.to_string('yes', 'no') == 'no', 'bool string conversion with args failed')
+assert(true.to_string('true', 'no') == 'true', 'bool string conversion with args failed')
+assert(false.to_string('yes', 'false') == 'false', 'bool string conversion with args failed')
 assert('@0@'.format(true) == 'true', 'bool string formatting failed')
 assert('@0@'.format(['one', 'two']) == '[\'one\', \'two\']', 'list string formatting failed')
 
