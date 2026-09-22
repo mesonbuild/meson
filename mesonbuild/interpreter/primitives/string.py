@@ -188,7 +188,7 @@ class MesonVersionString(str):
 
 class MesonVersionStringHolder(StringHolder):
     @TypedArgs(
-        'str.version_compare',
+        'meson.version().version_compare',
         var_types=STR_VARG_1.evolve(
             variadic_since='1.10.0',
             variadic_since_message='From 1.8.0 - 1.9.* it failed to match str.version_compare',
