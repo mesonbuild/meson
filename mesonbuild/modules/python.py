@@ -62,11 +62,28 @@ if T.TYPE_CHECKING:
         limited_api: str
         subdir: NotRequired[T.Optional[str]]
 
+    class PythonFuncDependency(FuncDependency):
+
+        embed: bool
+        limited_api: T.Optional[str]
+
     MaybePythonProg = T.Union[NonExistingExternalProgram, 'PythonExternalProgram']
 
 
 _MOD_KWARGS = [k for k in SHARED_MOD_KWS if
                k.name not in {'name_prefix', 'name_suffix', 'install_dir'}]
+
+
+def limited_api_kwarg_validator(arg: T.Optional[str]) -> T.Optional[str]:
+    if arg is None or arg == '':
+        return None
+    python_api_version_format = re.compile(r'[0-9]\.[0-9]{1,2}')
+    decimal_match = python_api_version_format.fullmatch(arg)
+    if not decimal_match:
+        return 'must be a decimal version number of the form "X.Y" where X is a single digit and Y is one or two digits'
+    if mesonlib.version_compare(arg, '<3.2'):
+        return 'must be greater than or equal to 3.2'
+    return None
 
 
 class PythonExternalProgram(BasicPythonExternalProgram):
@@ -112,7 +129,7 @@ class PythonExternalProgram(BasicPythonExternalProgram):
 
 _PURE_KW = KwargInfo('pure', (bool, NoneType))
 _SUBDIR_KW = KwargInfo('subdir', str, default='')
-_LIMITED_API_KW = KwargInfo('limited_api', str, default='', since='1.3.0')
+_LIMITED_API_KW = KwargInfo('limited_api', str, default='', since='1.3.0', validator=limited_api_kwarg_validator)
 _DEFAULTABLE_SUBDIR_KW = KwargInfo('subdir', (str, NoneType))
 
 class PythonInstallation(ProgramHolder['PythonExternalProgram']):
@@ -190,13 +207,12 @@ class PythonInstallation(ProgramHolder['PythonExternalProgram']):
                                   '0.63.0', self.subproject, 'use python_installation.dependency()',
                                   self.current_node)
 
-        limited_api_version = kwargs.get('limited_api')
-        allow_limited_api = self.interpreter.environment.coredata.optstore.get_value_for(OptionKey('python.allow_limited_api'))
-        if limited_api_version != '' and allow_limited_api:
+        limited_api_version = self._resolve_limited_api_version(kwargs['limited_api'])
+        if limited_api_version != '':
 
             target_suffix = self.limited_api_suffix
 
-            limited_api_version_hex = self._convert_api_version_to_py_version_hex(limited_api_version, pydep.version)
+            limited_api_version_hex = _encode_api_version_as_py_version_hex(limited_api_version)
             limited_api_definition = f'-DPy_LIMITED_API={limited_api_version_hex}'
 
             new_c_args = kwargs['c_args'].copy()
@@ -239,17 +255,16 @@ class PythonInstallation(ProgramHolder['PythonExternalProgram']):
             self.current_node, T.cast('T.Tuple[str, SourcesVarargsType]', args),
             target_kwargs, SharedModule)
 
-    def _convert_api_version_to_py_version_hex(self, api_version: str, detected_version: str) -> str:
-        python_api_version_format = re.compile(r'[0-9]\.[0-9]{1,2}')
-        decimal_match = python_api_version_format.fullmatch(api_version)
-        if not decimal_match:
-            raise InvalidArguments(f'Python API version invalid: "{api_version}".')
-        if mesonlib.version_compare(api_version, '<3.2'):
-            raise InvalidArguments(f'Python Limited API version invalid: {api_version} (must be greater than 3.2)')
-        if mesonlib.version_compare(api_version, '>' + detected_version):
-            raise InvalidArguments(f'Python Limited API version too high: {api_version} (detected {detected_version})')
-
-        return _encode_api_version_as_py_version_hex(api_version)
+    def _resolve_limited_api_version(self, limited_api: T.Optional[str]) -> str:
+        # Returns '' when the limited API is not requested or is disabled by the
+        # python.allow_limited_api option. The 'X.Y' format is checked by the kwarg validator.
+        if not self.interpreter.environment.coredata.optstore.get_value_for(OptionKey('python.allow_limited_api')):
+            return ''
+        if not limited_api:
+            return ''
+        if mesonlib.version_compare(limited_api, '>' + self.version):
+            raise InvalidArguments(f'Python Limited API version too high: {limited_api} (detected {self.version})')
+        return limited_api
 
     def _dependency_method_impl(self, kwargs: DependencyObjectKWs) -> Dependency:
         for_machine = self.interpreter.build.machine_map[kwargs['native']]
@@ -279,11 +294,12 @@ class PythonInstallation(ProgramHolder['PythonExternalProgram']):
         kw_types=[
             *DEPENDENCY_KWS,
             KwargInfo('embed', bool, default=False, since='0.53.0'),
+            KwargInfo('limited_api', (str, NoneType), since='1.13.0', validator=limited_api_kwarg_validator)
         ],
     )
     @disablerIfNotFound
     @InterpreterObject.method('dependency')
-    def dependency_method(self, args: T.List['TYPE_var'], kwargs: FuncDependency) -> 'Dependency':
+    def dependency_method(self, args: T.List['TYPE_var'], kwargs: PythonFuncDependency) -> 'Dependency':
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
         nkwargs = T.cast('DependencyObjectKWs', kwargs.copy())
         nkwargs['required'] = required
@@ -291,6 +307,7 @@ class PythonInstallation(ProgramHolder['PythonExternalProgram']):
             mlog.log('Dependency', mlog.bold('python'), 'skipped: feature', mlog.bold(feature), 'disabled')
             return NotFoundDependency('python', self.interpreter.environment)
         else:
+            nkwargs['limited_api'] = self._resolve_limited_api_version(kwargs['limited_api'])
             dep = self._dependency_method_impl(nkwargs)
             if required and not dep.found():
                 raise mesonlib.MesonException('Python dependency not found')

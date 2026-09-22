@@ -25,3 +25,11 @@ test('load-test',
   env: { 'PYTHONPATH': meson.current_build_dir() },
   workdir: meson.current_source_dir()
 )
+
+# A library (not an extension module) built against the limited API
+py_dep_limited = py.dependency(limited_api: '3.7')
+
+static_library('limited_dependency',
+  'limited_lib.c',
+  dependencies: [py_dep_limited],
+)
