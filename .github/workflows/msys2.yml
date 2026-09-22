@@ -83,14 +83,13 @@ jobs:
             mingw-w64-${{ matrix.MSYS2_ARCH }}-python-lxml
             mingw-w64-${{ matrix.MSYS2_ARCH }}-python-setuptools
             mingw-w64-${{ matrix.MSYS2_ARCH }}-python-pip
-            mingw-w64-${{ matrix.MSYS2_ARCH }}-python-fastjsonschema
             mingw-w64-${{ matrix.MSYS2_ARCH }}-${{ matrix.MSYSTEM != 'MINGW32' && 'objfw' || 'ninja' }}
             mingw-w64-${{ matrix.MSYS2_ARCH }}-${{ matrix.MSYSTEM != 'MINGW32' && 'llvm' || 'ninja' }}
             mingw-w64-${{ matrix.MSYS2_ARCH }}-${{ matrix.TOOLCHAIN }}
 
       - name: Install dependencies
         run: |
-          python3 -m pip --disable-pip-version-check install gcovr pefile pytest pytest-subtests pytest-xdist
+          python3 -m pip --disable-pip-version-check install fastjsonschema gcovr pefile pytest pytest-subtests pytest-xdist
 
       - name: Install pypy3 on x86_64
         run: |
