@@ -123,10 +123,12 @@ python = pymod.find_installation('python3', required: true)
         # Match python314.dll or libpython3.14.dll (MSYS2)
         versioned_dep = re.compile(rf'python{sys.version_info.major}\.?{sys.version_info.minor}\.dll')
 
-        for name in ('limited', 'limited_inherited'):
-            self.assertIn(limited_dep_name, dependents(name, limited_suffix))
+        for name in ('limited', 'limited_inherited', 'limited_with_not_limited_dep', 'limited_with_lib'):
+            output = dependents(name, limited_suffix)
+            self.assertIn(limited_dep_name, output)
+            self.assertNotRegex(output, versioned_dep)
 
-        for name in ('not_limited', 'not_limited_inherited_overridden'):
+        for name in ('not_limited', 'not_limited_inherited_overridden', 'not_limited_with_limited_dep'):
             output = dependents(name, full_suffix)
             self.assertRegex(output, versioned_dep)
             self.assertNotIn(limited_dep_name, output)

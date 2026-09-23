@@ -12,7 +12,7 @@ from .. import mlog
 from ..build import SharedModule
 from ..dependencies import NotFoundDependency
 from ..dependencies.detect import get_dep_identifier, find_external_dependency
-from ..dependencies.python import BasicPythonExternalProgram, python_factory, _PythonDependencyBase, _encode_api_version_as_py_version_hex
+from ..dependencies.python import BasicPythonExternalProgram, python_factory, _PythonDependencyBase
 from ..interpreter import extract_required_kwarg, primitives as P_OBJ
 from ..interpreter.interpreterobjects import ProgramHolder
 from ..interpreter.type_checking import (
@@ -196,50 +196,30 @@ class PythonInstallation(ProgramHolder['PythonExternalProgram']):
 
             target_kwargs['install_dir'] = [self._get_install_dir_impl(False, subdir)]
 
-        target_suffix = self.suffix
+        limited_api_version = self._resolve_limited_api_version(kwargs['limited_api'])
 
         new_deps = kwargs['dependencies'].copy()
         pydep = next((dep for dep in new_deps if isinstance(dep, _PythonDependencyBase)), None)
         if pydep is None:
-            pydep = self._dependency_method_impl({'native': kwargs['native']})
+            pydep = self._dependency_method_impl({'native': kwargs['native'], 'limited_api': limited_api_version})
             if not pydep.found():
                 raise mesonlib.MesonException('Python dependency not found')
             new_deps.append(pydep)
             FeatureNew.single_use('python_installation.extension_module with implicit dependency on python',
                                   '0.63.0', self.subproject, 'use python_installation.dependency()',
                                   self.current_node)
-
-        limited_api_version = self._resolve_limited_api_version(kwargs['limited_api'])
-        if limited_api_version != '':
-
-            target_suffix = self.limited_api_suffix
-
-            limited_api_version_hex = _encode_api_version_as_py_version_hex(limited_api_version)
-            limited_api_definition = f'-DPy_LIMITED_API={limited_api_version_hex}'
-
-            new_c_args = kwargs['c_args'].copy()
-            new_c_args.append(limited_api_definition)
-            target_kwargs['c_args'] = new_c_args
-
-            new_cpp_args = kwargs['cpp_args'].copy()
-            new_cpp_args.append(limited_api_definition)
-            target_kwargs['cpp_args'] = new_cpp_args
-
-            # On Windows, the limited API DLL is python3.dll, not python3X.dll.
-            # FIXME: pydep.for_machine is nicer, but InternalDependency does not have the attribute
-            for_machine = self.interpreter.build.machine_map[kwargs['native']]
-            if self.interpreter.environment.machines[for_machine].is_windows():
-                pydep_copy = copy.copy(pydep)
-                if isinstance(pydep_copy, _PythonDependencyBase):
-                    pydep_copy.limited_api = limited_api_version
-                    pydep_copy.find_libpy_windows(self.env)
-                if not pydep_copy.found():
-                    raise mesonlib.MesonException('Python dependency supporting limited API not found')
-
-                new_deps.remove(pydep)
-                new_deps.append(pydep_copy)
+        elif pydep.limited_api != limited_api_version:
+            if pydep.limited_api and limited_api_version:
+                raise InvalidArguments(f'Extension module {args[0]!r} requests Limited API version {limited_api_version} '
+                                       f'but the Python dependency uses version {pydep.limited_api}')
+            new_pydep = pydep.with_limited_api(limited_api_version)
+            if not new_pydep.found():
+                raise mesonlib.MesonException('Python dependency not found')
+            new_deps[new_deps.index(pydep)] = new_pydep
 
         target_kwargs['dependencies'] = new_deps
+
+        target_suffix = self.limited_api_suffix if limited_api_version else self.suffix
 
         # msys2's python3 has "-cpython-36m.dll", we have to be clever
         # FIXME: explain what the specific cleverness is here

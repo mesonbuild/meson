@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-import functools, json, operator, os, textwrap
+import copy, functools, json, operator, os, textwrap, uuid
 from pathlib import Path
 import typing as T
 
@@ -312,8 +312,27 @@ class _PythonDependencyBase(_Base):
         if self.is_windows_python() and self.is_freethreaded:
             self.compile_args += ['-DPy_GIL_DISABLED']
 
-        if self.limited_api:
-            self.compile_args += ['-DPy_LIMITED_API=' + _encode_api_version_as_py_version_hex(self.limited_api)]
+        self.compile_args += self._get_limited_api_compile_args()
+
+    def _get_limited_api_compile_args(self) -> T.List[str]:
+        if not self.limited_api:
+            return []
+        return ['-DPy_LIMITED_API=' + _encode_api_version_as_py_version_hex(self.limited_api)]
+
+    def _update_limited_api_link_args(self) -> None:
+        pass
+
+    def with_limited_api(self, limited_api: str) -> _PythonDependencyBase:
+        '''Return a copy of this dependency that targets a different limited API version.'''
+        new = copy.copy(self)
+        new._id = uuid.uuid4().int
+        new.limited_api = limited_api
+        # The shallow copy shares argument lists with self, so build new ones.
+        new.compile_args = [a for a in self.compile_args if not a.startswith('-DPy_LIMITED_API=')]
+        new.compile_args += new._get_limited_api_compile_args()
+        if new.is_found:
+            new._update_limited_api_link_args()
+        return new
 
     def find_libpy(self, environment: 'Environment') -> None:
         if self.build_config:
@@ -533,6 +552,9 @@ class PythonPkgConfigDependency(PkgConfigDependency, _PythonDependencyBase):
                        'this is likely due to a relocated python installation')
             return
 
+        self._pkgconfig_link_args = self.link_args.copy()
+        self._update_limited_api_link_args()
+
         # pkg-config files are usually accurate starting with python 3.8
         if not self.link_libpython and mesonlib.version_compare(self.version, '< 3.8'):
             self.link_args = []
@@ -546,6 +568,14 @@ class PythonPkgConfigDependency(PkgConfigDependency, _PythonDependencyBase):
                 if self.raw_link_args is not None:
                     # When None, self.link_args is used
                     self.raw_link_args += ['-Wl,-rpath,' + framework_prefix]
+
+    def _update_limited_api_link_args(self) -> None:
+        if not (self.link_libpython and self.is_windows_python()):
+            return
+        if self.limited_api:
+            self.find_libpy_windows(self.env)
+        else:
+            self.link_args = self._pkgconfig_link_args.copy()
 
 
 class PythonFrameworkDependency(ExtraFrameworkDependency, _PythonDependencyBase):
@@ -601,6 +631,10 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
 
         if not self.clib_compiler.has_header('Python.h', '', extra_args=self.compile_args)[0]:
             self.is_found = False
+
+    def _update_limited_api_link_args(self) -> None:
+        if self.link_libpython and self.is_windows_python():
+            self.find_libpy_windows(self.env)
 
 def python_factory(env: Environment, kwargs: DependencyObjectKWs,
                    installation: T.Optional['BasicPythonExternalProgram'] = None) -> T.List['DependencyGenerator']:

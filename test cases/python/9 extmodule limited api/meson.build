@@ -29,7 +29,7 @@ test('load-test',
 # A library (not an extension module) built against the limited API
 py_dep_limited = py.dependency(limited_api: '3.7')
 
-static_library('limited_dependency',
+limited_dependency = static_library('limited_dependency',
   'limited_lib.c',
   dependencies: [py_dep_limited],
 )
@@ -57,4 +57,25 @@ py_limited.extension_module('not_limited_inherited_overridden',
   'not_limited.c',
   install: true,
   limited_api: '',
+)
+
+# Check that a limited extension swaps out a not-limited dependency
+py.extension_module('limited_with_not_limited_dep',
+  'limited.c',
+  limited_api: '3.7',
+  dependencies: [py.dependency()],
+)
+
+# Check that a not-limited extension swaps out a limited dependency
+py.extension_module('not_limited_with_limited_dep',
+  'not_limited.c',
+  dependencies: [py.dependency(limited_api: '3.7')],
+)
+
+# Check that a limited extension can link a limited library
+py.extension_module('limited_with_lib',
+  'limited_with_lib.c',
+  limited_api: '3.7',
+  link_with: [limited_dependency],
+  install: true,
 )

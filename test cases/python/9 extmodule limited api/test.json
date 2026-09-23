@@ -7,6 +7,8 @@
     {"type": "python_limited_lib", "file": "usr/@PYTHON_PLATLIB@/limited_inherited"},
     {"type": "py_limited_implib", "file": "usr/@PYTHON_PLATLIB@/limited_inherited"},
     {"type": "python_lib", "file": "usr/@PYTHON_PLATLIB@/not_limited_inherited_overridden"},
-    {"type": "py_implib", "file": "usr/@PYTHON_PLATLIB@/not_limited_inherited_overridden"}
+    {"type": "py_implib", "file": "usr/@PYTHON_PLATLIB@/not_limited_inherited_overridden"},
+    {"type": "python_limited_lib", "file": "usr/@PYTHON_PLATLIB@/limited_with_lib"},
+    {"type": "py_limited_implib", "file": "usr/@PYTHON_PLATLIB@/limited_with_lib"}
   ]
 }
