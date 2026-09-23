@@ -18,6 +18,7 @@ p = mod.add_project('configure',
   ],
   depends: somelib,
   verbose: true,
+  env: ['FOO=BAR'],
 )
 
 libfoo_dep = declare_dependency(link_with : somelib,
