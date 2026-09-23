@@ -506,6 +506,8 @@ python bytecode. Bytecode has 3 optimization levels:
 To this, Meson adds level `-1`, which is to not attempt to compile bytecode at
 all.
 
-*Since 1.3.0* The `python.allow_limited_api` option affects whether the
-`limited_api` keyword argument of the `extension_module` method is respected.
-If set to `false`, the effect of the `limited_api` argument is disabled.
+*Since 1.3.0* The `python.allow_limited_api` option affects whether
+the `limited_api` keyword argument is respected. If set to `false`,
+the effect of the argument is disabled. This argument is found on the
+`find_installation` function, the `extension_module` method, and the
+`dependency` method of the Python installation object.
