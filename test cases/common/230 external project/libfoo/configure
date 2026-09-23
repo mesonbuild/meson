@@ -1,5 +1,7 @@
 #! /bin/sh
 
+set -e
+
 srcdir=$(dirname "$0")
 
 # some configure scripts seem to iterate over srcdir and other paths
@@ -60,3 +62,8 @@ install: libfoo.$LIBEXT
 	cp \$< "\$(DESTDIR)$LIBDIR";
 	cp "$srcdir/libfoo.h" "\$(DESTDIR)$INCDIR";
 EOL
+
+if [ "$FOO" != "BAR" ]; then
+  echo "Env FOO is not set"
+  exit 1
+fi
