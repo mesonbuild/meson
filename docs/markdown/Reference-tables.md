@@ -192,6 +192,7 @@ These are provided by the `.system()` method call.
 | os/2                | OS/2 |
 | fuchsia             | Google's Fuchsia |
 | aix                 | IBM AIX or IBM i PASE |
+| qnx                 | QNX Neutrino RTOS |
 
 Any string not listed above is not guaranteed to remain stable in
 future releases.
@@ -216,6 +217,7 @@ Native names as returned by the `.kernel()` method.
 | fuchsia             | Google's Fuchsia |
 | aix     | |
 | os400               | IBM i (formerly known as OS/400) |
+| neutrino            | QNX Neutrino microkernel |
 | none                | For e.g. bare metal embedded    |
 
 

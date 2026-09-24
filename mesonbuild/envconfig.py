@@ -100,6 +100,7 @@ KNOWN_SYSTEMS = frozenset({
     'netbsd',
     'openbsd',
     'os/2',
+    'qnx',
     'sunos',
     'windows',
 })
@@ -587,6 +588,7 @@ KERNEL_MAPPINGS: T.Mapping[str, str] = {'freebsd': 'freebsd',
                                         'gnu': 'gnu',
                                         'fuchsia': 'fuchsia',
                                         'aix': 'aix',
+                                        'qnx': 'neutrino',
                                         }
 
 def detect_windows_arch(compilers: CompilerDict) -> str:
