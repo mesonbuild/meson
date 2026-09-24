@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-import functools, json, operator, os, textwrap
+import copy, functools, json, operator, os, textwrap, uuid
 from pathlib import Path
 import typing as T
 
@@ -45,6 +45,14 @@ if T.TYPE_CHECKING:
     _Base = ExternalDependency
 else:
     _Base = object
+
+
+def _encode_api_version_as_py_version_hex(api_version: str) -> str:
+    version_components = api_version.split('.')
+    major = int(version_components[0])
+    minor = int(version_components[1])
+
+    return '0x{:02x}{:02x}0000'.format(major, minor)
 
 
 class Pybind11ConfigToolDependency(ConfigToolDependency):
@@ -194,6 +202,7 @@ class BasicPythonExternalProgram(ExternalProgram):
             'version': '0.0',
         }
         self.pure: bool = True
+        self.limited_api: str = ''
 
     @property
     def version(self) -> str:
@@ -255,8 +264,9 @@ class _PythonDependencyBase(_Base):
     def is_windows_python(self) -> bool:
         return self.platform.startswith(('win', 'mingw'))
 
-    def __init__(self, python_holder: 'BasicPythonExternalProgram', embed: bool):
+    def __init__(self, python_holder: 'BasicPythonExternalProgram', embed: bool, limited_api: str):
         self.embed = embed
+        self.limited_api = limited_api
         self.build_config = python_holder.build_config
 
         if self.build_config:
@@ -301,6 +311,28 @@ class _PythonDependencyBase(_Base):
         # Py_GIL_DISABLED correctly. So do it here:
         if self.is_windows_python() and self.is_freethreaded:
             self.compile_args += ['-DPy_GIL_DISABLED']
+
+        self.compile_args += self._get_limited_api_compile_args()
+
+    def _get_limited_api_compile_args(self) -> T.List[str]:
+        if not self.limited_api:
+            return []
+        return ['-DPy_LIMITED_API=' + _encode_api_version_as_py_version_hex(self.limited_api)]
+
+    def _update_limited_api_link_args(self) -> None:
+        pass
+
+    def with_limited_api(self, limited_api: str) -> _PythonDependencyBase:
+        '''Return a copy of this dependency that targets a different limited API version.'''
+        new = copy.copy(self)
+        new._id = uuid.uuid4().int
+        new.limited_api = limited_api
+        # The shallow copy shares argument lists with self, so build new ones.
+        new.compile_args = [a for a in self.compile_args if not a.startswith('-DPy_LIMITED_API=')]
+        new.compile_args += new._get_limited_api_compile_args()
+        if new.is_found:
+            new._update_limited_api_link_args()
+        return new
 
     def find_libpy(self, environment: 'Environment') -> None:
         if self.build_config:
@@ -354,11 +386,13 @@ class _PythonDependencyBase(_Base):
             return 'aarch64'
         raise DependencyException('Unknown Windows Python platform {self.platform!r}')
 
-    def get_windows_link_args(self, limited_api: bool, environment: 'Environment') -> T.Optional[T.List[str]]:
+    def get_windows_link_args(self, environment: 'Environment') -> T.Optional[T.List[str]]:
+        use_limited_api = bool(self.limited_api)
+
         if self.build_config:
             if self.static:
                 key = 'static'
-            elif limited_api:
+            elif use_limited_api:
                 key = 'dynamic-stableabi'
             else:
                 key = 'dynamic'
@@ -375,7 +409,7 @@ class _PythonDependencyBase(_Base):
             if self.static:
                 libpath = Path('libs') / f'libpython{vernum}.a'
             else:
-                if limited_api:
+                if use_limited_api:
                     vernum = vernum[0]
                 comp = self.get_compiler()
                 if comp.id == "gcc":
@@ -421,12 +455,12 @@ class _PythonDependencyBase(_Base):
             lib = Path(self.variables.get('base_prefix')) / libpath
         elif self.platform.startswith('mingw'):
             if self.static:
-                if limited_api:
+                if use_limited_api:
                     libname = self.variables.get('ABI3DLLLIBRARY')
                 else:
                     libname = self.variables.get('LIBRARY')
             else:
-                if limited_api:
+                if use_limited_api:
                     libname = self.variables.get('ABI3LDLIBRARY')
                 else:
                     libname = self.variables.get('LDLIBRARY')
@@ -439,7 +473,19 @@ class _PythonDependencyBase(_Base):
             return None
         return [str(lib)]
 
-    def find_libpy_windows(self, env: 'Environment', limited_api: bool = False) -> None:
+    def _get_msvc_limited_api_link_args(self) -> T.List[str]:
+        # When compiled under MSVC, Python's PC/pyconfig.h forcibly inserts pythonMAJOR.MINOR.lib
+        # into the linker path when not running in debug mode via a series #pragma comment(lib, "")
+        # directives. We manually override these here as this interferes with the intended
+        # use of the 'limited_api' kwarg
+        if self.get_compiler().get_id() != 'msvc':
+            return []
+        pyver = self.version.replace('.', '')
+        debug = self.env.coredata.optstore.get_value_for(OptionKey('debug'))
+        suffix = '_d' if debug else ''
+        return [f'/NODEFAULTLIB:python{pyver}{suffix}.lib']
+
+    def find_libpy_windows(self, env: 'Environment') -> None:
         '''
         Find python3 libraries on Windows and also verify that the arch matches
         what we are building for.
@@ -456,10 +502,12 @@ class _PythonDependencyBase(_Base):
             self.is_found = False
             return
         # This can fail if the library is not found
-        largs = self.get_windows_link_args(limited_api, env)
+        largs = self.get_windows_link_args(env)
         if largs is None:
             self.is_found = False
             return
+        if self.limited_api:
+            largs += self._get_msvc_limited_api_link_args()
         self.link_args = largs
         self.is_found = True
 
@@ -470,6 +518,7 @@ class PythonPkgConfigDependency(PkgConfigDependency, _PythonDependencyBase):
     def __init__(self, name: str, environment: Environment, kwargs: DependencyObjectKWs,
                  installation: 'BasicPythonExternalProgram'):
         embed = kwargs.get('embed', False)
+        limited_api = kwargs.get('limited_api', '')
         pkg_embed = '-embed' if embed and mesonlib.version_compare(installation.info['version'], '>=3.8') else ''
         pkg_name = f'python-{installation.version}{pkg_embed}'
 
@@ -496,12 +545,15 @@ class PythonPkgConfigDependency(PkgConfigDependency, _PythonDependencyBase):
         pkgconfig_paths = [pkg_libdir] if pkg_libdir else []
 
         PkgConfigDependency.__init__(self, pkg_name, environment, kwargs, extra_paths=pkgconfig_paths)
-        _PythonDependencyBase.__init__(self, installation, embed)
+        _PythonDependencyBase.__init__(self, installation, embed, limited_api)
 
         if pkg_libdir and not self.is_found:
             mlog.debug(f'{pkg_name!r} could not be found in {pkg_libdir_origin}, '
                        'this is likely due to a relocated python installation')
             return
+
+        self._pkgconfig_link_args = self.link_args.copy()
+        self._update_limited_api_link_args()
 
         # pkg-config files are usually accurate starting with python 3.8
         if not self.link_libpython and mesonlib.version_compare(self.version, '< 3.8'):
@@ -517,13 +569,21 @@ class PythonPkgConfigDependency(PkgConfigDependency, _PythonDependencyBase):
                     # When None, self.link_args is used
                     self.raw_link_args += ['-Wl,-rpath,' + framework_prefix]
 
+    def _update_limited_api_link_args(self) -> None:
+        if not (self.link_libpython and self.is_windows_python()):
+            return
+        if self.limited_api:
+            self.find_libpy_windows(self.env)
+        else:
+            self.link_args = self._pkgconfig_link_args.copy()
+
 
 class PythonFrameworkDependency(ExtraFrameworkDependency, _PythonDependencyBase):
 
     def __init__(self, name: str, environment: 'Environment',
                  kwargs: DependencyObjectKWs, installation: 'BasicPythonExternalProgram'):
         ExtraFrameworkDependency.__init__(self, name, environment, kwargs)
-        _PythonDependencyBase.__init__(self, installation, kwargs.get('embed', False))
+        _PythonDependencyBase.__init__(self, installation, kwargs.get('embed', False), kwargs.get('limited_api', ''))
 
 
 class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
@@ -531,7 +591,7 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
     def __init__(self, name: str, environment: 'Environment',
                  kwargs: DependencyObjectKWs, installation: BasicPythonExternalProgram):
         SystemDependency.__init__(self, name, environment, kwargs)
-        _PythonDependencyBase.__init__(self, installation, kwargs.get('embed', False))
+        _PythonDependencyBase.__init__(self, installation, kwargs.get('embed', False), kwargs.get('limited_api', ''))
 
         # For most platforms, match pkg-config behavior. iOS is a special case;
         # check for that first, so that check takes priority over
@@ -543,7 +603,7 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
         elif self.link_libpython:
             # link args
             if self.is_windows_python():
-                self.find_libpy_windows(environment, limited_api=False)
+                self.find_libpy_windows(environment)
             else:
                 self.find_libpy(environment)
         else:
@@ -571,6 +631,10 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
 
         if not self.clib_compiler.has_header('Python.h', '', extra_args=self.compile_args)[0]:
             self.is_found = False
+
+    def _update_limited_api_link_args(self) -> None:
+        if self.link_libpython and self.is_windows_python():
+            self.find_libpy_windows(self.env)
 
 def python_factory(env: Environment, kwargs: DependencyObjectKWs,
                    installation: T.Optional['BasicPythonExternalProgram'] = None) -> T.List['DependencyGenerator']:
