@@ -100,6 +100,7 @@ KNOWN_SYSTEMS = frozenset({
     'netbsd',
     'openbsd',
     'os/2',
+    'qnx',
     'sunos',
     'windows',
 })
@@ -438,6 +439,9 @@ class MachineInfo(HoldableObject):
     def is_fuchsia(self) -> bool:
         return self.system == 'fuchsia'
 
+    def is_qnx(self) -> bool:
+        return self.system == 'qnx'
+
     # Various prefixes and suffixes for import libraries, shared libraries,
     # static libraries, and executables.
     # Versioning is added to these names in the backends as-needed.
@@ -584,6 +588,7 @@ KERNEL_MAPPINGS: T.Mapping[str, str] = {'freebsd': 'freebsd',
                                         'gnu': 'gnu',
                                         'fuchsia': 'fuchsia',
                                         'aix': 'aix',
+                                        'qnx': 'neutrino',
                                         }
 
 def detect_windows_arch(compilers: CompilerDict) -> str:
