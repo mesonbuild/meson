@@ -1,15 +1,24 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2024 Meson project contributors
 
+from __future__ import annotations
+
+import typing as T
+
 from mesonbuild.options import (
     OptionStore, OptionKey, UserStringOption, UserStringArrayOption,
     UserComboOption, UserBooleanOption,
 )
 from mesonbuild.envconfig import MachineInfo
+from mesonbuild.build import BuildTarget
 from mesonbuild.utils.universal import MesonException, MachineChoice
 
+from unittest import mock
 import os
 import unittest
+
+if T.TYPE_CHECKING:
+    from mesonbuild.options import OptionDict
 
 
 def make_machine(system: str) -> MachineInfo:
@@ -29,9 +38,10 @@ class OptionTests(unittest.TestCase):
         new_value = 'new_value'
         vo = UserStringOption(name, 'An option of some sort', default_value)
         optstore.add_system_option(name, vo)
-        self.assertEqual(optstore.get_value_for(name), default_value)
-        optstore.set_option(OptionKey.from_string(name), new_value)
-        self.assertEqual(optstore.get_value_for(name), new_value)
+        key = OptionKey.from_string(name)
+        self.assertEqual(optstore.get_value_for_untyped(key), default_value)
+        optstore.set_option(key, new_value)
+        self.assertEqual(optstore.get_value_for_untyped(key), new_value)
 
     def test_toplevel_project(self):
         optstore = OptionStore(False)
@@ -41,9 +51,9 @@ class OptionTests(unittest.TestCase):
         k = OptionKey(name)
         vo = UserStringOption(k.name, 'An option of some sort', default_value)
         optstore.add_system_option(k.name, vo)
-        self.assertEqual(optstore.get_value_for(k), default_value)
-        optstore.initialize_from_top_level_project_call({OptionKey('someoption'): new_value}, {}, {})
-        self.assertEqual(optstore.get_value_for(k), new_value)
+        self.assertEqual(optstore.get_value_for_untyped(k), default_value)
+        optstore.initialize_from_top_level_project_call({k: new_value}, {}, {})
+        self.assertEqual(optstore.get_value_for_untyped(k), new_value)
 
     def test_machine_vs_project(self):
         optstore = OptionStore(False)
@@ -56,10 +66,10 @@ class OptionTests(unittest.TestCase):
         optstore.add_system_option('prefix', prefix)
         vo = UserStringOption(k.name, 'You know what this is', default_value)
         optstore.add_system_option(k.name, vo)
-        self.assertEqual(optstore.get_value_for(k), default_value)
-        optstore.initialize_from_top_level_project_call({OptionKey(name): proj_value}, {},
-                                                        {OptionKey(name): mfile_value})
-        self.assertEqual(optstore.get_value_for(k), mfile_value)
+        self.assertEqual(optstore.get_value_for_untyped(k), default_value)
+        optstore.initialize_from_top_level_project_call({k: proj_value}, {},
+                                                        {k: mfile_value})
+        self.assertEqual(optstore.get_value_for_untyped(k), mfile_value)
 
     def test_subproject_system_option(self):
         """Test that subproject system options get their default value from the global
@@ -73,7 +83,7 @@ class OptionTests(unittest.TestCase):
         optstore.initialize_from_top_level_project_call({}, {}, {OptionKey(name): new_value})
         vo = UserStringOption(k.name, 'An option of some sort', default_value)
         optstore.add_system_option(subk, vo)
-        self.assertEqual(optstore.get_value_for(subk), new_value)
+        self.assertEqual(optstore.get_value_for_untyped(subk), new_value)
 
     def test_parsing(self):
         with self.subTest('subproject'):
@@ -100,7 +110,7 @@ class OptionTests(unittest.TestCase):
         default_value = 'somevalue'
         vo = UserStringOption(name, 'An option of some sort', default_value)
         optstore.add_system_option(name, vo)
-        self.assertEqual(optstore.get_value_for(name, 'somesubproject'), default_value)
+        self.assertEqual(optstore.get_value_for_untyped(OptionKey(name, 'somesubproject')), default_value)
 
     def test_reset(self):
         optstore = OptionStore(False)
@@ -109,11 +119,11 @@ class OptionTests(unittest.TestCase):
         reset_value = 'reset'
         vo = UserStringOption(name, 'An option set twice', original_value)
         optstore.add_system_option(name, vo)
-        self.assertEqual(optstore.get_value_for(name), original_value)
+        self.assertEqual(optstore.get_value_for_untyped(OptionKey(name)), original_value)
         self.assertEqual(num_options(optstore), 1)
         vo2 = UserStringOption(name, 'An option set twice', reset_value)
         optstore.add_system_option(name, vo2)
-        self.assertEqual(optstore.get_value_for(name), original_value)
+        self.assertEqual(optstore.get_value_for_untyped(OptionKey(name)), original_value)
         self.assertEqual(num_options(optstore), 1)
 
     def test_project_nonyielding(self):
@@ -123,12 +133,12 @@ class OptionTests(unittest.TestCase):
         sub_value = 'sub'
         vo = UserStringOption(name, 'A top level option', top_value, False)
         optstore.add_project_option(OptionKey(name, ''), vo)
-        self.assertEqual(optstore.get_value_for(name, ''), top_value, False)
+        self.assertEqual(optstore.get_value_for_untyped(OptionKey(name, '')), top_value, False)
         self.assertEqual(num_options(optstore), 1)
         vo2 = UserStringOption(name, 'A subproject option', sub_value)
         optstore.add_project_option(OptionKey(name, 'sub'), vo2)
-        self.assertEqual(optstore.get_value_for(name, ''), top_value)
-        self.assertEqual(optstore.get_value_for(name, 'sub'), sub_value)
+        self.assertEqual(optstore.get_value_for_untyped(OptionKey(name, '')), top_value)
+        self.assertEqual(optstore.get_value_for_untyped(OptionKey(name, 'sub')), sub_value)
         self.assertEqual(num_options(optstore), 2)
 
     def test_toplevel_project_yielding(self):
@@ -137,7 +147,7 @@ class OptionTests(unittest.TestCase):
         top_value = 'top'
         vo = UserStringOption(name, 'A top level option', top_value, True)
         optstore.add_project_option(OptionKey(name, ''), vo)
-        self.assertEqual(optstore.get_value_for(name, ''), top_value)
+        self.assertEqual(optstore.get_value_for_untyped(OptionKey(name, '')), top_value)
 
     def test_project_yielding(self):
         optstore = OptionStore(False)
@@ -146,12 +156,12 @@ class OptionTests(unittest.TestCase):
         sub_value = 'sub'
         vo = UserStringOption(name, 'A top level option', top_value)
         optstore.add_project_option(OptionKey(name, ''), vo)
-        self.assertEqual(optstore.get_value_for(name, ''), top_value)
+        self.assertEqual(optstore.get_value_for_untyped(OptionKey(name, '')), top_value)
         self.assertEqual(num_options(optstore), 1)
         vo2 = UserStringOption(name, 'A subproject option', sub_value, True)
         optstore.add_project_option(OptionKey(name, 'sub'), vo2)
-        self.assertEqual(optstore.get_value_for(name, ''), top_value)
-        self.assertEqual(optstore.get_value_for(name, 'sub'), top_value)
+        self.assertEqual(optstore.get_value_for_untyped(OptionKey(name, '')), top_value)
+        self.assertEqual(optstore.get_value_for_untyped(OptionKey(name, 'sub')), top_value)
         self.assertEqual(num_options(optstore), 2)
 
     def test_project_yielding_not_defined_in_top_project(self):
@@ -162,12 +172,12 @@ class OptionTests(unittest.TestCase):
         sub_value = 'sub'
         vo = UserStringOption(top_name, 'A top level option', top_value)
         optstore.add_project_option(OptionKey(top_name, ''), vo)
-        self.assertEqual(optstore.get_value_for(top_name, ''), top_value)
+        self.assertEqual(optstore.get_value_for_untyped(OptionKey(top_name, '')), top_value)
         self.assertEqual(num_options(optstore), 1)
         vo2 = UserStringOption(sub_name, 'A subproject option', sub_value, True)
         optstore.add_project_option(OptionKey(sub_name, 'sub'), vo2)
-        self.assertEqual(optstore.get_value_for(top_name, ''), top_value)
-        self.assertEqual(optstore.get_value_for(sub_name, 'sub'), sub_value)
+        self.assertEqual(optstore.get_value_for_untyped(OptionKey(top_name, '')), top_value)
+        self.assertEqual(optstore.get_value_for_untyped(OptionKey(sub_name, 'sub')), sub_value)
         self.assertEqual(num_options(optstore), 2)
 
     def test_project_yielding_initialize(self):
@@ -181,18 +191,18 @@ class OptionTests(unittest.TestCase):
         vo = UserStringOption(name, 'A top level option', 'default1')
         optstore.add_project_option(OptionKey(name, ''), vo)
         optstore.initialize_from_top_level_project_call({}, cmd_line, {})
-        self.assertEqual(optstore.get_value_for(name, ''), top_value)
+        self.assertEqual(optstore.get_value_for_untyped(OptionKey(name, '')), top_value)
         self.assertEqual(num_options(optstore), 1)
 
         vo2 = UserStringOption(name, 'A subproject option', 'default2', True)
         optstore.add_project_option(OptionKey(name, 'subp'), vo2)
-        self.assertEqual(optstore.get_value_for(name, ''), top_value)
-        self.assertEqual(optstore.get_value_for(name, subp), top_value)
+        self.assertEqual(optstore.get_value_for_untyped(OptionKey(name, '')), top_value)
+        self.assertEqual(optstore.get_value_for_untyped(OptionKey(name, subp)), top_value)
         self.assertEqual(num_options(optstore), 2)
 
         optstore.initialize_from_subproject_call(subp, {}, {}, cmd_line, {})
-        self.assertEqual(optstore.get_value_for(name, ''), top_value)
-        self.assertEqual(optstore.get_value_for(name, subp), sub_value)
+        self.assertEqual(optstore.get_value_for_untyped(OptionKey(name, '')), top_value)
+        self.assertEqual(optstore.get_value_for_untyped(OptionKey(name, subp)), sub_value)
 
     def test_augments(self):
         optstore = OptionStore(False)
@@ -207,34 +217,34 @@ class OptionTests(unittest.TestCase):
                              top_value,
                              choices=['c++98', 'c++11', 'c++14', 'c++17', 'c++20', 'c++23'])
         optstore.add_system_option(name, co)
-        self.assertEqual(optstore.get_value_for(name), top_value)
-        self.assertEqual(optstore.get_value_for(name, sub_name), top_value)
-        self.assertEqual(optstore.get_value_for(name, sub2_name), top_value)
+        self.assertEqual(optstore.get_value_for_untyped(OptionKey(name, '')), top_value)
+        self.assertEqual(optstore.get_value_for_untyped(OptionKey(name, sub_name)), top_value)
+        self.assertEqual(optstore.get_value_for_untyped(OptionKey(name, sub2_name)), top_value)
 
         # First augment a subproject
         with self.subTest('set subproject override'):
             optstore.set_from_configure_command({OptionKey.from_string(f'{sub_name}:{name}'): aug_value})
-            self.assertEqual(optstore.get_value_for(name), top_value)
-            self.assertEqual(optstore.get_value_for(name, sub_name), aug_value)
-            self.assertEqual(optstore.get_value_for(name, sub2_name), top_value)
+            self.assertEqual(optstore.get_value_for_untyped(OptionKey(name, '')), top_value)
+            self.assertEqual(optstore.get_value_for_untyped(OptionKey(name, sub_name)), aug_value)
+            self.assertEqual(optstore.get_value_for_untyped(OptionKey(name, sub2_name)), top_value)
 
         with self.subTest('unset subproject override'):
             optstore.set_from_configure_command({OptionKey.from_string(f'{sub_name}:{name}'): None})
-            self.assertEqual(optstore.get_value_for(name), top_value)
-            self.assertEqual(optstore.get_value_for(name, sub_name), top_value)
-            self.assertEqual(optstore.get_value_for(name, sub2_name), top_value)
+            self.assertEqual(optstore.get_value_for_untyped(OptionKey(name, '')), top_value)
+            self.assertEqual(optstore.get_value_for_untyped(OptionKey(name, sub_name)), top_value)
+            self.assertEqual(optstore.get_value_for_untyped(OptionKey(name, sub2_name)), top_value)
 
         # And now augment the top level option
         optstore.set_from_configure_command({OptionKey.from_string(f':{name}'): aug_value})
-        self.assertEqual(optstore.get_value_for(name, None), top_value)
-        self.assertEqual(optstore.get_value_for(name, ''), aug_value)
-        self.assertEqual(optstore.get_value_for(name, sub_name), top_value)
-        self.assertEqual(optstore.get_value_for(name, sub2_name), top_value)
+        self.assertEqual(optstore.get_value_for_untyped(OptionKey(name, None)), top_value)
+        self.assertEqual(optstore.get_value_for_untyped(OptionKey(name, '')), aug_value)
+        self.assertEqual(optstore.get_value_for_untyped(OptionKey(name, sub_name)), top_value)
+        self.assertEqual(optstore.get_value_for_untyped(OptionKey(name, sub2_name)), top_value)
 
         optstore.set_from_configure_command({OptionKey.from_string(f':{name}'): None})
-        self.assertEqual(optstore.get_value_for(name), top_value)
-        self.assertEqual(optstore.get_value_for(name, sub_name), top_value)
-        self.assertEqual(optstore.get_value_for(name, sub2_name), top_value)
+        self.assertEqual(optstore.get_value_for_untyped(OptionKey(name, '')), top_value)
+        self.assertEqual(optstore.get_value_for_untyped(OptionKey(name, sub_name)), top_value)
+        self.assertEqual(optstore.get_value_for_untyped(OptionKey(name, sub2_name)), top_value)
 
     def test_augment_set_sub(self):
         optstore = OptionStore(False)
@@ -252,8 +262,8 @@ class OptionTests(unittest.TestCase):
         optstore.add_system_option(name, co)
         optstore.set_from_configure_command({OptionKey.from_string(f'{sub_name}:{name}'): aug_value})
         optstore.set_from_configure_command({OptionKey.from_string(f'{sub_name}:{name}'): set_value})
-        self.assertEqual(optstore.get_value_for(name), top_value)
-        self.assertEqual(optstore.get_value_for(name, sub_name), set_value)
+        self.assertEqual(optstore.get_value_for_untyped(OptionKey(name, '')), top_value)
+        self.assertEqual(optstore.get_value_for_untyped(OptionKey(name, sub_name)), set_value)
 
     def test_build_to_host(self):
         key = OptionKey('cpp_std')
@@ -269,8 +279,8 @@ class OptionTests(unittest.TestCase):
 
         cmd_line = {key: opt_value}
         optstore.initialize_from_top_level_project_call({}, cmd_line, {})
-        self.assertEqual(optstore.get_option_and_value_for(key.as_build())[1], opt_value)
-        self.assertEqual(optstore.get_value_for(key.as_build()), opt_value)
+        self.assertEqual(optstore.get_option_and_value_for_untyped(key.as_build())[1], opt_value)
+        self.assertEqual(optstore.get_value_for_untyped(key.as_build()), opt_value)
 
     def test_build_to_host_subproject(self):
         key = OptionKey('cpp_std')
@@ -285,12 +295,12 @@ class OptionTests(unittest.TestCase):
                              )
         optstore.add_compiler_option('cpp', key, co)
 
-        spcall = {key: opt_value}
+        spcall: OptionDict = {key: opt_value}
         optstore.initialize_from_top_level_project_call({}, {}, {})
         optstore.initialize_from_subproject_call(subp, spcall, {}, {}, {})
-        self.assertEqual(optstore.get_option_and_value_for(key.evolve(subproject=subp,
+        self.assertEqual(optstore.get_option_and_value_for_untyped(key.evolve(subproject=subp,
                                                                             machine=MachineChoice.BUILD))[1], opt_value)
-        self.assertEqual(optstore.get_value_for(key.evolve(subproject=subp,
+        self.assertEqual(optstore.get_value_for_untyped(key.evolve(subproject=subp,
                                                            machine=MachineChoice.BUILD)), opt_value)
 
     def test_build_to_host_cross(self):
@@ -310,10 +320,10 @@ class OptionTests(unittest.TestCase):
         optstore.initialize_from_top_level_project_call({}, cmd_line, {})
         print(optstore.options)
 
-        self.assertEqual(optstore.get_option_and_value_for(key)[1], opt_value)
-        self.assertEqual(optstore.get_option_and_value_for(key.as_build())[1], def_value)
-        self.assertEqual(optstore.get_value_for(key), opt_value)
-        self.assertEqual(optstore.get_value_for(key.as_build()), def_value)
+        self.assertEqual(optstore.get_option_and_value_for_untyped(key)[1], opt_value)
+        self.assertEqual(optstore.get_option_and_value_for_untyped(key.as_build())[1], def_value)
+        self.assertEqual(optstore.get_value_for_untyped(key), opt_value)
+        self.assertEqual(optstore.get_value_for_untyped(key.as_build()), def_value)
 
     def test_b_nonexistent(self):
         optstore = OptionStore(False)
@@ -352,8 +362,8 @@ class OptionTests(unittest.TestCase):
 
         optstore.initialize_from_top_level_project_call({}, cmd_line, {})
         optstore.initialize_from_subproject_call(subp, spcall, {}, cmd_line, {})
-        self.assertEqual(optstore.get_value_for(name, ''), True)
-        self.assertEqual(optstore.get_value_for(name, subp), False)
+        self.assertEqual(optstore.get_value_for_untyped(OptionKey(name, '')), True)
+        self.assertEqual(optstore.get_value_for_untyped(OptionKey(name, subproject=subp)), False)
 
     def test_subproject_cmdline_override_global(self):
         name = 'optimization'
@@ -372,8 +382,8 @@ class OptionTests(unittest.TestCase):
 
         optstore.initialize_from_top_level_project_call(toplevel_proj_default, cmd_line, {})
         optstore.initialize_from_subproject_call(subp, {}, subp_proj_default, cmd_line, {})
-        self.assertEqual(optstore.get_value_for(name, subp), new_value)
-        self.assertEqual(optstore.get_value_for(name), new_value)
+        self.assertEqual(optstore.get_value_for_untyped(OptionKey(name, subproject=subp)), new_value)
+        self.assertEqual(optstore.get_value_for_untyped(OptionKey(name, subproject='')), new_value)
 
     def test_subproject_parent_override_subp(self):
         name = 'optimization'
@@ -392,8 +402,8 @@ class OptionTests(unittest.TestCase):
 
         optstore.initialize_from_top_level_project_call(toplevel_proj_default, {}, {})
         optstore.initialize_from_subproject_call(subp, {}, subp_proj_default, {}, {})
-        self.assertEqual(optstore.get_value_for(name, subp), subp_value)
-        self.assertEqual(optstore.get_value_for(name), default_value)
+        self.assertEqual(optstore.get_value_for_untyped(OptionKey(name, subproject=subp)), subp_value)
+        self.assertEqual(optstore.get_value_for_untyped(OptionKey(name, subproject='')), default_value)
 
     def test_subproject_cmdline_override_global_and_augment(self):
         name = 'optimization'
@@ -413,8 +423,8 @@ class OptionTests(unittest.TestCase):
 
         optstore.initialize_from_top_level_project_call(toplevel_proj_default, cmd_line, {})
         optstore.initialize_from_subproject_call(subp, {}, subp_proj_default, cmd_line, {})
-        self.assertEqual(optstore.get_value_for(name, subp), new_value)
-        self.assertEqual(optstore.get_value_for(name), global_value)
+        self.assertEqual(optstore.get_value_for_untyped(OptionKey(name, subproject=subp)), new_value)
+        self.assertEqual(optstore.get_value_for_untyped(OptionKey(name, subproject='')), global_value)
 
     def test_subproject_cmdline_override_toplevel(self):
         name = 'default_library'
@@ -434,15 +444,15 @@ class OptionTests(unittest.TestCase):
 
         optstore.initialize_from_top_level_project_call(toplevel_proj_default, cmd_line, {})
         optstore.initialize_from_subproject_call(subp, {}, subp_proj_default, cmd_line, {})
-        self.assertEqual(optstore.get_value_for(name, subp), subp_value)
-        self.assertEqual(optstore.get_value_for(name, ''), toplevel_value)
+        self.assertEqual(optstore.get_value_for_untyped(OptionKey(name, subproject=subp)), subp_value)
+        self.assertEqual(optstore.get_value_for_untyped(OptionKey(name, subproject='')), toplevel_value)
 
     def test_subproject_buildtype(self):
         subp = 'subp'
-        main1 = {OptionKey('buildtype'): 'release'}
-        main2 = {OptionKey('optimization'): '3', OptionKey('debug'): 'false'}
-        sub1 = {OptionKey('buildtype'): 'debug'}
-        sub2 = {OptionKey('optimization'): '0', OptionKey('debug'): 'true'}
+        main1: OptionDict = {OptionKey('buildtype'): 'release'}
+        main2: OptionDict = {OptionKey('optimization'): '3', OptionKey('debug'): 'false'}
+        sub1: OptionDict = {OptionKey('buildtype'): 'debug'}
+        sub2: OptionDict = {OptionKey('optimization'): '0', OptionKey('debug'): 'true'}
 
         for mainopt, subopt in ((main1, sub1),
                           (main2, sub2),
@@ -459,9 +469,9 @@ class OptionTests(unittest.TestCase):
 
             optstore.initialize_from_top_level_project_call(mainopt, {}, {})
             optstore.initialize_from_subproject_call(subp, {}, subopt, {}, {})
-            self.assertEqual(optstore.get_value_for('buildtype', subp), 'debug')
-            self.assertEqual(optstore.get_value_for('optimization', subp), '0')
-            self.assertEqual(optstore.get_value_for('debug', subp), True)
+            self.assertEqual(optstore.get_value_for_untyped(OptionKey('buildtype', subproject=subp)), 'debug')
+            self.assertEqual(optstore.get_value_for_untyped(OptionKey('optimization', subproject=subp)), '0')
+            self.assertEqual(optstore.get_value_for_untyped(OptionKey('debug', subproject=subp)), True)
 
     def test_deprecated_nonstring_value(self):
         # TODO: add a lot more deprecated option tests
@@ -471,7 +481,7 @@ class OptionTests(unittest.TestCase):
                               deprecated={'true': '1'})
         optstore.add_system_option(name, do)
         optstore.set_option(OptionKey(name), True)
-        value = optstore.get_value_for(name)
+        value = optstore.get_value_for_untyped(OptionKey(name))
         self.assertEqual(value, '1')
 
     def test_pending_augment_validation(self):
@@ -488,7 +498,7 @@ class OptionTests(unittest.TestCase):
         bo = UserBooleanOption(name, 'LTO', False)
         key = OptionKey(name, subproject=subproject)
         optstore.add_system_option(key, bo)
-        stored_value = optstore.get_value_for(key)
+        stored_value = optstore.get_value_for_untyped(key)
         self.assertIsInstance(stored_value, bool)
         self.assertTrue(stored_value)
 
@@ -516,7 +526,7 @@ class OptionTests(unittest.TestCase):
         build_option_obj = UserStringArrayOption('pkg_config_path', 'Build pkg-config paths', ['/usr/lib64/pkgconfig'])
         optstore.add_system_option(host_pkg_config, host_option_obj)
         optstore.add_system_option(build_pkg_config, build_option_obj)
-        option, value = optstore.get_option_and_value_for(build_pkg_config)
+        option, value = optstore.get_option_and_value_for_untyped(build_pkg_config)
         self.assertEqual(value, ['/usr/lib64/pkgconfig'])
 
         # Test that non-per-machine BUILD option IS canonicalized to HOST
@@ -525,7 +535,7 @@ class OptionTests(unittest.TestCase):
         common_option_obj = UserComboOption('optimization', 'Optimization level', '0',
                                             choices=['plain', '0', 'g', '1', '2', '3', 's'])
         optstore.add_system_option(host_opt, common_option_obj)
-        self.assertEqual(optstore.get_value_for(build_opt), '0')
+        self.assertEqual(optstore.get_value_for_untyped(build_opt), '0')
 
     def test_machine_canonicalization_native(self):
         """Test that BUILD machine options are canonicalized to HOST when not cross compiling."""
@@ -538,12 +548,12 @@ class OptionTests(unittest.TestCase):
 
         # Add per-machine option for HOST only (BUILD will be canonicalized)
         optstore.add_system_option(host_pkg_config, host_option_obj)
-        option, value = optstore.get_option_and_value_for(build_pkg_config)
+        option, value = optstore.get_option_and_value_for_untyped(build_pkg_config)
         self.assertEqual(value, ['/mingw/lib64/pkgconfig'])
 
         # Try again adding build option too, for completeness
         optstore.add_system_option(build_pkg_config, build_option_obj)
-        option, value = optstore.get_option_and_value_for(build_pkg_config)
+        option, value = optstore.get_option_and_value_for_untyped(build_pkg_config)
         self.assertEqual(value, ['/mingw/lib64/pkgconfig'])
 
     def test_sanitize_prefix_windows_host(self):
@@ -596,7 +606,7 @@ class OptionTests(unittest.TestCase):
         # Set libdir to absolute path inside prefix, should be relativized
         optstore.set_option(OptionKey('prefix'), 'C:\\Program Files\\MyProg')
         optstore.set_option(OptionKey('libdir'), 'C:\\Program Files\\MyProg\\lib')
-        self.assertEqual(optstore.get_value_for('libdir'), 'lib')
+        self.assertEqual(optstore.get_value_for_untyped(OptionKey('libdir')), 'lib')
 
     def test_sanitize_dir_option_cross_to_linux(self):
         """Test directory option sanitization when cross-compiling to Linux."""
@@ -606,7 +616,7 @@ class OptionTests(unittest.TestCase):
         # Set libdir to absolute path inside prefix, should be relativized
         optstore.set_option(OptionKey('prefix'), '/opt/myapp')
         optstore.set_option(OptionKey('libdir'), '/opt/myapp/lib64')
-        self.assertEqual(optstore.get_value_for('libdir'), 'lib64')
+        self.assertEqual(optstore.get_value_for_untyped(OptionKey('libdir')), 'lib64')
 
     def test_sanitize_prefix_native_path(self):
         """Test that native paths are accepted without set_host_machine()."""
@@ -642,3 +652,9 @@ class OptionTests(unittest.TestCase):
         optstore = OptionStore(False)
         self.assertTrue(optstore._is_host_absolute(os.sep + 'myprog'))
         self.assertTrue(optstore._is_host_absolute('/myprog'))
+
+    def test_get_value_default(self) -> None:
+        optstore = OptionStore(False)
+        self.assertTrue(optstore.get_value_for(OptionKey('nonexistent'), bool, default=True))
+        target = mock.Mock(spec=BuildTarget, subproject='')
+        self.assertTrue(optstore.get_option_for_target(target, OptionKey('nonexistent'), bool, default=True))

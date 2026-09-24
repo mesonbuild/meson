@@ -65,8 +65,7 @@ def run(options: Arguments) -> int:
     print('')
 
     coredata = cdata.load(options.builddir)
-    backend = coredata.optstore.get_value_for(OptionKey('backend'))
-    assert isinstance(backend, str), 'for mypy'
+    backend = coredata.optstore.get_value_for(OptionKey('backend'), str)
     for k, v in sorted(coredata.__dict__.items()):
         if k in {'backend_options', 'base_options', 'builtins', 'compiler_options', 'user_options'}:
             # use `meson configure` to view these

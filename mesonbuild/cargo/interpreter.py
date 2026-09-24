@@ -359,19 +359,16 @@ class Interpreter:
         optstore = self.environment.coredata.optstore
         if override is not None:
             selection = override
+            assert isinstance(selection, str)
         else:
-            try:
-                selection = optstore.get_value_for('rust_cargo_profile')
-            except KeyError:
-                return None
+            selection = optstore.get_value_for(OptionKey('rust_cargo_profile'), str, default='none')
 
-        assert isinstance(selection, str)
         if selection == 'none':
             return None
         if selection != 'from_buildtype':
             return selection
 
-        buildtype = optstore.get_value_for('buildtype')
+        buildtype = optstore.get_value_for(OptionKey('buildtype'), str)
         if buildtype in {'plain', 'custom'}:
             return None
         return 'dev' if buildtype == 'debug' else 'release'
@@ -749,8 +746,8 @@ class Interpreter:
     def _get_cfgs(self, machine: MachineChoice, subproject: SubProject) -> T.Dict[str, str]:
         rustc = T.cast('RustCompiler', self.environment.coredata.compilers[machine]['rust'])
         cfgs = rustc.get_cfgs().copy()
-        rustflags = T.cast('T.List[str]', self.environment.coredata.optstore.get_value_for(
-            OptionKey('rust_args', subproject=subproject, machine=machine)))
+        rustflags = self.environment.coredata.optstore.get_value_for(
+            OptionKey('rust_args', subproject=subproject, machine=machine), list)
         rustflags_i = iter(rustflags)
         for i in rustflags_i:
             if i == '--cfg':

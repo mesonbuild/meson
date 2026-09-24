@@ -45,7 +45,6 @@ if T.TYPE_CHECKING:
     from ..interpreter.kwargs import TargetDepends
     from ..linkers import StaticLinker
     from ..mesonlib import InstallScript
-    from ..options import ElementaryOptionValues
 
     from typing_extensions import Literal, TypedDict, NotRequired, TypeAlias
 
@@ -393,7 +392,7 @@ class Backend:
         if isinstance(target, build.RunTarget):
             # this produces no output, only a dummy top-level name
             dirname = ''
-        elif self.environment.coredata.optstore.get_value_for(OptionKey('layout')) == 'mirror':
+        elif self.environment.coredata.optstore.get_value_for(OptionKey('layout'), str) == 'mirror':
             dirname = target.get_builddir()
         else:
             dirname = 'meson-out'
@@ -454,8 +453,7 @@ class Backend:
         abs_files: T.List[str] = []
         result: T.List[mesonlib.File] = []
         compsrcs = classify_unity_sources(target.compilers.values(), unity_src)
-        unity_size = self.get_target_option(target, 'unity_size')
-        assert isinstance(unity_size, int), 'for mypy'
+        unity_size = self.environment.coredata.optstore.get_option_for_target(target, OptionKey('unity_size'), int)
 
         def init_language_file(suffix: str, unity_file_number: int) -> T.TextIO:
             unity_src = self.get_unity_source_file(target, suffix, unity_file_number)
@@ -978,8 +976,8 @@ class Backend:
         if self.is_unity(extobj.target):
             compsrcs = classify_unity_sources(extobj.target.compilers.values(), sources)
             sources = []
-            unity_size = self.get_target_option(extobj.target, 'unity_size')
-            assert isinstance(unity_size, int), 'for mypy'
+            unity_size = self.environment.coredata.optstore.get_option_for_target(
+                extobj.target, OptionKey('unity_size'), int)
 
             for comp, srcs in compsrcs.items():
                 if comp.language in LANGS_CANT_UNITY:
@@ -1030,10 +1028,8 @@ class Backend:
         return pch_rel_to_build
 
     def target_uses_pch(self, target: build.BuildTarget) -> bool:
-        try:
-            return T.cast('bool', self.get_target_option(target, 'b_pch'))
-        except (KeyError, AttributeError):
-            return False
+        return self.environment.coredata.optstore.get_option_for_target(
+            target, OptionKey('b_pch'), bool, default=False)
 
     @staticmethod
     def escape_extra_args(args: T.List[str]) -> T.List[str]:
@@ -1064,24 +1060,25 @@ class Backend:
         # Add things like /NOLOGO or -pipe; usually can't be overridden
         commands += compiler.get_always_args()
         # warning_level is a string, but mypy can't determine that
-        commands += compiler.get_warn_args(T.cast('str', self.get_target_option(target, 'warning_level')))
+        commands += compiler.get_warn_args(self.environment.coredata.optstore.get_option_for_target(
+            target, OptionKey('warning_level'), str))
         # Add -Werror if werror=true is set in the build options set on the
         # command-line or default_options inside project(). This only sets the
         # action to be done for warnings if/when they are emitted, so it's ok
         # to set it after or get_warn_args().
-        if self.get_target_option(target, 'werror'):
+        if self.environment.coredata.optstore.get_option_for_target(target, OptionKey('werror'), bool):
             commands += compiler.get_werror_args()
         # Add compile args for c_* or cpp_* build options set on the
         # command-line or default_options inside project().
-        commands += compiler.get_option_compile_args(target, target.subproject)
-        commands += compiler.get_option_std_args(target, target.subproject)
+        commands += compiler.get_option_compile_args(target)
+        commands += compiler.get_option_std_args(target)
 
-        optimization = self.get_target_option(target, 'optimization')
-        assert isinstance(optimization, str), 'for mypy'
+        optimization = self.environment.coredata.optstore.get_option_for_target(
+            target, OptionKey('optimization'), str)
         commands += compiler.get_optimization_args(optimization)
 
-        debug = self.get_target_option(target, 'debug')
-        assert isinstance(debug, bool), 'for mypy'
+        debug = self.environment.coredata.optstore.get_option_for_target(
+            target, OptionKey('debug'), bool)
         commands += compiler.get_debug_args(debug)
 
         # Add compile args added using add_project_arguments()
@@ -1093,8 +1090,8 @@ class Backend:
         # file. We want these to override all the defaults, but not the
         # per-target compile args. Resolved per target so that per-subproject
         # values (-Dsub:c_args=...) are honoured.
-        ext_args = self.environment.coredata.get_option_for_target(target, f'{compiler.get_language()}_args')
-        assert isinstance(ext_args, list), 'for mypy'
+        ext_args = self.environment.coredata.optstore.get_option_for_target(
+            target, OptionKey(f'{compiler.get_language()}_args'), list)
         commands += ext_args
         # Using both /Z7 or /ZI and /Zi at the same times produces a compiler warning.
         # We do not add /Z7 or /ZI by default. If it is being used it is because the user has explicitly enabled it.
@@ -1431,8 +1428,7 @@ class Backend:
     def generate_depmf_install(self, d: InstallData) -> None:
         depmf_path = self.build.dep_manifest_name
         if depmf_path is None:
-            option_dir = self.environment.coredata.optstore.get_value_for(OptionKey('licensedir'))
-            assert isinstance(option_dir, str), 'for mypy'
+            option_dir = self.environment.coredata.optstore.get_value_for(OptionKey('licensedir'), str)
             if option_dir:
                 depmf_path = os.path.join(option_dir, 'depmf.json')
             else:
@@ -1788,7 +1784,7 @@ class Backend:
                 # TODO go through all candidates, like others
                 strip_bin = [detect.defaults['strip'][0]]
 
-        umask = self.environment.coredata.optstore.get_value_for(OptionKey('install_umask'))
+        umask = self.environment.coredata.optstore.get_value_for_untyped(OptionKey('install_umask'))
         assert isinstance(umask, (str, int)), 'for mypy'
 
         d = InstallData(self.environment.get_source_dir(),
@@ -1821,8 +1817,7 @@ class Backend:
         bindir = Path(prefix, self.environment.get_bindir())
         libdir = Path(prefix, self.environment.get_libdir())
         incdir = Path(prefix, self.environment.get_includedir())
-        _ldir = self.environment.coredata.optstore.get_value_for(OptionKey('localedir'))
-        assert isinstance(_ldir, str), 'for mypy'
+        _ldir = self.environment.coredata.optstore.get_value_for(OptionKey('localedir'), str)
         localedir = Path(prefix, _ldir)
         dest_path = Path(prefix, outdir, Path(fname).name) if outdir else Path(prefix, fname)
         if bindir in dest_path.parents or sbindir in dest_path.parents:
@@ -1880,8 +1875,8 @@ class Backend:
                 # TODO: Create GNUStrip/AppleStrip/etc. hierarchy for more
                 #       fine-grained stripping of static archives.
                 can_strip = not isinstance(t, build.StaticLibrary)
-                should_strip = can_strip and self.get_target_option(t, 'strip')
-                assert isinstance(should_strip, bool), 'for mypy'
+                should_strip = can_strip and self.environment.coredata.optstore.get_option_for_target(
+                    t, OptionKey('strip'), bool)
                 # Install primary build output (library/executable/jar, etc)
                 # Done separately because of strip/aliases/rpath
                 if first_outdir is not False:
@@ -2236,7 +2231,7 @@ class Backend:
     def is_unity(self, target: build.BuildTarget) -> bool:
         if isinstance(target, build.CompileTarget):
             return False
-        val = self.get_target_option(target, 'unity')
+        val = self.environment.coredata.optstore.get_option_for_target(target, OptionKey('unity'), str)
         if val == 'on':
             return True
         if val == 'off':
@@ -2244,12 +2239,3 @@ class Backend:
         if val == 'subprojects':
             return target.subproject != ''
         raise MesonException(f'Internal error: invalid option type for "unity": {val}')
-
-    def get_target_option(self, target: build.BuildTarget, name: T.Union[str, OptionKey]) -> ElementaryOptionValues:
-        if isinstance(name, str):
-            key = OptionKey(name, subproject=target.subproject)
-        elif isinstance(name, OptionKey):
-            key = name
-        else:
-            raise MesonBugException('Internal error: invalid option type.')
-        return self.environment.coredata.get_option_for_target(target, key)

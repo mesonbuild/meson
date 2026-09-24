@@ -9,6 +9,7 @@ import re
 
 from ..envconfig import detect_cpu_family
 from ..mesonlib import Popen_safe
+from ..options import OptionKey
 from .base import DependencyCandidate, DependencyException, DependencyMethods, detect_compiler, SystemDependency
 from .configtool import ConfigToolDependency
 from .detect import packages
@@ -283,8 +284,7 @@ class IMPIDependency(SystemDependency):
         incdir = os.path.join(rootdir, 'include')
         libdir = os.path.join(rootdir, 'lib')
 
-        debug = env.coredata.optstore.get_value_for('debug')
-        assert isinstance(debug, bool)
+        debug = env.coredata.optstore.get_value_for(OptionKey('debug'), bool)
         libdir_post = 'debug' if debug else 'release'
         for subdirs in (['mpi', libdir_post], [libdir_post]):
             libdir_buildtype = os.path.join(libdir, *subdirs)
