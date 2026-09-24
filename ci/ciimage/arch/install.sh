@@ -16,6 +16,7 @@ pkgs=(
   libwmf cmake netcdf-fortran openmpi nasm gnustep-base gettext
   python-lxml hotdoc rust-bindgen qt6-base qt6-tools qt6-declarative wayland wayland-protocols
   intel-oneapi-mkl zlib-static
+  blas blas64 cblas cblas64 lapack lapack64 lapacke lapacke64 intel-oneapi-openmp openblas tbb
   # cuda
 )
 

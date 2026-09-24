@@ -30,6 +30,8 @@ pkgs=(
   openjdk-11-jre
   jq
   lcov
+  libblas-dev liblapack-dev liblapacke-dev libblas64-dev liblapack64-dev liblapacke64-dev
+  libopenblas-dev libopenblas64-dev libmkl-dev
 )
 
 # Packages that are used at build time but should be removed from the image
