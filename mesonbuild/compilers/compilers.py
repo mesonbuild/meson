@@ -170,7 +170,7 @@ def is_java(fname: mesonlib.FileOrString) -> bool:
     return suffix in lang_suffixes['java']
 
 def is_separate_compile(fname: mesonlib.FileOrString) -> bool:
-    return not fname.endswith('.rs')
+    return not fname.endswith(('.rs', '.java', '.cs'))
 
 def is_llvm_ir(fname: 'mesonlib.FileOrString') -> bool:
     if isinstance(fname, mesonlib.File):
@@ -207,6 +207,10 @@ def is_known_suffix(fname: 'mesonlib.FileOrString') -> bool:
     suffix = fname.split('.')[-1]
 
     return suffix in all_suffixes
+
+def is_unknown(src: mesonlib.FileOrString) -> bool:
+    from ..modules import is_module_library
+    return not (is_source(src) or is_object(src) or is_library(src) or is_module_library(src))
 
 
 class CompileCheckMode(enum.Enum):

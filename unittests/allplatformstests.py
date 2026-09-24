@@ -5580,6 +5580,25 @@ class AllPlatformTests(BasePlatformTests):
             pass
 
     @skip_if_not_language('rust')
+    @skipIfNoExecutable('rustfmt')
+    def test_rustfmt(self) -> None:
+        if self.backend is not Backend.ninja:
+            raise unittest.SkipTest('Rust is only supported with ninja currently')
+        try:
+            testdir = self.copy_srcdir(os.path.join(self.rust_test_dir, '9 unit tests'))
+            self.init(testdir)
+            with self.assertRaises(subprocess.CalledProcessError) as cm:
+                self.build('rustfmt-check')
+
+            self.build('rustfmt')
+            self.build('rustfmt-check')
+        except PermissionError:
+            # When run under Windows CI, something (virus scanner?)
+            # holds on to the git files so cleaning up the dir
+            # fails sometimes.
+            pass
+
+    @skip_if_not_language('rust')
     @skipIfNoExecutable('clippy-driver')
     def test_rust_clippy(self) -> None:
         if self.backend is not Backend.ninja:
