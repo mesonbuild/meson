@@ -687,6 +687,11 @@ class JNISystemDependency(SystemDependency):
 
         return java_cpus.get(cpu, cpu)
 
+    @classmethod
+    def get_platform_include_dir(cls, m: 'MachineInfo') -> T.Optional[str]:
+        '''Public accessor for the platform-dependent JDK include directory name.'''
+        return cls.__machine_info_to_platform_include_dir(m)
+
     @staticmethod
     def __machine_info_to_platform_include_dir(m: 'MachineInfo') -> T.Optional[str]:
         '''Translates the machine information to the platform-dependent include directory
