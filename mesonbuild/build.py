@@ -1105,8 +1105,8 @@ class BuildTarget(Target, BuildTargetProto):
         # we have to call process_compilers() first and we need to process libraries
         # from link_with and link_whole first.
         # See https://github.com/mesonbuild/meson/pull/11957#issuecomment-1629243208.
-        link_targets = self._extract_link_with(kwargs.get('link_with', []))
-        link_whole_targets = self._extract_link_whole(kwargs.get('link_whole', []))
+        link_targets = self._extract_link_with(kwargs.get('link_with', [])) + self.link_targets
+        link_whole_targets = self._extract_link_whole(kwargs.get('link_whole', [])) + self.link_whole_targets
         self.link_targets.clear()
         self.link_whole_targets.clear()
         self.link(link_targets)
@@ -1934,7 +1934,7 @@ class BuildTarget(Target, BuildTargetProto):
         bl_type = self._default_library_type()
 
         lib_list: list[LinkableTargetProto] = []
-        for lib in itertools.chain(link_with, self.link_targets):
+        for lib in link_with:
             if isinstance(lib, (CustomTarget, CustomTargetIndex)):
                 lib_list.append(lib)
             elif isinstance(lib, Jar):
@@ -1948,7 +1948,7 @@ class BuildTarget(Target, BuildTargetProto):
 
     def _extract_link_whole(self, link_whole: T.Sequence[StaticTypes]) -> list[StaticTargetProto]:
         lib_list: list[StaticTargetProto] = []
-        for lib in itertools.chain(link_whole, self.link_whole_targets):
+        for lib in link_whole:
             if isinstance(lib, BothLibraries):
                 lib = lib.get('static')
                 if not isinstance(lib, StaticLibrary):
