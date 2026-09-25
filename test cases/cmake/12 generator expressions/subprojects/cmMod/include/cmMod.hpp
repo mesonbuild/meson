@@ -50,6 +50,10 @@
 #error "The flag CMAKE_PROP2_ERROR was set"
 #endif
 
+#ifndef CMAKE_LINK_ONLY_OK
+#error "The flag CMAKE_LINK_ONLY_OK was not set"
+#endif
+
 class cmModClass {
   private:
     std::string str;
