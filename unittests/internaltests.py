@@ -35,6 +35,7 @@ from mesonbuild.compilers import Compiler
 from mesonbuild.compilers.c import ClangCCompiler, GnuCCompiler, QccCCompiler, VisualStudioCCompiler
 from mesonbuild.compilers.compilers import CompileCheckMode, ManyInOneLinkerOptionStyle
 from mesonbuild.compilers.cpp import VisualStudioCPPCompiler, QccCPPCompiler
+from mesonbuild.compilers.objcpp import ClangObjCPPCompiler, GnuObjCPPCompiler
 from mesonbuild.compilers.d import DmdDCompiler, LLVMDCompiler
 from mesonbuild.compilers.detect import detect_c_compiler
 from mesonbuild.compilers.mixins.visualstudio import MSVCCompiler, ClangClCompiler
@@ -48,7 +49,7 @@ from mesonbuild.mesonlib import (
     is_cygwin, is_openbsd, search_version, MesonException, EnvironmentException, python_command,
     version_check_to_range,
 )
-from mesonbuild.options import OptionKey
+from mesonbuild.options import OptionKey, UserBooleanOption
 from mesonbuild.interpreter.type_checking import (
     STR_PARG, INT_PARG, BOOL_PARG, STR_OARG, INT_OARG, STR_VARG,
     in_set_validator, NoneType,
@@ -396,6 +397,21 @@ Thread model: posix'''), '21.9.0')
         l.append_direct(abspath)
         self.assertEqual(l, ['-Lfoodir', '-lfoo', '-Lbardir', '-lbar', '-lbar', abspath])
 
+
+    def test_objcpp_cpp_rtti(self) -> None:
+        # Objective-C++ shares the cpp_rtti option, so -fno-rtti must be
+        # passed for .mm sources too.
+        # https://github.com/mesonbuild/meson/issues/16189
+        key = OptionKey('cpp_rtti', machine=MachineChoice.HOST)
+        for value, expected in [(True, []), (False, ['-fno-rtti'])]:
+            env = get_fake_env()
+            env.coredata.optstore.add_compiler_option(
+                'cpp', key, UserBooleanOption('cpp_rtti', 'Enable RTTI', value))
+            for cls in (GnuObjCPPCompiler, ClangObjCPPCompiler):
+                comp = cls([], ['c++'], 'fake', MachineChoice.HOST, env)
+                self.assertEqual(comp.form_compileropt_key('rtti'), key)
+                self.assertIn(key, comp.get_options())
+                self.assertEqual(comp.get_option_compile_args(None), expected)
 
     def test_compiler_args_class_visualstudio(self):
         env = get_fake_env()
