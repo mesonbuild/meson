@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import typing as T
 
-from ..options import OptionKey, UserStdOption
+from ..options import OptionKey, UserBooleanOption, UserStdOption
 
 from .cpp import ALL_STDS
 from .compilers import Compiler
@@ -41,8 +41,8 @@ class ObjCPPCompiler(CLikeCompiler, Compiler):
         return ['-nostdlib++']
 
     def form_compileropt_key(self, basename: str) -> OptionKey:
-        if basename == 'std':
-            return OptionKey('cpp_std', machine=self.for_machine)
+        if basename in {'std', 'rtti'}:
+            return OptionKey(f'cpp_{basename}', machine=self.for_machine)
         return super().form_compileropt_key(basename)
 
     def make_option_name(self, key: OptionKey) -> str:
@@ -63,7 +63,20 @@ class ObjCPPCompiler(CLikeCompiler, Compiler):
         opts.update({
             key: UserStdOption('cpp', ALL_STDS),
         })
+        key = self.form_compileropt_key('rtti')
+        opts[key] = UserBooleanOption(
+            self.make_option_name(key),
+            'Enable RTTI',
+            True)
         return opts
+
+    def get_option_compile_args(self, target: 'BuildTarget', subproject: T.Optional[str] = None) -> T.List[str]:
+        args: T.List[str] = []
+        rtti = self.get_compileropt_value('rtti', target, subproject)
+        assert isinstance(rtti, bool)
+        if not rtti:
+            args.append('-fno-rtti')
+        return args
 
 
 class GnuObjCPPCompiler(GnuCPPStds, GnuCompiler, ObjCPPCompiler):

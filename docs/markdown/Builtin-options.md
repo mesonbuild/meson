@@ -317,7 +317,7 @@ or compiler being used:
 | cpp_std          | none          | none, c++98, c++03, c++11, c++14, c++17, c++20, c++23, c++26, c++latest <br/>c++2a, c++1z, gnu++03, gnu++11, gnu++14, gnu++17, gnu++1z, <br/> gnu++2a, gnu++20, vc++14, vc++17, vc++20, vc++latest | C++ language standard to use |
 | cpp_debugstl     | false         | true, false                              | C++ STL debug mode |
 | cpp_eh           | default       | none, default, a, s, sc                  | C++ exception handling type |
-| cpp_rtti         | true          | true, false                              | Whether to enable RTTI (runtime type identification) |
+| cpp_rtti         | true          | true, false                              | Whether to enable RTTI (runtime type identification) for C++ and Objective-C++ |
 | cpp_thread_count | 4             | integer value ≥ 0                        | Number of threads to use with emcc when using threads |
 | cpp_winlibs      | see below     | free-form comma-separated list           | Standard Windows libs to link against |
 | cpp_importstd    | false         | true or false                            | Whether to use `import std` |
