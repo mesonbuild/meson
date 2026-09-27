@@ -41,7 +41,7 @@ class ObjCPPCompiler(CLikeCompiler, Compiler):
         return ['-nostdlib++']
 
     def form_compileropt_key(self, basename: str) -> OptionKey:
-        if basename in ('std', 'rtti'):
+        if basename in {'std', 'rtti'}:
             return OptionKey(f'cpp_{basename}', machine=self.for_machine)
         return super().form_compileropt_key(basename)
 
