@@ -34,7 +34,7 @@ from mesonbuild import coredata
 from mesonbuild.compilers import Compiler
 from mesonbuild.compilers.c import ClangCCompiler, GnuCCompiler, QccCCompiler, VisualStudioCCompiler
 from mesonbuild.compilers.compilers import CompileCheckMode, ManyInOneLinkerOptionStyle
-from mesonbuild.compilers.cpp import VisualStudioCPPCompiler, QccCPPCompiler
+from mesonbuild.compilers.cpp import ClangCPPCompiler, GnuCPPCompiler, VisualStudioCPPCompiler, QccCPPCompiler
 from mesonbuild.compilers.objcpp import ClangObjCPPCompiler, GnuObjCPPCompiler
 from mesonbuild.compilers.d import DmdDCompiler, LLVMDCompiler
 from mesonbuild.compilers.detect import detect_c_compiler
@@ -399,23 +399,27 @@ Thread model: posix'''), '21.9.0')
 
 
     def test_objcpp_cpp_rtti(self) -> None:
-        # Objective-C++ shares the cpp_rtti option, so the no-rtti flag
-        # must be passed for .mm sources too.
+        # Objective-C++ shares the cpp_rtti option, so it must produce
+        # the same flags as the matching C++ compiler.
         # https://github.com/mesonbuild/meson/issues/16189
         key = OptionKey('cpp_rtti', machine=MachineChoice.HOST)
         compilers = (
-            (GnuObjCPPCompiler, '-fno-rtti'),
-            (ClangObjCPPCompiler, '-fno-rtti'),
+            (GnuObjCPPCompiler, GnuCPPCompiler),
+            (ClangObjCPPCompiler, ClangCPPCompiler),
         )
-        for cls, no_rtti_flag in compilers:
-            for value, expected in [(True, []), (False, [no_rtti_flag])]:
+        for objcpp_cls, cpp_cls in compilers:
+            for value in (True, False):
                 env = get_fake_env()
-                env.coredata.optstore.add_compiler_option(
-                    'cpp', key, UserBooleanOption('cpp_rtti', 'Enable RTTI', value))
-                comp = cls([], ['c++'], 'fake', MachineChoice.HOST, env)
+                ref = cpp_cls([], ['c++'], 'fake', MachineChoice.HOST, env)
+                for k, o in ref.get_options().items():
+                    if k.name == 'rtti':
+                        o = UserBooleanOption('cpp_rtti', 'Enable RTTI', value)
+                    env.coredata.optstore.add_compiler_option('cpp', k, o)
+                comp = objcpp_cls([], ['c++'], 'fake', MachineChoice.HOST, env)
                 self.assertEqual(comp.form_compileropt_key('rtti'), key)
                 self.assertIn(key, comp.get_options())
-                self.assertEqual(comp.get_option_compile_args(None), expected)
+                self.assertEqual(comp.get_option_compile_args(None),
+                                 ref.get_option_compile_args(None))
 
     def test_compiler_args_class_visualstudio(self):
         env = get_fake_env()
