@@ -414,7 +414,7 @@ class CoreData:
             if lang == 'objc' and k.name == 'c_std':
                 # For objective C, always fall back to c_std.
                 self.optstore.add_compiler_option('c', k, o)
-            elif lang == 'objcpp' and k.name in ('cpp_std', 'cpp_rtti'):
+            elif lang == 'objcpp' and k.name in {'cpp_std', 'cpp_rtti'}:
                 self.optstore.add_compiler_option('cpp', k, o)
             else:
                 self.optstore.add_compiler_option(lang, k, o)

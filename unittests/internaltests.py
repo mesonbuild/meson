@@ -399,15 +399,19 @@ Thread model: posix'''), '21.9.0')
 
 
     def test_objcpp_cpp_rtti(self) -> None:
-        # Objective-C++ shares the cpp_rtti option, so -fno-rtti must be
-        # passed for .mm sources too.
+        # Objective-C++ shares the cpp_rtti option, so the no-rtti flag
+        # must be passed for .mm sources too.
         # https://github.com/mesonbuild/meson/issues/16189
         key = OptionKey('cpp_rtti', machine=MachineChoice.HOST)
-        for value, expected in [(True, []), (False, ['-fno-rtti'])]:
-            env = get_fake_env()
-            env.coredata.optstore.add_compiler_option(
-                'cpp', key, UserBooleanOption('cpp_rtti', 'Enable RTTI', value))
-            for cls in (GnuObjCPPCompiler, ClangObjCPPCompiler):
+        compilers = (
+            (GnuObjCPPCompiler, '-fno-rtti'),
+            (ClangObjCPPCompiler, '-fno-rtti'),
+        )
+        for cls, no_rtti_flag in compilers:
+            for value, expected in [(True, []), (False, [no_rtti_flag])]:
+                env = get_fake_env()
+                env.coredata.optstore.add_compiler_option(
+                    'cpp', key, UserBooleanOption('cpp_rtti', 'Enable RTTI', value))
                 comp = cls([], ['c++'], 'fake', MachineChoice.HOST, env)
                 self.assertEqual(comp.form_compileropt_key('rtti'), key)
                 self.assertIn(key, comp.get_options())
