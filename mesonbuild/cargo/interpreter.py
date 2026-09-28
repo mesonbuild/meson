@@ -700,7 +700,7 @@ class Interpreter:
         dep_member = as_posix(pkg.ws_member, dep.path)
         if is_parent_path(self.subprojects_dir, dep_member):
             if len(pathlib.PurePath(dep_member).parts) != 2:
-                raise MesonException('found "{self.subprojects_dir}" in path but it is not a valid subproject path')
+                raise MesonException(f'found "{self.subprojects_dir}" in path but it is not a valid subproject path')
 
         if ws.workspace.is_excluded(dep_member):
             # An excluded package is not a member of the workspace, so it is
