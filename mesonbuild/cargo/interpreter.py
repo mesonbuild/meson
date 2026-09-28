@@ -325,7 +325,6 @@ class Interpreter:
             self.root_workspace = ws
             self.profiles = ws.workspace.profile
             self._prepare_entry_point(ws)
-            ws.workspace.validate_patches(ws.packages_to_member)
         return ws
 
     def _prepare_entry_point(self, ws: WorkspaceState) -> None:

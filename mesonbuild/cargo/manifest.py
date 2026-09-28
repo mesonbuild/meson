@@ -770,18 +770,6 @@ class Workspace:
     patches: T.Dict[str, Dependency] = dataclasses.field(default_factory=dict)
     manifest_path: str = ''
 
-    def iter_patch_paths(self) -> T.Iterator[T.Tuple[str, str]]:
-        for name, dep in self.patches.items():
-            if not dep.path:
-                mlog.warning(f'[patch.crates-io] entry {name!r} is not a path dependency')
-                continue
-            yield name, as_posix(dep.path, relative_to=self.manifest_path)
-
-    def validate_patches(self, resolved: T.Mapping[str, str]) -> None:
-        for name, path in self.iter_patch_paths():
-            if resolved.get(name) != path:
-                mlog.warning(f'[patch.crates-io] entry {name!r} is not for a dependency')
-
     @lazy_property
     def inheritable(self) -> T.Dict[str, object]:
         # the whole lints table is inherited.  Do not add package, dependencies
