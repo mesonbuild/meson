@@ -10,6 +10,7 @@ from mesonbuild.utils.universal import MesonException, MachineChoice
 
 import copy
 import os
+import typing as T
 import unittest
 
 
@@ -477,6 +478,52 @@ class OptionTests(unittest.TestCase):
             self.assertEqual(optstore.get_value_for('buildtype', subp), 'debug')
             self.assertEqual(optstore.get_value_for('optimization', subp), '0')
             self.assertEqual(optstore.get_value_for('debug', subp), True)
+
+    def _configure_buildtype(self, cmd_line: T.Dict[str, str], machine_file: T.Dict[str, str],
+                             toplevel: T.Dict[str, str], sub: T.Optional[T.Dict[str, str]] = None) -> OptionStore:
+        optstore = OptionStore(False)
+        optstore.init_builtins()
+        optstore.set_machine_file_options({OptionKey.from_string(k): v for k, v in machine_file.items()})
+        optstore.set_user_options({OptionKey.from_string(k): v for k, v in cmd_line.items()})
+        optstore.initialize_from_top_level_project_call({OptionKey.from_string(k): v for k, v in toplevel.items()})
+        if sub is not None:
+            optstore.initialize_from_subproject_call('sub', {}, {OptionKey.from_string(k): v for k, v in sub.items()})
+        return optstore
+
+    def test_buildtype_same_source(self):
+        """Within the same source, explicit values of debug and optimization
+           override buildtype, whatever their order; in lower-priority sources,
+           they are overridden by buildtype."""
+        cases = [
+            # cmd_line, machine_file, toplevel, (buildtype, optimization, debug)
+            ({'debug': 'true', 'buildtype': 'release'}, {}, {}, ('release', '3', True)),
+            ({'optimization': '2', 'buildtype': 'debug'}, {}, {}, ('debug', '2', True)),
+            ({}, {'debug': 'true', 'buildtype': 'release'}, {}, ('release', '3', True)),
+            ({}, {}, {'optimization': '2', 'buildtype': 'debug'}, ('debug', '2', True)),
+            ({'buildtype': 'debug'}, {}, {'buildtype': 'release', 'optimization': '2'}, ('debug', '0', True)),
+            ({'optimization': '2'}, {'buildtype': 'release'}, {'optimization': '1'}, ('release', '2', False)),
+        ]
+        for cmd_line, machine_file, toplevel, expected in cases:
+            with self.subTest(cmd_line=cmd_line, machine_file=machine_file, toplevel=toplevel):
+                optstore = self._configure_buildtype(cmd_line, machine_file, toplevel)
+                self.assertEqual((optstore.get_value_for('buildtype'),
+                                  optstore.get_value_for('optimization'),
+                                  optstore.get_value_for('debug')), expected)
+
+    def test_buildtype_subproject(self):
+        """buildtype for a subproject overrides the subproject's own default_options
+           for debug and optimization, but a global buildtype does not."""
+        sub = {'buildtype': 'release', 'optimization': '2'}
+        cases = [
+            ({'sub:buildtype': 'debug'}, ('debug', '0', True)),
+            ({'buildtype': 'debug'}, ('debug', '2', True)),
+        ]
+        for cmd_line, expected in cases:
+            with self.subTest(cmd_line=cmd_line):
+                optstore = self._configure_buildtype(cmd_line, {}, {}, sub)
+                self.assertEqual((optstore.get_value_for('buildtype', 'sub'),
+                                  optstore.get_value_for('optimization', 'sub'),
+                                  optstore.get_value_for('debug', 'sub')), expected)
 
     def test_prefix_dependent_directories(self):
         """Directories whose default depends on the prefix follow it when the

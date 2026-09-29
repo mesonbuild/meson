@@ -1277,7 +1277,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 raise MesonBugException(f'Backend changed from {backend_name} to {self.backend.name}')
             self.coredata.optstore.set_option(OptionKey('backend'), self.backend.name, first_invocation=True)
 
-        self.environment.init_backend_options(backend_name)
+        self.coredata.init_backend_options(backend_name)
 
     def _validate_languages(self, langs: T.List[str], required: bool, node: mparser.BaseNode) -> T.List[Language]:
         valid: T.List[Language] = []
