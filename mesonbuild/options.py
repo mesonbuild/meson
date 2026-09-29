@@ -1187,6 +1187,10 @@ class OptionStore:
         """Initialize the option store before any project is configured."""
         self.all_options[OptionSource.RUNTIME] = {}
         self.all_options[OptionSource.COMMAND_LINE] = self._user_options(cmd_line_options)
+        # default_options for other projects are recorded again as the
+        # projects are configured, and all subprojects are resolved again.
+        self.all_options[OptionSource.TOPLEVEL] = {}
+        self.subprojects = set()
 
     def get_value_object(self, key: OptionKey) -> AnyOptionType:
         key = self.ensure_and_validate_key(key)
