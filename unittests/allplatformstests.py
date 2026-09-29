@@ -5114,7 +5114,7 @@ class AllPlatformTests(BasePlatformTests):
                 self.assertEqual(cls.USED_FOR_SEPARATE_LINKING_STEP, linker_driver)
                 with mock.patch.dict(os.environ, {'CFLAGS': '-DCFLAG', 'LDFLAGS': '-flto'}):
                     env = get_fake_env()
-                env.coredata.optstore.initialize_from_top_level_project_call({}, {}, {})
+                env.coredata.optstore.initialize_from_top_level_project_call({})
                 env.add_lang_args('c', cls, MachineChoice.HOST)
 
                 link_args = env.coredata.optstore.get_value_for(OptionKey('c_link_args'))
@@ -5134,7 +5134,8 @@ class AllPlatformTests(BasePlatformTests):
                       envvars: T.Dict[str, str]) -> T.List[str]:
             with mock.patch.dict(os.environ, envvars):
                 env = get_fake_env()
-            env.coredata.optstore.initialize_from_top_level_project_call({}, cmdline, {})
+            env.coredata.optstore.set_user_options(cmdline)
+            env.coredata.optstore.initialize_from_top_level_project_call({})
             env.add_lang_args('c', cls, MachineChoice.HOST)
             value = env.coredata.optstore.get_value_for(OptionKey('c_link_args'))
             assert isinstance(value, list), 'for mypy'

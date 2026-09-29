@@ -163,15 +163,11 @@ class IntrospectionInterpreter(AstInterpreter):
                 self.subproject,
                 self.invoker_method_default_options,
                 self.project_default_options,
-                {},
-                self.environment.options,
             )
         else:
-            self.coredata.optstore.initialize_from_top_level_project_call(
-                self.project_default_options,
-                {},
-                self.environment.options,
-            )
+            self.coredata.optstore.set_user_options({})
+            self.coredata.optstore.set_machine_file_options(self.environment.options)
+            self.coredata.optstore.initialize_from_top_level_project_call(self.project_default_options)
 
         if not self.is_subproject() and 'subproject_dir' in kwargs:
             # Like flatten_args_hack(), the values are really TYPE_nvar.

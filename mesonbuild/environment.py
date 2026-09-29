@@ -465,6 +465,14 @@ class Environment:
             if self.coredata.optstore.is_backend_option(k):
                 self.coredata.optstore.set_option(k, v)
 
+    def init_user_options(self, cmd_line_options: T.Mapping[OptionKey, T.Optional[ElementaryOptionValues]]) -> None:
+        """Pass the options from the command line and, on the first run, from
+           the machine files to the option store, before the toplevel project
+           is configured."""
+        self.coredata.optstore.set_user_options(cmd_line_options)
+        if self.first_invocation:
+            self.coredata.optstore.set_machine_file_options(self.options)
+
     def is_cross_build(self, when_building_for: MachineChoice = MachineChoice.HOST) -> bool:
         return self.machine_map[when_building_for] is not self.machine_map.build
 
