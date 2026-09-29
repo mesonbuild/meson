@@ -7,6 +7,7 @@ from collections import OrderedDict
 from itertools import chain
 import copy
 import dataclasses
+import enum
 import itertools
 import os
 import pathlib
@@ -758,6 +759,27 @@ COMPILER_BASE_OPTIONS: T.Mapping[OptionKey, AnyOptionType] = {
     ])
 }
 
+class OptionSource(enum.IntEnum):
+    """Where a per-project option value comes from, in order of increasing priority."""
+
+    # compiler and linker arguments from environment variables such as $CFLAGS
+    ENVIRONMENT = 0
+    # default_options in the project's own project() call
+    PROJECT = 1
+    # default_options in the project() call of another project, as in "sub:opt=value"
+    TOPLEVEL = 2
+    # default_options in the subproject() or dependency() call
+    SUBPROJECT = 3
+    # machine file and environment variables, read on the first run and kept afterwards
+    MACHINE_FILE = 4
+    # command line
+    COMMAND_LINE = 5
+    # forced by the interpreter, e.g. from `dependency(static: true)`
+    RUNTIME = 6
+    # detected on the first run and kept afterwards, e.g. the Visual Studio backend
+    DETECTED = 7
+
+
 class OptionStore:
     DEFAULT_DEPENDENTS = {'plain': ('plain', False),
                           'debug': ('0', True),
@@ -782,8 +804,9 @@ class OptionStore:
         # Pending options are configuration dependent options that could be
         # initialized later, such as compiler options
         self.pending_options: OptionDict = {}
-        # Subproject options from toplevel project()
-        self.pending_subproject_options: OptionDict = {}
+        # Per-project option values for each source, to be resolved
+        # into self.augments as each project is configured.
+        self.all_options: T.Dict[OptionSource, OptionDict] = {source: {} for source in OptionSource}
         # Class for host-aware path handling
         self.pure_path_class: T.Type[pathlib.PurePath] = pathlib.PurePath
 
@@ -1295,7 +1318,7 @@ class OptionStore:
             if key.subproject:
                 # Subproject options from toplevel project() have low priority
                 # and will be processed when the subproject is found
-                self.pending_subproject_options[key] = valstr
+                self.all_options[OptionSource.TOPLEVEL][key] = valstr
             else:
                 # Setting a project option with default_options
                 # should arguably be a hard error; the default
@@ -1350,7 +1373,7 @@ class OptionStore:
                 options.pop(subp_key, None)
 
         # augments from the toplevel project() default_options
-        for key, valstr in self.pending_subproject_options.items():
+        for key, valstr in self.all_options[OptionSource.TOPLEVEL].items():
             if key.subproject == subproject:
                 options[key] = valstr
 
@@ -1377,10 +1400,10 @@ class OptionStore:
                     continue
 
                 # Subproject options from project() will be processed when the subproject is found
-                self.pending_subproject_options[key] = valstr
+                self.all_options[OptionSource.TOPLEVEL][key] = valstr
                 continue
 
-            self.pending_subproject_options.pop(key, None)
+            self.all_options[OptionSource.TOPLEVEL].pop(key, None)
             self.pending_options.pop(key, None)
             if key not in self.augments:
                 self.set_user_option(key, valstr, True)
