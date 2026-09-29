@@ -1280,35 +1280,11 @@ class OptionStore:
     def is_module_option(self, key: OptionKey) -> bool:
         return key in self.module_options
 
-    def prefix_split_options(self, coll: dict[OptionKey, _T]) -> T.Tuple[str | None, dict[OptionKey, _T]]:
-        prefix = None
-        others_d: dict[OptionKey, _T] = {}
-        for k, v in coll.items():
-            if k.name == 'prefix':
-                if not isinstance(v, str):
-                    raise MesonException('Incorrect type for prefix option (expected string)')
-                prefix = v
-            else:
-                others_d[k] = v
-        return (prefix, others_d)
-
-    def first_handle_prefix(self, project_default_options: OptionDict) -> OptionDict:
-        prefix = None
-        (possible_prefix, nopref_project_default_options) = self.prefix_split_options(project_default_options)
-        prefix = prefix if possible_prefix is None else possible_prefix
-
-        for source in (OptionSource.MACHINE_FILE, OptionSource.COMMAND_LINE):
-            possible_prefixv = self.all_options[source].get(OptionKey('prefix'))
-            assert possible_prefixv is None or isinstance(possible_prefixv, str), 'mypy: prefix was not a string?'
-            prefix = prefix if possible_prefixv is None else possible_prefixv
-
-        if prefix is not None:
-            self.hard_reset_from_prefix(prefix)
-        return nopref_project_default_options
-
     def hard_reset_from_prefix(self, prefix: str) -> None:
         prefix = self.sanitize_prefix(prefix)
         for optkey, prefix_mapping in BUILTIN_DIR_NOPREFIX_OPTIONS.items():
+            if optkey not in self.options:
+                continue
             valobj = self.options[optkey]
             if prefix in prefix_mapping:
                 new_value = prefix_mapping[prefix]
@@ -1318,7 +1294,8 @@ class OptionStore:
                 new_value = _v
             self.globals[optkey] = valobj.validate_value(new_value)
         prefix_key = OptionKey('prefix')
-        self.globals[prefix_key] = self.options[prefix_key].validate_value(prefix)
+        if prefix_key in self.options:
+            self.globals[prefix_key] = self.options[prefix_key].validate_value(prefix)
 
     def _global_overrides_subproject(self, key: OptionKey) -> bool:
         """Whether the machine file or command line set the global value of key,
@@ -1328,26 +1305,49 @@ class OptionStore:
                 global_key in self.all_options[OptionSource.COMMAND_LINE]) and \
             not self.is_project_option(global_key.as_root())
 
+    @staticmethod
+    def _buildtype_first(options: OptionDict) -> OptionDict:
+        """Move "buildtype" to the front, so that its expansion into "debug"
+           and "optimization" comes before explicit values for them."""
+        buildtype = {k: v for k, v in options.items() if k.name == 'buildtype'}
+        return {**buildtype, **options}
+
     def _collect_values(self, subproject: str) -> OptionDict:
-        """Compute the value of the options of a subproject from all sources."""
+        """Collect the values of the options of a project from all sources;
+           for the toplevel project, this includes global options.  Return
+           the values after merging them.
+
+           Values that are not set by any source anymore are removed, so
+           that the caller only has to apply the new values."""
+        toplevel = subproject == ''
         values: OptionDict = {}
         for source in OptionSource:
-            for key, valstr in self.all_options[source].items():
-                if key.subproject != subproject:
+            for key, valstr in self._buildtype_first(self.all_options[source]).items():
+                # Only look at the options of this project; for the toplevel
+                # project, global options are included too.
+                if key.subproject != subproject and not (toplevel and key.subproject is None):
                     continue
                 # A subproject's own default_options do not override a global
                 # option that was set in a machine file or on the command line.
                 # This is an exception to the overall priorities.
-                if source is OptionSource.PROJECT and self._global_overrides_subproject(key):
+                if source is OptionSource.PROJECT and not toplevel and self._global_overrides_subproject(key):
                     continue
-                # Keep the order in which options are first set, so that for example
-                # "buildtype" is applied before "optimization" and "debug".
                 values[key] = valstr
+                # "buildtype" is a shortcut for "debug" and "optimization".
+                if key.name == 'buildtype' and isinstance(valstr, str) and valstr in self.DEFAULT_DEPENDENTS:
+                    optimization, debug = self.DEFAULT_DEPENDENTS[valstr]
+                    values[key.evolve(name='optimization')] = optimization
+                    values[key.evolve(name='debug')] = debug
 
+        # Setting "buildtype" also sets "debug" and "optimization", so apply
+        # it first and let the values collected above override them.
+        # (temporary while set_from_configure_command calls set_option,
+        # and therefore set_option has to do the same buildtype expansion we do 
+        # above)
+        values = self._buildtype_first(values)
         return values
 
-    def initialize_from_top_level_project_call(self, project_default_options_in: OptionDict) -> None:
-        project_default_options = self.first_handle_prefix(project_default_options_in)
+    def initialize_from_top_level_project_call(self, project_default_options: OptionDict) -> None:
         for key, valstr in project_default_options.items():
             # Due to backwards compatibility we ignore build-machine options
             # when building natively.
@@ -1362,14 +1362,20 @@ class OptionStore:
                 # should arguably be a hard error; the default
                 # value of project option should be set in the option
                 # file, not in the project call.
-                self.set_user_option(key, valstr, True)
+                self.all_options[OptionSource.PROJECT][key] = valstr
 
-        # ignore subprojects for now for machine file and command line
-        # options; they are applied later
-        for source in (OptionSource.MACHINE_FILE, OptionSource.COMMAND_LINE):
-            for key, valstr in self.all_options[source].items():
-                if not key.subproject and key.name != 'prefix':
-                    self.set_user_option(key, valstr, True)
+        values = self._collect_values('')
+
+        # The installation prefix determines the default of some directories.
+        prefix = values.get(OptionKey('prefix'), default_prefix())
+        if not isinstance(prefix, str):
+            raise MesonException('Incorrect type for prefix option (expected string)')
+        self.hard_reset_from_prefix(prefix)
+
+        for key, valstr in values.items():
+            if key.name != 'prefix':
+                self.pending_options.pop(key, None)
+                self.set_user_option(key, valstr, True)
 
     def accept_as_pending_option(self, key: OptionKey, first_invocation: bool = False) -> bool:
         # Some base options (sanitizers etc) might get added later.
@@ -1407,7 +1413,8 @@ class OptionStore:
                 else:
                     self.all_options[OptionSource.TOPLEVEL][key] = valstr
 
-        for key, valstr in self._collect_values(subproject).items():
+        values = self._collect_values(subproject)
+        for key, valstr in values.items():
             self.pending_options.pop(key, None)
             self.set_user_option(key, valstr, True)
 

@@ -177,7 +177,7 @@ class IntrospectionInterpreter(AstInterpreter):
         if not self.is_subproject():
             self.project_data['subprojects'] = []
 
-        self.environment.init_backend_options(self.backend)
+        self.coredata.init_backend_options(self.backend)
 
         self._add_languages(proj_langs, True, MachineChoice.HOST)
         self._add_languages(proj_langs, True, MachineChoice.BUILD)
