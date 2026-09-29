@@ -1275,7 +1275,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 mlog.log('Auto detected Visual Studio backend:', mlog.bold(self.backend.name))
             if not self.environment.first_invocation:
                 raise MesonBugException(f'Backend changed from {backend_name} to {self.backend.name}')
-            self.coredata.optstore.set_option(OptionKey('backend'), self.backend.name, first_invocation=True)
+            self.coredata.optstore.set_detected_option(OptionKey('backend'), self.backend.name)
 
         self.coredata.init_backend_options(backend_name)
 
