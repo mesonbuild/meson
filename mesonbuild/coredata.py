@@ -338,6 +338,12 @@ class CoreData:
                 'Default project to execute in Visual Studio',
                 ''))
 
+        # Options for other backends are still pending; report them like
+        # any other unknown option.
+        for key in self.optstore.pending_options:
+            if self.optstore.is_backend_option(key):
+                raise MesonException(f'Unknown option: "{key}".')
+
     def get_option_for_target(self, target: 'BuildTarget', key: T.Union[str, OptionKey]) -> ElementaryOptionValues:
         if isinstance(key, str):
             assert ':' not in key
