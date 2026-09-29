@@ -611,6 +611,36 @@ class OptionTests(unittest.TestCase):
         configure({}, {OptionKey('prefix'): '/usr'})
         self.assertEqual(optstore.get_value_for(sysconfdir), '/etc')
 
+    def test_reconfigure_default_options(self):
+        """Changes to default_options take effect when the options are resolved again."""
+        name = 'someoption'
+        subp = 'subp'
+        optstore = OptionStore(False)
+        prefix = UserStringOption('prefix', 'This is needed by OptionStore', '/usr')
+        optstore.add_system_option('prefix', prefix)
+        optstore.add_system_option(name, UserStringOption(name, 'A global option', 'default'))
+
+        def configure(cmd_line: T.Dict[OptionKey, str], toplevel: T.Optional[str], sub: T.Optional[str]) -> None:
+            optstore.set_user_options(cmd_line)
+            optstore.initialize_from_top_level_project_call({OptionKey(name): toplevel} if toplevel else {})
+            optstore.initialize_from_subproject_call(subp, {}, {OptionKey(name): sub} if sub else {})
+
+        configure({}, 'top', 'sub')
+        self.assertEqual(optstore.get_value_for(name), 'top')
+        self.assertEqual(optstore.get_value_for(name, subp), 'sub')
+
+        configure({}, None, None)
+        self.assertEqual(optstore.get_value_for(name), 'default')
+        self.assertEqual(optstore.get_value_for(name, subp), 'default')
+
+        configure({OptionKey(name): 'cmdline'}, 'top', 'sub')
+        self.assertEqual(optstore.get_value_for(name), 'cmdline')
+        self.assertEqual(optstore.get_value_for(name, subp), 'cmdline')
+
+        configure({}, 'top', 'sub')
+        self.assertEqual(optstore.get_value_for(name), 'top')
+        self.assertEqual(optstore.get_value_for(name, subp), 'sub')
+
     def test_invalid_pending_value(self):
         """If the pending value of an option is invalid when the option is added,
            the option is not left behind, so that the value is checked again
