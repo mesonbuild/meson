@@ -383,7 +383,9 @@ def run_impl(options: CMDOptions, builddir: str) -> int:
 
         save = False
         if has_option_flags(options):
-            save |= c.coredata.set_from_configure_command(options)
+            if c.coredata.set_from_configure_command(options):
+                c.coredata.optstore.resolve_configured()
+                save = True
             cmdline.update_cmd_line_file(builddir, options)
         if options.clearcache:
             c.clear_cache()

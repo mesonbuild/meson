@@ -211,6 +211,8 @@ class OptionTests(unittest.TestCase):
                              top_value,
                              choices=['c++98', 'c++11', 'c++14', 'c++17', 'c++20', 'c++23'])
         optstore.add_system_option(name, co)
+        optstore.initialize_from_subproject_call(sub_name, {}, {})
+        optstore.initialize_from_subproject_call(sub2_name, {}, {})
         self.assertEqual(optstore.get_value_for(name), top_value)
         self.assertEqual(optstore.get_value_for(name, sub_name), top_value)
         self.assertEqual(optstore.get_value_for(name, sub2_name), top_value)
@@ -218,24 +220,28 @@ class OptionTests(unittest.TestCase):
         # First augment a subproject
         with self.subTest('set subproject override'):
             optstore.set_from_configure_command({OptionKey.from_string(f'{sub_name}:{name}'): aug_value})
+            optstore.resolve_configured()
             self.assertEqual(optstore.get_value_for(name), top_value)
             self.assertEqual(optstore.get_value_for(name, sub_name), aug_value)
             self.assertEqual(optstore.get_value_for(name, sub2_name), top_value)
 
         with self.subTest('unset subproject override'):
             optstore.set_from_configure_command({OptionKey.from_string(f'{sub_name}:{name}'): None})
+            optstore.resolve_configured()
             self.assertEqual(optstore.get_value_for(name), top_value)
             self.assertEqual(optstore.get_value_for(name, sub_name), top_value)
             self.assertEqual(optstore.get_value_for(name, sub2_name), top_value)
 
         # And now augment the top level option
         optstore.set_from_configure_command({OptionKey.from_string(f':{name}'): aug_value})
+        optstore.resolve_configured()
         self.assertEqual(optstore.get_value_for(name, None), top_value)
         self.assertEqual(optstore.get_value_for(name, ''), aug_value)
         self.assertEqual(optstore.get_value_for(name, sub_name), top_value)
         self.assertEqual(optstore.get_value_for(name, sub2_name), top_value)
 
         optstore.set_from_configure_command({OptionKey.from_string(f':{name}'): None})
+        optstore.resolve_configured()
         self.assertEqual(optstore.get_value_for(name), top_value)
         self.assertEqual(optstore.get_value_for(name, sub_name), top_value)
         self.assertEqual(optstore.get_value_for(name, sub2_name), top_value)
@@ -254,8 +260,10 @@ class OptionTests(unittest.TestCase):
                              choices=['c++98', 'c++11', 'c++14', 'c++17', 'c++20', 'c++23'],
                              )
         optstore.add_system_option(name, co)
+        optstore.initialize_from_subproject_call(sub_name, {}, {})
         optstore.set_from_configure_command({OptionKey.from_string(f'{sub_name}:{name}'): aug_value})
         optstore.set_from_configure_command({OptionKey.from_string(f'{sub_name}:{name}'): set_value})
+        optstore.resolve_configured()
         self.assertEqual(optstore.get_value_for(name), top_value)
         self.assertEqual(optstore.get_value_for(name, sub_name), set_value)
 
@@ -335,12 +343,14 @@ class OptionTests(unittest.TestCase):
     def test_reconfigure_b_nonexistent(self):
         optstore = OptionStore(False)
         optstore.set_from_configure_command({OptionKey('b_ndebug'): True})
+        optstore.resolve_configured()
 
     def test_reconfigure_backend_nonexistent(self):
         # Backend options are only accepted as pending on the first invocation.
         optstore = OptionStore(False)
         with self.assertRaises(MesonException):
             optstore.set_from_configure_command({OptionKey('backend_whatever'): '1'})
+            optstore.resolve_configured()
 
     def test_unconfigure_nonexistent(self):
         optstore = OptionStore(False)
