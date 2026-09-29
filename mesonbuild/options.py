@@ -811,6 +811,8 @@ class OptionStore:
         # if that value comes from environment variables; e.g. <lang>_link_args
         # with $CFLAGS if the compiler acts as a linker driver
         self.extra_args_from_env: T.Dict[OptionKey, OptionKey] = {}
+        # Global options that were set by the last resolution of the toplevel project
+        self.custom_globals: T.Set[OptionKey] = set()
         # Class for host-aware path handling
         self.pure_path_class: T.Type[pathlib.PurePath] = pathlib.PurePath
 
@@ -1361,9 +1363,18 @@ class OptionStore:
         # and therefore set_option has to do the same buildtype expansion we do 
         # above)
         values = self._buildtype_first(values)
+
+        # Values that are not set by any source anymore go back to the global
+        # value or, for project options, to the default.
+        for key in [k for k in self.augments if k.subproject == subproject and k not in values]:
+            del self.augments[key]
+        for key in [k for k in self.pending_options if k.subproject == subproject and k not in values]:
+            del self.pending_options[key]
         return values
 
     def initialize_from_top_level_project_call(self, project_default_options: OptionDict) -> None:
+        for key in [k for k in self.all_options[OptionSource.PROJECT] if not k.subproject]:
+            del self.all_options[OptionSource.PROJECT][key]
         for key, valstr in project_default_options.items():
             # Due to backwards compatibility we ignore build-machine options
             # when building natively.
@@ -1381,6 +1392,12 @@ class OptionStore:
                 self.all_options[OptionSource.PROJECT][key] = valstr
 
         values = self._collect_values('')
+
+        # Global options that are not set by any source anymore go back to the default.
+        for key in self.custom_globals - values.keys():
+            self.globals.pop(key, None)
+            self.pending_options.pop(key, None)
+        self.custom_globals = {k for k in values if k.subproject is None}
 
         # The installation prefix determines the default of some directories.
         prefix = values.get(OptionKey('prefix'), default_prefix())
@@ -1406,6 +1423,11 @@ class OptionStore:
                                         subproject: str,
                                         spcall_default_options: OptionDict,
                                         project_default_options: OptionDict) -> None:
+        # Replace the values from the previous run.
+        for source in (OptionSource.PROJECT, OptionSource.SUBPROJECT):
+            for key in [k for k in self.all_options[source] if k.subproject == subproject]:
+                del self.all_options[source][key]
+
         for source, default_options in ((OptionSource.PROJECT, project_default_options),
                                         (OptionSource.SUBPROJECT, spcall_default_options)):
             for key, valstr in default_options.items():
