@@ -8,6 +8,7 @@ from mesonbuild.options import (
 from mesonbuild.envconfig import MachineInfo
 from mesonbuild.utils.universal import MesonException, MachineChoice
 
+import copy
 import os
 import unittest
 
@@ -492,6 +493,25 @@ class OptionTests(unittest.TestCase):
 
         configure({}, {OptionKey('prefix'): '/usr'})
         self.assertEqual(optstore.get_value_for(sysconfdir), '/etc')
+
+    def test_invalid_pending_value(self):
+        """If the pending value of an option is invalid when the option is added,
+           the option is not left behind, so that the value is checked again
+           when the option is added later."""
+        name = 'c_std'
+        opt = UserComboOption(name, 'C language standard to use', 'none', choices=['none', 'c11'])
+
+        key = OptionKey(name)
+        optstore = OptionStore(False)
+        optstore.initialize_from_top_level_project_call({key: 'c23'}, {}, {})
+        with self.assertRaises(MesonException):
+            optstore.add_compiler_option('c', key, copy.copy(opt))
+        self.assertNotIn(key, optstore)
+
+        # Resolving again, as done when reconfiguring, does not fail.
+        optstore.initialize_from_top_level_project_call({key: 'c23'}, {}, {})
+        with self.assertRaises(MesonException):
+            optstore.add_compiler_option('c', key, copy.copy(opt))
 
     def test_deprecated_nonstring_value(self):
         # TODO: add a lot more deprecated option tests
