@@ -888,14 +888,26 @@ class OptionStore:
         if key in self.options:
             return
 
-        pval = self.pending_options.pop(key, None)
-        if key.subproject:
-            proj_key = key.evolve(subproject=None)
-            self.add_system_option_internal(proj_key, valobj)
+        global_key = key.evolve(subproject=None)
+        added_global = global_key not in self.options
+        if key.subproject is not None:
+            self.add_system_option_internal(global_key, valobj)
         else:
-            self.options[key] = valobj
-        if pval is not None:
+            self.options[global_key] = valobj
+
+        pval = self.pending_options.pop(key, None)
+        if pval is None:
+            return
+
+        try:
             self.set_option(key, pval)
+        except MesonException:
+            # Do not leave behind an option whose value was never set, so
+            # that the value is checked again if the option is added later.
+            self.pending_options[key] = pval
+            if added_global:
+                del self.options[global_key]
+            raise
 
     def add_compiler_option(self, language: Language, key: T.Union[OptionKey, str], valobj: AnyOptionType) -> None:
         key = self.ensure_and_validate_key(key)
