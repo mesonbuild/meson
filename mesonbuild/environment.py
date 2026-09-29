@@ -648,16 +648,19 @@ class Environment:
             description + ' linker',
             link_options, split_args=True, allow_dups=True)
 
+        new_largs = largkey not in self.coredata.optstore
         self.coredata.optstore.add_compiler_option(lang, argkey, cargs)
         self.coredata.optstore.add_compiler_option(lang, largkey, largs)
 
-        if comp.USED_FOR_SEPARATE_LINKING_STEP and comp_args_from_envvar:
+        if comp.USED_FOR_SEPARATE_LINKING_STEP and comp_args_from_envvar and new_largs:
             # If the compiler acts as a linker driver, and we're using the
             # environment variable flags for both the compiler and linker
             # arguments, then put the compiler flags in the linker flags as well.
             # This is how autotools works, and the env vars feature is for
             # autotools compatibility.
-            largs.extend_value(comp_options)
+            link_value = self.coredata.optstore.get_value_for(largkey)
+            assert isinstance(link_value, list), 'for mypy'
+            self.coredata.optstore.set_option(largkey, link_value + largs.validate_value(comp_options))
 
     def update_build_machine(self, compilers: T.Optional[CompilerDict] = None) -> None:
         """Redetect the build machine and update the machine definitions
