@@ -1336,14 +1336,13 @@ class Interpreter(InterpreterBase, HoldableObject):
         self._load_option_file()
 
         self.project_default_options = kwargs['default_options']
-        if self.environment.first_invocation or (self.subproject != '' and self.subproject not in self.coredata.initialized_subprojects):
-            if self.subproject == '':
-                self.coredata.optstore.initialize_from_top_level_project_call(self.project_default_options)
-            else:
-                self.coredata.optstore.initialize_from_subproject_call(self.subproject,
-                                                                       self.invoker_method_default_options,
-                                                                       self.project_default_options)
-                self.coredata.initialized_subprojects.add(self.subproject)
+        if self.subproject == '':
+            self.coredata.optstore.initialize_from_top_level_project_call(self.project_default_options)
+        else:
+            self.coredata.optstore.initialize_from_subproject_call(self.subproject,
+                                                                   self.invoker_method_default_options,
+                                                                   self.project_default_options)
+            self.coredata.initialized_subprojects.add(self.subproject)
 
         if not self.is_subproject():
             # We have to activate VS before adding languages and before calling

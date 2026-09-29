@@ -514,7 +514,7 @@ class PlatformAgnosticTests(BasePlatformTests):
 
     def test_unset_project_options(self) -> None:
         """Removing a project option from the command line makes the yielded
-           value effective again."""
+           value, or the value from default_options, effective again."""
         testdir = os.path.join(self.unit_test_dir, '140 unset project options')
         self.init(testdir, extra_args=['-Dsub:yielding=cmdline', '-Dsub:plain=cmdline'])
         self.assertEqual(self.getconf('sub:yielding'), 'cmdline')
@@ -522,6 +522,9 @@ class PlatformAgnosticTests(BasePlatformTests):
 
         self.setconf(['-U', 'sub:yielding'])
         self.assertEqual(self.getconf('sub:yielding'), 'toplevel')
+
+        self.setconf(['-U', 'sub:plain'])
+        self.assertEqual(self.getconf('sub:plain'), 'project')
 
     def test_configure_options_file_deleted(self) -> None:
         """Deleting all option files should make seting a project option an error."""
