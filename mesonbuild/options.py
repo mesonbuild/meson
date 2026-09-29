@@ -343,9 +343,9 @@ class UserOption(T.Generic[_T], HoldableObject):
             return [str(value)]
         return [value]
 
-    def printable_value(self) -> ElementaryOptionValues:
-        assert isinstance(self.value, (str, int, bool, list))
-        return self.value
+    def printable_value(self, value: ElementaryOptionValues) -> ElementaryOptionValues:
+        assert isinstance(value, (str, int, bool, list))
+        return value
 
     def printable_choices(self) -> T.Optional[T.List[str]]:
         return None
@@ -458,10 +458,10 @@ class UserUmaskOption(_UserIntegerBase[T.Union["Literal['preserve']", OctalInt]]
     min_value: T.Optional[int] = dataclasses.field(default=0, init=False)
     max_value: T.Optional[int] = dataclasses.field(default=0o777, init=False)
 
-    def printable_value(self) -> str:
-        if isinstance(self.value, int):
-            return format(self.value, '04o')
-        return self.value
+    def printable_value(self, value: ElementaryOptionValues) -> ElementaryOptionValues:
+        if isinstance(value, int):
+            return format(value, '04o')
+        return value
 
     def validate_value(self, value: object) -> T.Union[Literal['preserve'], OctalInt]:
         if value == 'preserve':
