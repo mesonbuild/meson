@@ -2510,6 +2510,26 @@ class AllPlatformTests(BasePlatformTests):
                 self.assertEqual(item['value'], ['b', 'c'])
                 self.assertEqual(item['choices'], ['b', 'c', 'd'])
 
+        self.wipe()
+        self.mac_ci_delay()
+
+        # When the defaults change, the new defaults are used even if the
+        # old ones are still valid
+        options3 = str(testdir / 'meson_options.3.txt')
+        shutil.copy(options1, real_options)
+        self.init(str(testdir))
+        self.mac_ci_delay()
+        shutil.copy(options3, real_options)
+        self.build()
+        opts = self.introspect('--buildoptions')
+        for item in opts:
+            if item['name'] == 'combo':
+                self.assertEqual(item['value'], 'c')
+                self.assertEqual(item['choices'], ['a', 'b', 'c', 'd'])
+            elif item['name'] == 'array':
+                self.assertEqual(item['value'], ['c'])
+                self.assertEqual(item['choices'], ['a', 'b', 'c', 'd'])
+
     def test_options_listed_in_build_options(self) -> None:
         """Detect when changed options become listed in build options."""
         testdir = os.path.join(self.unit_test_dir, '113 list build options')
