@@ -356,11 +356,6 @@ class UserOption(T.Generic[_T], HoldableObject):
     def validate_value(self, value: object) -> _T:
         raise RuntimeError('Derived option class did not override validate_value.')
 
-    def set_value(self, newvalue: object) -> bool:
-        oldvalue = self.value
-        self.value = self.validate_value(newvalue)
-        return self.value != oldvalue
-
 @dataclasses.dataclass
 class EnumeratedUserOption(UserOption[_T]):
 
@@ -383,9 +378,6 @@ class UserStringOption(UserOption[str]):
 class UserBooleanOption(EnumeratedUserOption[bool]):
 
     choices: T.List[bool] = dataclasses.field(default_factory=lambda: [True, False])
-
-    def __bool__(self) -> bool:
-        return self.value
 
     def validate_value(self, value: object) -> bool:
         if isinstance(value, bool):
@@ -501,11 +493,6 @@ class UserArrayOption(UserOption[T.List[_T]]):
     choices: T.Optional[T.List[_T]] = None
     split_args: bool = False
     allow_dups: bool = False
-
-    def extend_value(self, value: T.Union[str, T.List[str]]) -> None:
-        """Extend the value with an additional value."""
-        new = self.validate_value(value)
-        self.set_value(self.value + new)
 
     def printable_choices(self) -> T.Optional[T.List[str]]:
         if self.choices is None:
@@ -786,6 +773,9 @@ class OptionStore:
         self.module_options: T.Set[OptionKey] = set()
         from .compilers import all_languages
         self.all_languages = set(all_languages)
+        # Values of global options; the option objects only hold the default
+        self.globals: OptionDict = {}
+        # Per-project values, including those of project options
         self.augments: OptionDict = {}
         self.is_cross = is_cross
 
@@ -830,7 +820,7 @@ class OptionStore:
     def get_pending_value(self, key: OptionKey, default: T.Optional[ElementaryOptionValues] = None) -> ElementaryOptionValues | None:
         key = self.ensure_and_validate_key(key)
         if key in self.options:
-            return self.options[key].value
+            return self.get_value_for(key)
         return self.pending_options.get(key, default)
 
     def __len__(self) -> int:
@@ -856,12 +846,13 @@ class OptionStore:
     def get_option_and_value_for(self, key: OptionKey) -> T.Tuple[AnyOptionType, ElementaryOptionValues]:
         key = self.ensure_and_validate_key(key)
         option_object = self.resolve_option(key)
-        computed_value = option_object.value
         if key in self.augments:
             assert key.subproject is not None
             computed_value = self.augments[key]
         elif option_object.yielding:
-            computed_value = option_object.parent.value
+            computed_value = self.get_value_for(key.as_root())
+        else:
+            computed_value = self.globals.get(key.evolve(subproject=None), option_object.default)
         return (option_object, computed_value)
 
     def option_has_value(self, key: OptionKey, value: ElementaryOptionValues) -> bool:
@@ -907,6 +898,8 @@ class OptionStore:
             self.pending_options[key] = pval
             if added_global:
                 del self.options[global_key]
+                if global_key in self.globals:
+                    self.pending_options[global_key] = self.globals.pop(global_key)
             raise
 
     def add_compiler_option(self, language: Language, key: T.Union[OptionKey, str], valobj: AnyOptionType) -> None:
@@ -948,11 +941,9 @@ class OptionStore:
         self.module_options.add(key)
 
     def add_builtin_option(self, key: OptionKey, opt: AnyOptionType) -> None:
-        # Create a copy of the object, as we're going to mutate it
-        opt = copy.copy(opt)
         assert key.subproject is None
-        new_value = prefixed_default(opt, key, default_prefix())
-        opt.set_value(new_value)
+        if key not in self.options:
+            self.globals[key] = opt.validate_value(prefixed_default(opt, key, default_prefix()))
 
         modulename = key.get_module_prefix()
         if modulename:
@@ -1057,13 +1048,12 @@ class OptionStore:
             changed |= self.set_option(key.evolve(name=opt.deprecated), new_value, first_invocation)
 
         new_value = opt.validate_value(new_value)
-        if key in self.options:
-            old_value = opt.value
-            opt.set_value(new_value)
-            opt.yielding = False
+        global_key = key.evolve(subproject=None)
+        if key.subproject is None:
+            old_value = self.globals.get(key, opt.default)
+            self.globals[key] = new_value
         else:
-            assert key.subproject is not None
-            old_value = self.augments.get(key, opt.value)
+            old_value = self.augments.get(key, self.globals.get(global_key, opt.default))
             self.augments[key] = new_value
 
         changed |= old_value != new_value
@@ -1125,7 +1115,7 @@ class OptionStore:
                 dirty |= self.set_user_option(key, valstr)
                 continue
 
-            if key in self.augments:
+            if key in self.augments and not self.is_project_option(key):
                 del self.augments[key]
                 dirty = True
             else:
@@ -1142,24 +1132,26 @@ class OptionStore:
                 # machine file, command line).  This way the effective value
                 # can be easily recomputed.
                 opt = self.get_value_object(key)
-                dirty |= not opt.yielding and bool(opt.parent)
-                opt.yielding = bool(opt.parent)
+                if opt.parent and key in self.augments:
+                    del self.augments[key]
+                    dirty = True
         return dirty
 
     def reset_prefixed_options(self, old_prefix: str, new_prefix: str) -> None:
         for optkey, prefix_mapping in BUILTIN_DIR_NOPREFIX_OPTIONS.items():
             valobj = self.options[optkey]
-            new_value = valobj.value
+            old_value = self.get_value_for(optkey)
+            new_value = old_value
             if new_prefix not in prefix_mapping:
                 new_value = valobj.default
             else:
                 if old_prefix in prefix_mapping:
                     # Only reset the value if it has not been changed from the default.
-                    if prefix_mapping[old_prefix] == valobj.value:
+                    if prefix_mapping[old_prefix] == old_value:
                         new_value = prefix_mapping[new_prefix]
                 else:
                     new_value = prefix_mapping[new_prefix]
-            valobj.set_value(new_value)
+            self.globals[optkey] = valobj.validate_value(new_value)
 
     def get_value_object(self, key: OptionKey) -> AnyOptionType:
         key = self.ensure_and_validate_key(key)
@@ -1284,8 +1276,9 @@ class OptionStore:
                 _v = valobj.default
                 assert isinstance(_v, str), 'for mypy'
                 new_value = _v
-            valobj.set_value(new_value)
-        self.options[OptionKey('prefix')].set_value(prefix)
+            self.globals[optkey] = valobj.validate_value(new_value)
+        prefix_key = OptionKey('prefix')
+        self.globals[prefix_key] = self.options[prefix_key].validate_value(prefix)
 
     def initialize_from_top_level_project_call(self,
                                                project_default_options_in: OptionDict,
@@ -1405,16 +1398,17 @@ class OptionStore:
 
             oldval = self.get_value_object(key)
             if type(oldval) is not type(value):
-                self.set_option(key, value.value)
+                self.set_option(key, value.default)
             elif choices_are_different(oldval, value):
                 # If the choices have changed, use the new value, but attempt
                 # to keep the old options. If they are not valid keep the new
                 # defaults but warn.
+                old_value = self.augments.pop(key, oldval.default)
                 self.options[key] = value
                 try:
-                    value.set_value(oldval.value)
+                    self.augments[key] = value.validate_value(old_value)
                 except MesonException:
-                    mlog.warning(f'Old value(s) of {key} are no longer valid, resetting to default ({value.value}).',
+                    mlog.warning(f'Old value(s) of {key} are no longer valid, resetting to default ({value.default}).',
                                  fatal=False)
 
         # Find any extranious keys for this project and remove them
