@@ -554,6 +554,28 @@ class OptionTests(unittest.TestCase):
         self.assertEqual(optstore.get_value_for(args), ['-g'])
         self.assertEqual(optstore.get_value_for(link_args), ['-luser'])
 
+    def test_detected_option(self):
+        """A detected option keeps its value when the other sources change, and
+           the user cannot change it."""
+        name = 'vsenv'
+        optstore = OptionStore(False)
+        prefix = UserStringOption('prefix', 'This is needed by OptionStore', '/usr')
+        optstore.add_system_option('prefix', prefix)
+        optstore.add_system_option(name, UserBooleanOption(name, 'Activate Visual Studio environment',
+                                                           False, readonly=True))
+        optstore.set_user_options({})
+        optstore.initialize_from_top_level_project_call({})
+        optstore.lock_readonly_option(OptionKey(name), False)
+
+        # A new value in project() default_options is ignored...
+        optstore.set_user_options({})
+        optstore.initialize_from_top_level_project_call({OptionKey(name): True})
+        self.assertEqual(optstore.get_value_for(name), False)
+
+        # ... and changing it from the command line is an error.
+        with self.assertRaises(MesonException):
+            optstore.set_from_configure_command({OptionKey(name): 'true'})
+
     def test_prefix_dependent_directories(self):
         """Directories whose default depends on the prefix follow it when the
            options are resolved again, unless they are set explicitly."""

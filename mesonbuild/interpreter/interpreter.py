@@ -1354,6 +1354,10 @@ class Interpreter(InterpreterBase, HoldableObject):
             assert backend is None or isinstance(backend, str), 'for mypy'
             vsenv = self.coredata.optstore.get_value_for(OptionKey('vsenv'))
             assert isinstance(vsenv, bool), 'for mypy'
+            if self.environment.first_invocation:
+                # Compilers are detected in the Visual Studio environment and
+                # are not detected again, so the value must not change later.
+                self.coredata.optstore.lock_readonly_option(OptionKey('vsenv'), vsenv)
             force_vsenv = vsenv or backend.startswith('vs')
             mesonlib.setup_vsenv(force_vsenv)
         self.set_backend()
