@@ -5,10 +5,8 @@
 from __future__ import annotations
 from collections import OrderedDict
 from itertools import chain
-import copy
 import dataclasses
 import enum
-import itertools
 import os
 import pathlib
 
@@ -1160,6 +1158,22 @@ class OptionStore:
                     dirty = True
         return dirty
 
+    def _user_options(self, user_options: T.Mapping[OptionKey, T.Optional[ElementaryOptionValues]]) -> OptionDict:
+        # Due to backwards compatibility we ignore all build-machine options
+        # when building natively.
+        return {key: valstr for key, valstr in user_options.items()
+                if valstr is not None and (self.is_cross or not key.is_for_build())}
+
+    def set_machine_file_options(self, machine_file_options: OptionDict) -> None:
+        """Store the options from the machine file and environment variables.
+           They are only read when the build directory is set up for the first
+           time, and later changes to them are ignored."""
+        self.all_options[OptionSource.MACHINE_FILE] = self._user_options(machine_file_options)
+
+    def set_user_options(self, cmd_line_options: T.Mapping[OptionKey, T.Optional[ElementaryOptionValues]]) -> None:
+        """Initialize the option store before any project is configured."""
+        self.all_options[OptionSource.COMMAND_LINE] = self._user_options(cmd_line_options)
+
     def reset_prefixed_options(self, old_prefix: str, new_prefix: str) -> None:
         for optkey, prefix_mapping in BUILTIN_DIR_NOPREFIX_OPTIONS.items():
             valobj = self.options[optkey]
@@ -1266,28 +1280,19 @@ class OptionStore:
                 others_d[k] = v
         return (prefix, others_d)
 
-    def first_handle_prefix(self,
-                            project_default_options: OptionDict,
-                            cmd_line_options: dict[OptionKey, str | None],
-                            machine_file_options: OptionDict) \
-            -> T.Tuple[OptionDict, dict[OptionKey, str | None], OptionDict]:
-        # Copy to avoid later mutation
-        nopref_machine_file_options = copy.copy(machine_file_options)
-
+    def first_handle_prefix(self, project_default_options: OptionDict) -> OptionDict:
         prefix = None
         (possible_prefix, nopref_project_default_options) = self.prefix_split_options(project_default_options)
         prefix = prefix if possible_prefix is None else possible_prefix
 
-        possible_prefixv = nopref_machine_file_options.pop(OptionKey('prefix'), None)
-        assert possible_prefixv is None or isinstance(possible_prefixv, str), 'mypy: prefix from machine file was not a string?'
-        prefix = prefix if possible_prefixv is None else possible_prefixv
-
-        (possible_prefix, nopref_cmd_line_options) = self.prefix_split_options(cmd_line_options)
-        prefix = prefix if possible_prefix is None else possible_prefix
+        for source in (OptionSource.MACHINE_FILE, OptionSource.COMMAND_LINE):
+            possible_prefixv = self.all_options[source].get(OptionKey('prefix'))
+            assert possible_prefixv is None or isinstance(possible_prefixv, str), 'mypy: prefix was not a string?'
+            prefix = prefix if possible_prefixv is None else possible_prefixv
 
         if prefix is not None:
             self.hard_reset_from_prefix(prefix)
-        return (nopref_project_default_options, nopref_cmd_line_options, nopref_machine_file_options)
+        return nopref_project_default_options
 
     def hard_reset_from_prefix(self, prefix: str) -> None:
         prefix = self.sanitize_prefix(prefix)
@@ -1303,13 +1308,8 @@ class OptionStore:
         prefix_key = OptionKey('prefix')
         self.globals[prefix_key] = self.options[prefix_key].validate_value(prefix)
 
-    def initialize_from_top_level_project_call(self,
-                                               project_default_options_in: OptionDict,
-                                               cmd_line_options_in: dict[OptionKey, str | None],
-                                               machine_file_options_in: OptionDict) -> None:
-        (project_default_options, cmd_line_options, machine_file_options) = self.first_handle_prefix(project_default_options_in,
-                                                                                                     cmd_line_options_in,
-                                                                                                     machine_file_options_in)
+    def initialize_from_top_level_project_call(self, project_default_options_in: OptionDict) -> None:
+        project_default_options = self.first_handle_prefix(project_default_options_in)
         for key, valstr in project_default_options.items():
             # Due to backwards compatibility we ignore build-machine options
             # when building natively.
@@ -1328,13 +1328,10 @@ class OptionStore:
 
         # ignore subprojects for now for machine file and command line
         # options; they are applied later
-        for key, valstr in itertools.chain(machine_file_options.items(), cmd_line_options.items()):
-            # Due to backwards compatibility we ignore all build-machine options
-            # when building natively.
-            if not self.is_cross and key.is_for_build():
-                continue
-            if not key.subproject:
-                self.set_user_option(key, valstr, True)
+        for source in (OptionSource.MACHINE_FILE, OptionSource.COMMAND_LINE):
+            for key, valstr in self.all_options[source].items():
+                if not key.subproject and key.name != 'prefix':
+                    self.set_user_option(key, valstr, True)
 
     def accept_as_pending_option(self, key: OptionKey, first_invocation: bool = False) -> bool:
         # Some base options (sanitizers etc) might get added later.
@@ -1348,9 +1345,7 @@ class OptionStore:
     def initialize_from_subproject_call(self,
                                         subproject: str,
                                         spcall_default_options: OptionDict,
-                                        project_default_options: OptionDict,
-                                        cmd_line_options: dict[OptionKey, str | None],
-                                        machine_file_options: OptionDict) -> None:
+                                        project_default_options: OptionDict) -> None:
 
         options: OptionDict = {}
 
@@ -1366,11 +1361,12 @@ class OptionStore:
 
         # then global settings from machine file and command line
         # **but not if they are toplevel project options**
-        for key, valstr in itertools.chain(machine_file_options.items(), cmd_line_options.items()):
-            if key.subproject is None and not self.is_project_option(key.as_root()):
-                subp_key = key.evolve(subproject=subproject)
-                # just leave in place the value that was set for the toplevel project
-                options.pop(subp_key, None)
+        for source in (OptionSource.MACHINE_FILE, OptionSource.COMMAND_LINE):
+            for key, valstr in self.all_options[source].items():
+                if key.subproject is None and not self.is_project_option(key.as_root()):
+                    subp_key = key.evolve(subproject=subproject)
+                    # just leave in place the value that was set for the toplevel project
+                    options.pop(subp_key, None)
 
         # augments from the toplevel project() default_options
         for key, valstr in self.all_options[OptionSource.TOPLEVEL].items():
@@ -1388,9 +1384,10 @@ class OptionStore:
             options[key] = valstr
 
         # then finally per project augments from machine file and command line
-        for key, valstr in itertools.chain(machine_file_options.items(), cmd_line_options.items()):
-            if key.subproject == subproject:
-                options[key] = valstr
+        for source in (OptionSource.MACHINE_FILE, OptionSource.COMMAND_LINE):
+            for key, valstr in self.all_options[source].items():
+                if key.subproject == subproject:
+                    options[key] = valstr
 
         # merge everything that has been computed above, while giving self.augments priority
         for key, valstr in options.items():
