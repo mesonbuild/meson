@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2024 Meson project contributors
 
+from __future__ import annotations
+
 from mesonbuild.options import (
     OptionStore, OptionKey, UserStringOption, UserStringArrayOption,
     UserComboOption, UserBooleanOption,
@@ -9,6 +11,7 @@ from mesonbuild.envconfig import MachineInfo
 from mesonbuild.utils.universal import MesonException, MachineChoice
 
 import os
+import typing as T
 import unittest
 
 
@@ -462,6 +465,30 @@ class OptionTests(unittest.TestCase):
             self.assertEqual(optstore.get_value_for('buildtype', subp), 'debug')
             self.assertEqual(optstore.get_value_for('optimization', subp), '0')
             self.assertEqual(optstore.get_value_for('debug', subp), True)
+
+    def test_prefix_dependent_directories(self):
+        """Directories whose default depends on the prefix follow it when the
+           options are resolved again, unless they are set explicitly."""
+        optstore = OptionStore(False)
+        optstore.init_builtins()
+        sysconfdir = OptionKey('sysconfdir')
+        default_sysconfdir = optstore.options[sysconfdir].default
+
+        def configure(cmd_line: T.Dict[OptionKey, str], project_default_options: T.Dict[OptionKey, str]) -> None:
+            optstore.initialize_from_top_level_project_call(project_default_options, cmd_line, {})
+
+        configure({OptionKey('prefix'): '/usr'}, {})
+        self.assertEqual(optstore.get_value_for(sysconfdir), '/etc')
+
+        configure({OptionKey('prefix'): '/usr', sysconfdir: '/opt/etc'}, {})
+        self.assertEqual(optstore.get_value_for(sysconfdir), '/opt/etc')
+
+        configure({OptionKey('prefix'): '/opt/foo'}, {})
+        self.assertEqual(optstore.get_value_for('prefix'), '/opt/foo')
+        self.assertEqual(optstore.get_value_for(sysconfdir), default_sysconfdir)
+
+        configure({}, {OptionKey('prefix'): '/usr'})
+        self.assertEqual(optstore.get_value_for(sysconfdir), '/etc')
 
     def test_deprecated_nonstring_value(self):
         # TODO: add a lot more deprecated option tests
