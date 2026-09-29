@@ -1462,6 +1462,11 @@ class OptionStore:
         self.all_options[OptionSource.DETECTED][key] = value
         self.set_option(key, value, first_invocation=True)
 
+    def lock_readonly_option(self, key: OptionKey, value: ElementaryOptionValues) -> None:
+        # A read-only option cannot change after the first run.  Enforce that its
+        # initial value remains active by placing it in the highest-priority layer.
+        self.set_detected_option(key, value)
+
     def set_runtime_option(self, key: OptionKey, value: ElementaryOptionValues) -> None:
         """Force the value of a per-project option, overriding even the
            machine file and command line."""
