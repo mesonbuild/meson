@@ -1146,46 +1146,44 @@ class OptionStore:
         else:
             raise MesonException(f'Unknown option: "{o}".')
 
-    def _update_user_option(self, key: OptionKey, valstr: T.Optional[ElementaryOptionValues]) -> None:
-        if valstr is None:
-            self.all_options[OptionSource.MACHINE_FILE].pop(key, None)
-            self.all_options[OptionSource.COMMAND_LINE].pop(key, None)
-        else:
-            self.all_options[OptionSource.COMMAND_LINE][key] = valstr
-
     def set_from_configure_command(self, D_args: T.Dict[OptionKey, T.Optional[str]]) -> bool:
+        """Update the options from the command line.  Return whether anything
+           changed, in which case the options have to be resolved again, either
+           with resolve_configured() or by configuring the project."""
         dirty = False
         for key, valstr in D_args.items():
             # Due to backwards compatibility we ignore all build-machine options
             # when building natively.
             if not self.is_cross and key.is_for_build():
                 continue
-            self._update_user_option(key, valstr)
-            if valstr is not None:
-                dirty |= self.set_user_option(key, valstr)
-                continue
-
-            if key in self.augments and not self.is_project_option(key):
-                del self.augments[key]
-                dirty = True
+            try:
+                opt: T.Optional[AnyOptionType] = self.resolve_option(key)
+            except KeyError:
+                opt = None
+            if valstr is None:
+                removed = self.all_options[OptionSource.MACHINE_FILE].pop(key, None) is not None
+                removed |= self.all_options[OptionSource.COMMAND_LINE].pop(key, None) is not None
+                if not removed:
+                    if opt is None:
+                        raise MesonException(f"Unknown option: {key}")
+                    continue
             else:
-                if key not in self.options:
-                    raise MesonException(f"Unknown option: {key}")
+                if opt is not None and opt.readonly and opt.validate_value(valstr) != self.get_value_for(key):
+                    raise MesonException(f'Tried to modify read only option "{key}"')
+                old_value = self.all_options[OptionSource.COMMAND_LINE].get(key)
+                self.all_options[OptionSource.COMMAND_LINE][key] = valstr
+                if old_value == valstr:
+                    continue
 
-                # TODO: For project options, "dropping an augment" means going
-                # back to the superproject's value.  However, it's confusing
-                # that -U does not simply remove the option from the stored
-                # cmd_line_options.  This may cause "meson setup --wipe" to
-                # have surprising behavior.  For this to work, UserOption
-                # should only store the default value and the option values
-                # should be stored with their source (project(), subproject(),
-                # machine file, command line).  This way the effective value
-                # can be easily recomputed.
-                opt = self.get_value_object(key)
-                if opt.parent and key in self.augments:
-                    del self.augments[key]
-                    dirty = True
+            dirty = True
         return dirty
+
+    def resolve_configured(self) -> None:
+        """Resolve again the options of the toplevel project and of the subprojects
+           that were configured, for example after set_from_configure_command()."""
+        self._resolve_toplevel(first_invocation=False)
+        for subproject in sorted(self.subprojects):
+            self._resolve_subproject(subproject, first_invocation=False)
 
     def _user_options(self, user_options: T.Mapping[OptionKey, T.Optional[ElementaryOptionValues]]) -> OptionDict:
         # Due to backwards compatibility we ignore all build-machine options
@@ -1391,6 +1389,11 @@ class OptionStore:
                 # file, not in the project call.
                 self.all_options[OptionSource.PROJECT][key] = valstr
 
+        self._resolve_toplevel()
+
+    def _resolve_toplevel(self, first_invocation: bool = True) -> None:
+        """Compute the values of global options and of the toplevel project's
+           options from all sources."""
         values = self._collect_values('')
 
         # Global options that are not set by any source anymore go back to the default.
@@ -1408,7 +1411,7 @@ class OptionStore:
         for key, valstr in values.items():
             if key.name != 'prefix':
                 self.pending_options.pop(key, None)
-                self.set_user_option(key, valstr, True)
+                self.set_user_option(key, valstr, first_invocation)
 
     def accept_as_pending_option(self, key: OptionKey, first_invocation: bool = False) -> bool:
         # Some base options (sanitizers etc) might get added later.
@@ -1451,12 +1454,15 @@ class OptionStore:
                 else:
                     self.all_options[OptionSource.TOPLEVEL][key] = valstr
 
+        self._resolve_subproject(subproject)
+        self.subprojects.add(subproject)
+
+    def _resolve_subproject(self, subproject: str, first_invocation: bool = True) -> None:
+        """Compute the values of a subproject's options from all sources."""
         values = self._collect_values(subproject)
         for key, valstr in values.items():
             self.pending_options.pop(key, None)
-            self.set_user_option(key, valstr, True)
-
-        self.subprojects.add(subproject)
+            self.set_user_option(key, valstr, first_invocation)
 
     def _highest_priority_source(self, key: OptionKey) -> T.Optional[OptionSource]:
         """Return the source with the highest priority that sets key, or None."""
