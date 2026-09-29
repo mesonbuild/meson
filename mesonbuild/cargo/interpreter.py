@@ -127,6 +127,9 @@ class PackageState:
     ws_subdir: str
     ws_member: str
     downloaded: bool = False
+    # True if built as a dependency, False if the package is a member of a
+    # workspace that provided the Cargo.lock file used by Meson.
+    is_dependency: bool = False
     # Per-machine configuration state
     cfg: PerMachine[T.Optional[PackageConfiguration]] = dataclasses.field(
         default_factory=lambda: PerMachine(None, None)
@@ -293,6 +296,7 @@ class WorkspaceState:
     subdir: str
     subproject: SubProject
     downloaded: bool = False
+    is_dependency: bool = False
     # member path -> PackageState, for all members of this workspace
     packages: T.Dict[str, PackageState] = dataclasses.field(default_factory=dict)
     # package name to member path, for all members of this workspace
@@ -326,6 +330,8 @@ class Interpreter:
         self.cargolock = self.environment.wrap_resolver.get_cargo_lock(subdir)
         if self.cargolock:
             self.build_def_files.append(filename)
+        # The workspace that owns Cargo.lock is built directly, all others are dependencies.
+        self.cargolock_subdir = as_posix(subdir) if self.cargolock else None
 
     @property
     def is_cross(self) -> bool:
@@ -542,7 +548,8 @@ class Interpreter:
             ws.packages[m] = self.packages[key]
             self._require_workspace_member(ws, m)
         else:
-            ws.packages[m] = PackageState(manifest_, ws_subdir=ws.subdir, ws_member=m, downloaded=ws.downloaded)
+            ws.packages[m] = PackageState(manifest_, ws_subdir=ws.subdir, ws_member=m,
+                                          downloaded=ws.downloaded, is_dependency=ws.is_dependency)
 
     def _get_workspace(self, manifest: T.Union[Workspace, Manifest], subdir: str, subproject: SubProject,
                        extra_members: T.Optional[T.List[str]], downloaded: bool) -> WorkspaceState:
@@ -556,7 +563,7 @@ class Interpreter:
                       patches=manifest.patches,
                       manifest_path=os.path.join(self.environment.source_dir, subdir))
         ws = WorkspaceState(workspace, self.environment.source_dir, subdir, subproject,
-                            downloaded=downloaded)
+                            downloaded=downloaded, is_dependency=subdir != self.cargolock_subdir)
         if workspace.root_package:
             self._add_workspace_member(workspace.root_package, ws, '.')
 
