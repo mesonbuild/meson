@@ -746,6 +746,25 @@ class AllPlatformTests(BasePlatformTests):
         out = self._run(self.mtest_command + ['partially skipped (real-world example)'])
         self.assertIn('21 subtests passed, 5 skipped', out)
 
+    def test_tap_subtest_failure_summary(self):
+        testdir = os.path.join(self.unit_test_dir, '140 tap summary')
+        self.init(testdir)
+        with self.assertRaises(subprocess.CalledProcessError) as cm:
+            self._run(self.mtest_command + ['--print-errorlogs'])
+        # The summary lists the failed test's failing and skipped subtests, but not its passing ones.
+        summary = cm.exception.stdout.split('Summary of Failures:')[1]
+        self.assertIn('sub-fail', summary)
+        self.assertIn('sub-skip', summary)
+        self.assertNotIn('sub-pass-one', summary)
+        self.assertNotIn('sub-pass-two', summary)
+
+        with open(os.path.join(self.logdir, 'testlog.txt'), encoding='utf-8') as f:
+            summary = f.read().split('Summary of Failures:')[1]
+        self.assertIn('sub-fail', summary)
+        self.assertIn('sub-skip', summary)
+        self.assertNotIn('sub-pass-one', summary)
+        self.assertNotIn('sub-pass-two', summary)
+
     def test_long_output(self):
         testdir = os.path.join(self.common_test_dir, '254 long output')
         self.init(testdir)
