@@ -317,12 +317,12 @@ class Interpreter:
     def get_build_def_files(self) -> T.List[str]:
         return self.build_def_files
 
-    def load_workspace(self, subdir: str, extra_members: T.Optional[T.List[str]]) -> WorkspaceState:
+    def load_workspace(self, subdir: str, subproject: SubProject,
+                       extra_members: T.Optional[T.List[str]]) -> WorkspaceState:
         """Load the root Cargo.toml package and prepare it with features and dependencies."""
         is_root = not self.workspaces
         manifest = self._load_manifest(subdir)
-        ws = self._get_workspace(manifest, subdir, SubProject(os.path.basename(subdir)),
-                                 extra_members, False)
+        ws = self._get_workspace(manifest, subdir, subproject, extra_members, False)
         if is_root:
             self.root_workspace = ws
             self.profiles = ws.workspace.profile
@@ -391,7 +391,8 @@ class Interpreter:
 
         return opts
 
-    def interpret(self, subdir: str, project_root: T.Optional[str] = None) -> mparser.CodeBlockNode:
+    def interpret(self, subdir: str, subproject: SubProject,
+                  project_root: T.Optional[str] = None) -> mparser.CodeBlockNode:
         filename = os.path.join(self.environment.source_dir, subdir, 'Cargo.toml')
         build = builder.Builder(filename)
         if project_root:
@@ -402,7 +403,7 @@ class Interpreter:
             project_root = as_posix(project_root)
             return self.interpret_package(manifest, build, subdir, project_root)
         else:
-            ws = self.load_workspace(subdir, None)
+            ws = self.load_workspace(subdir, subproject, None)
             return self.interpret_workspace(ws, build, subdir)
 
     def interpret_package(self, manifest: Manifest, build: builder.Builder, subdir: str, project_root: str) -> mparser.CodeBlockNode:
@@ -441,9 +442,8 @@ class Interpreter:
         return ast
 
     def interpret_workspace(self, ws: WorkspaceState, build: builder.Builder, subdir: str) -> mparser.CodeBlockNode:
-        name = os.path.basename(subdir)
         subprojects_dir = os.path.join(subdir, 'subprojects')
-        self.environment.wrap_resolver.load_and_merge(subprojects_dir, SubProject(name))
+        self.environment.wrap_resolver.load_and_merge(subprojects_dir, ws.subproject)
         ast: T.List[mparser.BaseNode] = []
 
         # Call subdir() for each required member of the workspace. The order is
@@ -483,7 +483,7 @@ class Interpreter:
 
         for member in ws.required_members:
             _process_member(member)
-        ast = self._create_project(name, processed_members.get('.'), build) + ast
+        ast = self._create_project(ws.subproject, processed_members.get('.'), build) + ast
         return build.block(ast)
 
     def _load_workspace_member(self, ws: WorkspaceState, m: str) -> None:

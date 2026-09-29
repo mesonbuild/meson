@@ -1194,7 +1194,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             if os.path.exists(os.path.join(self.environment.get_source_dir(), subdir, environment.build_filename)):
                 ast = None
             else:
-                ast = cargo_int.interpret(subdir)
+                ast = cargo_int.interpret(subdir, subp_name)
 
             return self._do_subproject_meson(
                 subp_name, subdir, default_options, kwargs, ast,
@@ -2724,7 +2724,7 @@ class Interpreter(InterpreterBase, HoldableObject):
 
         if self.relaxed(InterpreterRuleRelaxation.CARGO_SUBDIR) and \
            os.path.exists(os.path.join(self.environment.get_source_dir(), subdir, 'Cargo.toml')):
-            codeblock = self.cargo.interpret(subdir, self.root_subdir)
+            codeblock = self.cargo.interpret(subdir, self.subproject, self.root_subdir)
             self._save_ast(subdir, codeblock)
             self._evaluate_codeblock(codeblock, subdir)
         elif not self._evaluate_subdir(self.environment.get_source_dir(), subdir):
