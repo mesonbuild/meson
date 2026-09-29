@@ -1004,9 +1004,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         # command line.
         if forced_options:
             for k, v in forced_options.items():
-                # FIXME: this should have no business poking at augments[],
-                # but set_option() does not do what we want
-                self.coredata.optstore.augments[k.evolve(subproject=subp_name)] = v
+                self.coredata.optstore.set_runtime_option(k.evolve(subproject=subp_name), v)
             default_options = {**forced_options, **default_options}
 
         if subp_name == '':
