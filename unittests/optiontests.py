@@ -330,6 +330,12 @@ class OptionTests(unittest.TestCase):
         optstore = OptionStore(False)
         optstore.set_from_configure_command({OptionKey('b_ndebug'): True})
 
+    def test_reconfigure_backend_nonexistent(self):
+        # Backend options are only accepted as pending on the first invocation.
+        optstore = OptionStore(False)
+        with self.assertRaises(MesonException):
+            optstore.set_from_configure_command({OptionKey('backend_whatever'): '1'})
+
     def test_unconfigure_nonexistent(self):
         optstore = OptionStore(False)
         with self.assertRaises(MesonException):
