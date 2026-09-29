@@ -262,6 +262,7 @@ class WorkspaceState:
     workspace: Workspace
     source_dir: str
     subdir: str
+    subproject: SubProject
     downloaded: bool = False
     # member path -> PackageState, for all members of this workspace
     packages: T.Dict[str, PackageState] = dataclasses.field(default_factory=dict)
@@ -320,7 +321,8 @@ class Interpreter:
         """Load the root Cargo.toml package and prepare it with features and dependencies."""
         is_root = not self.workspaces
         manifest = self._load_manifest(subdir)
-        ws = self._get_workspace(manifest, subdir, extra_members, False)
+        ws = self._get_workspace(manifest, subdir, SubProject(os.path.basename(subdir)),
+                                 extra_members, False)
         if is_root:
             self.root_workspace = ws
             self.profiles = ws.workspace.profile
@@ -510,7 +512,8 @@ class Interpreter:
         else:
             ws.packages[m] = PackageState(manifest_, ws_subdir=ws.subdir, ws_member=m, downloaded=ws.downloaded)
 
-    def _get_workspace(self, manifest: T.Union[Workspace, Manifest], subdir: str, extra_members: T.Optional[T.List[str]], downloaded: bool) -> WorkspaceState:
+    def _get_workspace(self, manifest: T.Union[Workspace, Manifest], subdir: str, subproject: SubProject,
+                       extra_members: T.Optional[T.List[str]], downloaded: bool) -> WorkspaceState:
         # Canonicalize before accessing self.workspaces
         subdir = as_posix(subdir)
         ws = self.workspaces.get(subdir)
@@ -520,7 +523,7 @@ class Interpreter:
             Workspace(root_package=manifest, members=['.'], default_members=['.'],
                       patches=manifest.patches,
                       manifest_path=os.path.join(self.environment.source_dir, subdir))
-        ws = WorkspaceState(workspace, self.environment.source_dir, subdir,
+        ws = WorkspaceState(workspace, self.environment.source_dir, subdir, subproject,
                             downloaded=downloaded)
         if workspace.root_package:
             self._add_workspace_member(workspace.root_package, ws, '.')
@@ -643,7 +646,7 @@ class Interpreter:
             subp_name in self.environment.wrap_resolver.wraps and \
             self.environment.wrap_resolver.wraps[subp_name].type is not None
 
-        ws = self._get_workspace(manifest, subdir, None, downloaded=downloaded)
+        ws = self._get_workspace(manifest, subdir, SubProject(subp_name), None, downloaded=downloaded)
         if package_name not in ws.packages_to_member:
             raise MesonException(f'{subdir}/Cargo.toml does not provide package "{package_name}"')
         member = ws.packages_to_member[package_name]
