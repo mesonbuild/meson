@@ -497,9 +497,9 @@ class OptionTests(unittest.TestCase):
         cases = [
             # cmd_line, machine_file, toplevel, (buildtype, optimization, debug)
             ({'debug': 'true', 'buildtype': 'release'}, {}, {}, ('release', '3', True)),
-            ({'optimization': '2', 'buildtype': 'debug'}, {}, {}, ('debug', '2', True)),
+            ({'optimization': '2', 'buildtype': 'release'}, {}, {}, ('release', '2', False)),
             ({}, {'debug': 'true', 'buildtype': 'release'}, {}, ('release', '3', True)),
-            ({}, {}, {'optimization': '2', 'buildtype': 'debug'}, ('debug', '2', True)),
+            ({}, {}, {'optimization': '2', 'buildtype': 'release'}, ('release', '2', False)),
             ({'buildtype': 'debug'}, {}, {'buildtype': 'release', 'optimization': '2'}, ('debug', '0', True)),
             ({'optimization': '2'}, {'buildtype': 'release'}, {'optimization': '1'}, ('release', '2', False)),
         ]
@@ -524,6 +524,35 @@ class OptionTests(unittest.TestCase):
                 self.assertEqual((optstore.get_value_for('buildtype', 'sub'),
                                   optstore.get_value_for('optimization', 'sub'),
                                   optstore.get_value_for('debug', 'sub')), expected)
+
+    def test_option_suffix(self):
+        """The value of an option from environment variables is appended to
+           an array option, whatever the source of the latter."""
+        args = OptionKey('c_args')
+        link_args = OptionKey('c_link_args')
+        optstore = OptionStore(False)
+        optstore.add_system_option(args, UserStringArrayOption(args.name, 'Compiler arguments', []))
+        optstore.add_system_option(link_args, UserStringArrayOption(link_args.name, 'Linker arguments', []))
+        optstore.set_environment_options({args: ['-O2'], link_args: ['-ldefault']})
+        optstore.set_option_suffix(link_args, args)
+
+        optstore.set_user_options({})
+        optstore.initialize_from_top_level_project_call({})
+        self.assertEqual(optstore.get_value_for(args), ['-O2'])
+        self.assertEqual(optstore.get_value_for(link_args), ['-ldefault', '-O2'])
+
+        optstore.set_user_options({link_args: '-luser'})
+        optstore.initialize_from_top_level_project_call({})
+        self.assertEqual(optstore.get_value_for(args), ['-O2'])
+        self.assertEqual(optstore.get_value_for(link_args), ['-luser', '-O2'])
+        self.assertEqual(optstore.get_value_for(link_args.evolve(subproject='sub')),
+                         ['-luser', '-O2'])
+
+        # The value is only appended if it comes from the environment.
+        optstore.set_user_options({link_args: '-luser', args: '-g'})
+        optstore.initialize_from_top_level_project_call({})
+        self.assertEqual(optstore.get_value_for(args), ['-g'])
+        self.assertEqual(optstore.get_value_for(link_args), ['-luser'])
 
     def test_prefix_dependent_directories(self):
         """Directories whose default depends on the prefix follow it when the
