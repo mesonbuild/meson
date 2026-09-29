@@ -807,6 +807,10 @@ class OptionStore:
         # and COMMAND_LINE also include global options, which override
         # PROJECT for subprojects.
         self.all_options: T.Dict[OptionSource, OptionDict] = {source: {} for source in OptionSource}
+        # Array options whose value is extended with the value of another option,
+        # if that value comes from environment variables; e.g. <lang>_link_args
+        # with $CFLAGS if the compiler acts as a linker driver
+        self.extra_args_from_env: T.Dict[OptionKey, OptionKey] = {}
         # Class for host-aware path handling
         self.pure_path_class: T.Type[pathlib.PurePath] = pathlib.PurePath
 
@@ -876,7 +880,19 @@ class OptionStore:
             computed_value = self.get_value_for(key.as_root())
         else:
             computed_value = self.globals.get(key.evolve(subproject=None), option_object.default)
-        return (option_object, computed_value)
+        return (option_object, self._add_extra_args_from_env(key, computed_value))
+
+    def _add_extra_args_from_env(self, key: OptionKey, value: ElementaryOptionValues) -> ElementaryOptionValues:
+        """Add to value the arguments from environment variables that
+           extra_args_from_env associates to key, if any."""
+        suffix_key = self.extra_args_from_env.get(key.evolve(subproject=None))
+        if suffix_key is not None and \
+                self._highest_priority_source(suffix_key) is OptionSource.ENVIRONMENT:
+            suffix = self.all_options[OptionSource.ENVIRONMENT][suffix_key]
+            assert isinstance(value, list), 'for mypy'
+            assert isinstance(suffix, list), 'for mypy'
+            value = value + suffix
+        return value
 
     def option_has_value(self, key: OptionKey, value: ElementaryOptionValues) -> bool:
         option_object, current_value = self.get_option_and_value_for(key)
@@ -1419,6 +1435,26 @@ class OptionStore:
             self.set_user_option(key, valstr, True)
 
         self.subprojects.add(subproject)
+
+    def _highest_priority_source(self, key: OptionKey) -> T.Optional[OptionSource]:
+        """Return the source with the highest priority that sets key, or None."""
+        for source in reversed(OptionSource):
+            if key in self.all_options[source]:
+                return source
+        return None
+
+    def set_option_suffix(self, key: OptionKey, suffix_key: OptionKey) -> None:
+        """Append the value of suffix_key to the value of a global array option,
+           whatever the source of the latter, if the value of suffix_key comes
+           from environment variables."""
+        key = self.ensure_and_validate_key(key)
+        assert key.subproject is None
+        self.extra_args_from_env[key] = self.ensure_and_validate_key(suffix_key)
+
+    def set_environment_options(self, env_options: T.Mapping[OptionKey, T.List[str]]) -> None:
+        """Store the compiler and linker arguments from environment variables,
+           which are only read on the first run."""
+        self.all_options[OptionSource.ENVIRONMENT] = self._user_options(env_options)
 
     def set_detected_option(self, key: OptionKey, value: ElementaryOptionValues) -> None:
         """Set the value of a global option that was detected on the first run."""
