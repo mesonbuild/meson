@@ -1420,6 +1420,12 @@ class OptionStore:
 
         self.subprojects.add(subproject)
 
+    def set_detected_option(self, key: OptionKey, value: ElementaryOptionValues) -> None:
+        """Set the value of a global option that was detected on the first run."""
+        assert key.subproject is None
+        self.all_options[OptionSource.DETECTED][key] = value
+        self.set_option(key, value, first_invocation=True)
+
     def set_runtime_option(self, key: OptionKey, value: ElementaryOptionValues) -> None:
         """Force the value of a per-project option, overriding even the
            machine file and command line."""
