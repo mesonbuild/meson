@@ -80,7 +80,7 @@ dub build urld --compiler=gdc --arch=x86_64
 # Remove debian version of Rust and install latest with rustup.
 # This is needed to get the cross toolchain as well.
 apt-get -y remove rustc || true
-wget -O - https://sh.rustup.rs | sh -s -- -y --profile minimal --component clippy
+wget -O - https://sh.rustup.rs | sh -s -- -y --profile minimal --component clippy --component rustfmt
 source "$HOME/.cargo/env"
 rustup target add x86_64-pc-windows-gnu
 rustup target add arm-unknown-linux-gnueabihf

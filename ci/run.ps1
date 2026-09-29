@@ -14,8 +14,8 @@ if ($env:arch -eq 'x64') {
     # Switch to the x86 Rust toolchain
     rustup default stable-i686-pc-windows-msvc
 
-    # Also install clippy
-    rustup component add clippy
+    # Also install clippy and rustfmt for unittests
+    rustup component add clippy rustfmt
 
     # Rust puts its shared stdlib in a secret place, but it is needed to run tests.
     $env:Path += ";$HOME/.rustup/toolchains/stable-i686-pc-windows-msvc/bin"
