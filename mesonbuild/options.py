@@ -1183,6 +1183,7 @@ class OptionStore:
 
     def set_user_options(self, cmd_line_options: T.Mapping[OptionKey, T.Optional[ElementaryOptionValues]]) -> None:
         """Initialize the option store before any project is configured."""
+        self.all_options[OptionSource.RUNTIME] = {}
         self.all_options[OptionSource.COMMAND_LINE] = self._user_options(cmd_line_options)
 
     def reset_prefixed_options(self, old_prefix: str, new_prefix: str) -> None:
@@ -1408,11 +1409,18 @@ class OptionStore:
 
         for key, valstr in self._collect_values(subproject).items():
             self.pending_options.pop(key, None)
-            # Values that were already set take precedence.
-            if key not in self.augments:
-                self.set_user_option(key, valstr, True)
+            self.set_user_option(key, valstr, True)
 
         self.subprojects.add(subproject)
+
+    def set_runtime_option(self, key: OptionKey, value: ElementaryOptionValues) -> None:
+        """Force the value of a per-project option, overriding even the
+           machine file and command line."""
+        assert key.subproject is not None
+        self.all_options[OptionSource.RUNTIME][key] = value
+        if key.subproject in self.subprojects:
+            # This is the source with the highest priority, no need to resolve again.
+            self.set_user_option(key, value, True)
 
     def update_project_options(self, project_options: MutableKeyedOptionDictType, subproject: SubProject) -> None:
         for key, value in project_options.items():
