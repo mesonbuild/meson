@@ -1100,20 +1100,6 @@ class OptionStore:
         changed |= old_value != new_value
         if opt.readonly and changed and not first_invocation:
             raise MesonException(f'Tried to modify read only option "{error_key}"')
-
-        if key.name == 'prefix' and first_invocation and changed:
-            assert isinstance(old_value, str), 'for mypy'
-            assert isinstance(new_value, str), 'for mypy'
-            self.reset_prefixed_options(old_value, new_value)
-
-        if changed and key.name == 'buildtype' and new_value != 'custom':
-            assert isinstance(new_value, str), 'for mypy'
-            optimization, debug = self.DEFAULT_DEPENDENTS[new_value]
-            dkey = key.evolve(name='debug')
-            optkey = key.evolve(name='optimization')
-            self.set_option(dkey, debug, first_invocation)
-            self.set_option(optkey, optimization, first_invocation)
-
         return changed
 
     def set_user_option(self, o: OptionKey, new_value: ElementaryOptionValues, first_invocation: bool = False) -> bool:
@@ -1201,22 +1187,6 @@ class OptionStore:
         """Initialize the option store before any project is configured."""
         self.all_options[OptionSource.RUNTIME] = {}
         self.all_options[OptionSource.COMMAND_LINE] = self._user_options(cmd_line_options)
-
-    def reset_prefixed_options(self, old_prefix: str, new_prefix: str) -> None:
-        for optkey, prefix_mapping in BUILTIN_DIR_NOPREFIX_OPTIONS.items():
-            valobj = self.options[optkey]
-            old_value = self.get_value_for(optkey)
-            new_value = old_value
-            if new_prefix not in prefix_mapping:
-                new_value = valobj.default
-            else:
-                if old_prefix in prefix_mapping:
-                    # Only reset the value if it has not been changed from the default.
-                    if prefix_mapping[old_prefix] == old_value:
-                        new_value = prefix_mapping[new_prefix]
-                else:
-                    new_value = prefix_mapping[new_prefix]
-            self.globals[optkey] = valobj.validate_value(new_value)
 
     def get_value_object(self, key: OptionKey) -> AnyOptionType:
         key = self.ensure_and_validate_key(key)
@@ -1354,13 +1324,6 @@ class OptionStore:
                     optimization, debug = self.DEFAULT_DEPENDENTS[valstr]
                     values[key.evolve(name='optimization')] = optimization
                     values[key.evolve(name='debug')] = debug
-
-        # Setting "buildtype" also sets "debug" and "optimization", so apply
-        # it first and let the values collected above override them.
-        # (temporary while set_from_configure_command calls set_option,
-        # and therefore set_option has to do the same buildtype expansion we do 
-        # above)
-        values = self._buildtype_first(values)
 
         # Values that are not set by any source anymore go back to the global
         # value or, for project options, to the default.
