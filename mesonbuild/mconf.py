@@ -355,7 +355,8 @@ class Conf:
         if self.coredata.optstore.augments:
             mlog.log('\nCurrently set option augments:')
             for k, v in self.coredata.optstore.augments.items():
-                mlog.log(f'{k!s:21}{stringify(v):10}')
+                if not self.coredata.optstore.is_project_option(k):
+                    mlog.log(f'{k!s:21}{stringify(v):10}')
         else:
             mlog.log('\nThere are no option augments.')
 
