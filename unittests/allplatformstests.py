@@ -739,6 +739,13 @@ class AllPlatformTests(BasePlatformTests):
         out = self._run(self.mtest_command + ['--suite', 'verbose'])
         self.assertIn('1/1 subtest 1', out)
 
+    def test_tap_subtest_skip_count(self):
+        testdir = os.path.join(self.common_test_dir, '206 tap tests')
+        self.init(testdir)
+        self.build()
+        out = self._run(self.mtest_command + ['partially skipped (real-world example)'])
+        self.assertIn('21 subtests passed, 5 skipped', out)
+
     def test_long_output(self):
         testdir = os.path.join(self.common_test_dir, '254 long output')
         self.init(testdir)
