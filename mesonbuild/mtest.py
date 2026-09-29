@@ -762,6 +762,15 @@ class ConsoleLogger(TestLogger):
             print("\nSummary of Failures:\n")
             for i, result in enumerate(harness.collected_failures, 1):
                 print(harness.format(result, mlog.colorize_console()))
+                for s in result.results:
+                    if harness.options.verbose or s.result.is_bad() or s.result is TestResult.SKIP:
+                        name = s.name[2:] if s.name.startswith('- ') else s.name
+                        name = name or f'subtest {s.number}'
+                        print(harness.format(result, mlog.colorize_console(),
+                                             prefix='  ' + self.sub,
+                                             left='',
+                                             middle=name,
+                                             right=s.result.get_text(mlog.colorize_console())))
 
         print(harness.summary())
 
@@ -796,6 +805,15 @@ class TextLogfileBuilder(TestFileLogger):
             self.file.write("\nSummary of Failures:\n\n")
             for i, result in enumerate(harness.collected_failures, 1):
                 self.file.write(harness.format(result, False) + '\n')
+                for s in result.results:
+                    if s.result.is_bad() or s.result is TestResult.SKIP:
+                        name = s.name[2:] if s.name.startswith('- ') else s.name
+                        name = name or f'subtest {s.number}'
+                        self.file.write(harness.format(result, False,
+                                                       prefix='  | ',
+                                                       left='',
+                                                       middle=name,
+                                                       right=s.result.get_text(False)) + '\n')
         self.file.write(harness.summary())
 
         print(f'Full log written to {self.filename}')
