@@ -454,17 +454,6 @@ class Environment:
         self.coredata = coredata.CoreData(options, self.scratch_dir, meson_command)
         self.first_invocation = True
 
-    def init_backend_options(self, backend_name: str) -> None:
-        # Only init backend options on first invocation otherwise it would
-        # override values previously set from command line.
-        if not self.first_invocation:
-            return
-
-        self.coredata.init_backend_options(backend_name)
-        for k, v in self.options.items():
-            if self.coredata.optstore.is_backend_option(k):
-                self.coredata.optstore.set_option(k, v)
-
     def init_user_options(self, cmd_line_options: T.Mapping[OptionKey, T.Optional[ElementaryOptionValues]]) -> None:
         """Pass the options from the command line and, on the first run, from
            the machine files to the option store, before the toplevel project
