@@ -1446,6 +1446,29 @@ class OptionStore:
         assert key.subproject is None
         self.extra_args_from_env[key] = self.ensure_and_validate_key(suffix_key)
 
+    def compute_value_for(self, key: OptionKey) -> ElementaryOptionValues:
+        """Compute the value of an option for a subproject that is known to be
+           used, but whose project() has not been reached yet.  Nothing is
+           stored, and the value can change once the subproject's own
+           default_options are known.
+
+           Unlike resolve(), this does not apply values that are derived from
+           other options, such as those implied by "buildtype"."""
+        key = self.ensure_and_validate_key(key)
+        # The toplevel project is resolved before any subproject.
+        if key.subproject == '' or key.subproject in self.subprojects:
+            return self.get_value_for(key)
+
+        # Same as resolve(), but only looking for the source with the highest priority.
+        for source in reversed(OptionSource):
+            if key not in self.all_options[source]:
+                continue
+            if source is OptionSource.PROJECT and self._global_overrides_subproject(key):
+                continue
+            value = self.resolve_option(key).validate_value(self.all_options[source][key])
+            return self._add_extra_args_from_env(key, value)
+        return self.get_value_for(key)
+
     def set_environment_options(self, env_options: T.Mapping[OptionKey, T.List[str]]) -> None:
         """Store the compiler and linker arguments from environment variables,
            which are only read on the first run."""

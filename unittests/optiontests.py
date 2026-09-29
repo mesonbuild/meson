@@ -641,6 +641,7 @@ class OptionTests(unittest.TestCase):
         self.assertEqual(optstore.get_value_for(name), 'top')
         self.assertEqual(optstore.get_value_for(name, subp), 'sub')
 
+
     def test_invalid_pending_value(self):
         """If the pending value of an option is invalid when the option is added,
            the option is not left behind, so that the value is checked again
@@ -659,6 +660,44 @@ class OptionTests(unittest.TestCase):
         optstore.initialize_from_top_level_project_call({key: 'c23'})
         with self.assertRaises(MesonException):
             optstore.add_compiler_option('c', key, copy.copy(opt))
+
+    def test_subproject_compute_before_project(self):
+        """The options of a subproject can be computed before its project() is
+           reached, without changing their priority."""
+        name = 'someoption'
+        other_name = 'otheroption'
+        proj_name = 'projoption'
+        subp = 'subp'
+
+        optstore = OptionStore(False)
+        prefix = UserStringOption('prefix', 'This is needed by OptionStore', '/usr')
+        optstore.add_system_option('prefix', prefix)
+        optstore.add_system_option(name, UserStringOption(name, 'A global option', 'default'))
+        optstore.add_system_option(other_name, UserStringOption(other_name, 'Another global option', 'default'))
+
+        cmd_line = {OptionKey(name, subp): 'cmdline', OptionKey(proj_name, subp): 'cmdline'}
+        optstore.set_user_options(cmd_line)
+        optstore.initialize_from_top_level_project_call({OptionKey(other_name, subp): 'toplevel'})
+        self.assertEqual(optstore.get_value_for(name, subp), 'default')
+        self.assertEqual(optstore.get_value_for(other_name, subp), 'default')
+
+        # Nothing is stored until the subproject is configured.
+        self.assertEqual(optstore.compute_value_for(OptionKey(name, subp)), 'cmdline')
+        self.assertEqual(optstore.compute_value_for(OptionKey(other_name, subp)), 'toplevel')
+        self.assertEqual(optstore.get_value_for(name, subp), 'default')
+        self.assertEqual(optstore.get_value_for(other_name, subp), 'default')
+
+        # The project option only exists once the subproject is configured;
+        # default_options do not override the command line, but subproject()
+        # overrides the toplevel project().
+        vo = UserStringOption(proj_name, 'A subproject option', 'default')
+        optstore.add_project_option(OptionKey(proj_name, subp), vo)
+        optstore.initialize_from_subproject_call(subp,
+                                                 {OptionKey(name): 'subproject', OptionKey(other_name): 'subproject'},
+                                                 {OptionKey(name): 'project'})
+        self.assertEqual(optstore.get_value_for(name, subp), 'cmdline')
+        self.assertEqual(optstore.get_value_for(other_name, subp), 'subproject')
+        self.assertEqual(optstore.get_value_for(proj_name, subp), 'cmdline')
 
     def test_deprecated_nonstring_value(self):
         # TODO: add a lot more deprecated option tests
