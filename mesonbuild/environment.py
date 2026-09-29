@@ -400,6 +400,23 @@ class Environment:
                 self.options[key] = env_opts[key]
                 del env_opts[key]
 
+        # LDFLAGS and machine files may contain flags that nvcc is unable to
+        # handle, fix them up before passing them to the option store
+        #
+        # This is admittedly not great.  It would probably be better to
+        # override get_build_link_args() and get_external_link_args() similar
+        # to Rust, which would be consistent as it handles -Dcuda_link_args and
+        # add_project_link_arguments()/add_global_link_arguments().  However,
+        # it is risky because CUFLAGS (unlike RUSTFLAGS) is appended to the
+        # link arguments, and would be converted as Phase.LINKER instead of
+        # Phase.COMPILER...  but it's not like the current code is not wrong;
+        # just differently so.
+        for opt_dict in (self.options, env_opts):
+            for key, val in opt_dict.items():
+                if key.name == 'cuda_link_args' and isinstance(val, list):
+                    from .compilers.cuda import CudaCompiler, Phase
+                    opt_dict[key] = CudaCompiler.to_host_flags_base(val, Phase.LINKER)
+
         if self.first_invocation:
             self.coredata.optstore.set_environment_options(env_opts)
 

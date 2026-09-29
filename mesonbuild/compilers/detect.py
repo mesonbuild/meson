@@ -723,8 +723,7 @@ def detect_cpp_compiler(env: 'Environment', for_machine: MachineChoice) -> Compi
     return _detect_c_or_cpp_compiler(env, 'cpp', for_machine)
 
 def detect_cuda_compiler(env: 'Environment', for_machine: MachineChoice) -> Compiler:
-    from .cuda import CudaCompiler, Phase
-    from ..options import OptionKey
+    from .cuda import CudaCompiler
     from ..linkers.linkers import CudaLinker
     popen_exceptions = {}
     compilers, ccache_exe = _get_compilers(env, 'cuda', for_machine)
@@ -760,14 +759,6 @@ def detect_cuda_compiler(env: 'Environment', for_machine: MachineChoice) -> Comp
         version = out.strip().rsplit('V', maxsplit=1)[-1].split(maxsplit=1)[0]
         cls = CudaCompiler
         env.add_lang_args(cls.language, cls, for_machine)
-        key = OptionKey('cuda_link_args', machine=for_machine)
-        if not env.is_cross_build(for_machine):
-            key = key.as_host()
-        if key in env.options:
-            # To fix LDFLAGS issue
-            val = env.options[key]
-            assert isinstance(val, list)
-            env.coredata.optstore.set_option(key, cls.to_host_flags_base(val, Phase.LINKER))
         linker = CudaLinker(compiler, env, for_machine, CudaCompiler.LINKER_OPTION_STYLE, [], version=CudaLinker.parse_version())
         return cls(ccache, compiler, version, for_machine, cpp_compiler, env, linker=linker)
 
