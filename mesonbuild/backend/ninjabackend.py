@@ -4048,9 +4048,11 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
 
     def get_user_option_args(self) -> T.List[str]:
         cmds = []
-        for k, v in self.environment.coredata.optstore.items():
-            if self.environment.coredata.optstore.is_project_option(k):
-                cmds.append('-D' + str(k) + '=' + (v.value if isinstance(v.value, str) else str(v.value).lower()))
+        optstore = self.environment.coredata.optstore
+        for k in optstore.keys():
+            if optstore.is_project_option(k):
+                v = optstore.get_value_for(k)
+                cmds.append('-D' + str(k) + '=' + (v if isinstance(v, str) else str(v).lower()))
         # The order of these arguments must be the same between runs of Meson
         # to ensure reproducible output. The order we pass them shouldn't
         # affect behavior in any other way.
