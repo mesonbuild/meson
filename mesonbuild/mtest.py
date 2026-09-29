@@ -1030,10 +1030,14 @@ class TestRun:
             # running or succeeded
             passed = sum(x.result.is_ok() for x in self.results)
             ran = sum(x.result not in {TestResult.SKIP, TestResult.IGNORED} for x in self.results)
+            skipped = sum(x.result is TestResult.SKIP for x in self.results)
             if passed == ran:
-                return f'{passed} subtests passed'
+                results = f'{passed} subtests passed'
             else:
-                return f'{passed}/{ran} subtests passed'
+                results = f'{passed}/{ran} subtests passed'
+            if skipped:
+                results += f', {skipped} skipped'
+            return results
         return ''
 
     def get_exit_status(self) -> str:
