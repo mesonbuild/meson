@@ -834,14 +834,31 @@ class Interpreter:
     def _dependency_kinds(self, pkg: PackageState) -> T.Iterable[DependencyKind]:
         """The dependency tables that take part in resolution for this package."""
         yield DependencyKind.NORMAL
-        # Cargo only resolves dev-dependencies are only resolved for the packages
-        # whose tests are built, which in this case are the entry points of the
-        # workspace that rust.workspace() was called for, and not the packages
-        # that are merely pulled in as dependencies of one.
-        if self.root_workspace is not None and pkg.ws_subdir == self.root_workspace.subdir:
-            ws = self.workspaces[pkg.ws_subdir]
-            if pkg.ws_member in ws.entry_points:
+        # Cargo only resolves dev-dependencies for the packages whose tests are
+        # built, which are the entry points of the workspace that it is invoked
+        # on, and not the packages that are merely pulled in as dependencies of
+        # one.  Here, the entry points of every workspace resolve them if the
+        # rust.dev_dependencies option is enabled for the subproject that they
+        # are built in.  The default, "workspace", enables it for the members
+        # of workspaces that a Meson project builds directly, including
+        # members that are built as subprojects, but not for crates that are
+        # built as dependencies; for the toplevel project this matches Cargo.
+        ws = self.workspaces[pkg.ws_subdir]
+        if pkg.ws_member in ws.entry_points:
+            optstore = self.environment.coredata.optstore
+            subproject = self._member_subproject(ws, pkg)
+            value = optstore.compute_value_for(OptionKey('rust.dev_dependencies', subproject=subproject))
+            if value == 'true' or \
+                    (value == 'workspace' and not pkg.is_dependency):
                 yield DependencyKind.DEV
+
+    def _member_subproject(self, ws: WorkspaceState, pkg: PackageState) -> SubProject:
+        """The Meson subproject that a workspace member is built in."""
+        # Members below the subprojects directory are built with subproject(),
+        # the others with subdir(); see interpret_workspace().
+        if is_parent_path(self.subprojects_dir, pkg.ws_member):
+            return pkg.get_subproject_name()
+        return ws.subproject
 
     def _required_dep_kinds(self, pkg: PackageState, depname: str, machine: MachineChoice) -> \
             T.List[DependencyKind]:
