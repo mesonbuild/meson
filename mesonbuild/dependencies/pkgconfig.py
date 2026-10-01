@@ -607,7 +607,10 @@ class PkgConfigDependency(ExternalDependency):
                      configtool: T.Optional[str] = None, internal: T.Optional[str] = None,
                      system: T.Optional[str] = None, default_value: T.Optional[str] = None,
                      pkgconfig_define: PkgConfigDefineType = None) -> str:
-        if pkgconfig:
+        if not pkgconfig:
+            if default_value is None:
+                raise DependencyException(f'{self.name!r} is a pkg-config dependency, and neither the "pkgconfig" keyword nor a default was passed')
+        else:
             try:
                 variable = self.pkgconfig.variable(self.name, pkgconfig, pkgconfig_define)
                 if variable is not None:
@@ -616,4 +619,4 @@ class PkgConfigDependency(ExternalDependency):
                 pass
         if default_value is not None:
             return default_value
-        raise DependencyException(f'Could not get pkg-config variable and no default provided for {self!r}')
+        raise DependencyException(f'Could not get variable {pkgconfig!r} of {self.name!r} from pkg-config and no default provided')

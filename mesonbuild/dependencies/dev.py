@@ -830,11 +830,14 @@ class DiaSDKSystemDependency(SystemDependency):
                      configtool: T.Optional[str] = None, internal: T.Optional[str] = None,
                      system: T.Optional[str] = None, default_value: T.Optional[str] = None,
                      pkgconfig_define: PkgConfigDefineType = None) -> str:
+        if not system:
+            if default_value is None:
+                raise DependencyException(f'{self.name!r} is a system dependency, and neither the "system" keyword nor a default was passed')
         if system == 'dll' and self.is_found:
             return self.dll
         if default_value is not None:
             return default_value
-        raise DependencyException(f'Could not get system variable and no default was set for {self!r}')
+        raise DependencyException(f'Could not get variable {system!r} of system dependency {self.name!r} and no default provided')
 
 packages['diasdk'] = DiaSDKSystemDependency
 
