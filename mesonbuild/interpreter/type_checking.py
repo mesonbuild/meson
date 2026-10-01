@@ -77,14 +77,14 @@ def _install_mode_validator(mode: T.List[T.Union[str, bool, int]]) -> T.Optional
     """
     if not mode:
         return None
-    if True in mode:
-        return 'components can only be permission strings, numbers, or False'
+    if any(m is True for m in mode):
+        return 'components can only be permission strings, numbers, or false'
     if len(mode) > 3:
         return 'may have at most 3 elements'
 
     perms = mode[0]
     if not isinstance(perms, (str, bool)):
-        return 'first component must be a permissions string or False'
+        return 'first component must be a permissions string or false'
 
     if isinstance(perms, str):
         if not len(perms) == 9:
@@ -116,7 +116,7 @@ def _install_mode_convertor(mode: T.Optional[T.List[T.Union[str, bool, int]]]) -
     # generators clobber types via homogeneous return. But also we *must*
     # convert the first element different from the rest
     m1 = mode[0] if isinstance(mode[0], str) else None
-    rest = (m if isinstance(m, (str, int)) else None for m in mode[1:])
+    rest = (None if isinstance(m, bool) else m for m in mode[1:])
 
     return FileMode(m1, *rest)
 

@@ -45,14 +45,14 @@ from mesonbuild.interpreterbase import (
     KwargInfo, PosArgInfo, VarArgInfo,
 )
 from mesonbuild.mesonlib import (
-    LibType, MachineChoice, PerMachine, SimpleABC, Version, is_windows, is_osx,
+    FileMode, LibType, MachineChoice, PerMachine, SimpleABC, Version, is_windows, is_osx,
     is_cygwin, is_openbsd, search_version, MesonException, EnvironmentException, python_command,
     version_check_to_range,
 )
 from mesonbuild.options import OptionKey, UserBooleanOption
 from mesonbuild.interpreter.type_checking import (
     STR_PARG, INT_PARG, BOOL_PARG, STR_OARG, INT_OARG, STR_VARG,
-    in_set_validator, NoneType,
+    INSTALL_MODE_KW, in_set_validator, NoneType,
 )
 from mesonbuild.dependencies.pkgconfig import PkgConfigDependency, PkgConfigInterface, PkgConfigCLI
 from mesonbuild.programs import ExternalProgram
@@ -2631,6 +2631,34 @@ Thread model: posix'''), '21.9.0')
         _(None, mock.Mock(), [''], {'input': ''})
         _(None, mock.Mock(), [['']], {'input': ['']})
         self.assertRaises(InvalidArguments, _, None, mock.Mock(), [], {'input': 42})
+
+    def test_install_mode_kwarg(self) -> None:
+        @TypedArgs('testfunc', kw_types=[INSTALL_MODE_KW])
+        def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, FileMode]) -> FileMode:
+            return kwargs['install_mode']
+
+        # False means "use the default" and must not be passed on as uid/gid 0.
+        mode = _(None, mock.Mock(), [], {'install_mode': ['rw-rw-r--', False, 'mygroup']})
+        self.assertEqual(mode.perms_s, 'rw-rw-r--')
+        self.assertIsNone(mode.owner)
+        self.assertEqual(mode.group, 'mygroup')
+
+        mode = _(None, mock.Mock(), [], {'install_mode': [False, 'myuser', False]})
+        self.assertIsNone(mode.perms_s)
+        self.assertEqual(mode.owner, 'myuser')
+        self.assertIsNone(mode.group)
+
+        mode = _(None, mock.Mock(), [], {'install_mode': ['rw-rw-r--', 0, 0]})
+        self.assertEqual(mode.owner, 0)
+        self.assertEqual(mode.group, 0)
+
+        # 1 == True, but it is a valid uid/gid.
+        mode = _(None, mock.Mock(), [], {'install_mode': ['rw-rw-r--', 1, 1]})
+        self.assertEqual(mode.owner, 1)
+        self.assertEqual(mode.group, 1)
+
+        with self.assertRaises(InvalidArguments):
+            _(None, mock.Mock(), [], {'install_mode': ['rw-rw-r--', True]})
 
     def test_detect_cpu_family(self) -> None:
         """Test the various cpu families that we detect and normalize.
