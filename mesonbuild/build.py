@@ -76,6 +76,12 @@ if T.TYPE_CHECKING:
 
     class BuildTargetProto(AnyTargetProto, Protocol):
         @property
+        def external_deps(self) -> T.List[dependencies.Dependency]: ...
+
+        @property
+        def link_targets(self) -> T.List[LinkableTargetProto]: ...
+
+        @property
         def for_machine(self) -> MachineChoice: ...
 
         @property
@@ -3052,6 +3058,14 @@ class CustomTargetBase(StaticTargetProto, metaclass=SimpleABC):
     '''
 
     rust_crate_type = ''
+
+    @property
+    def external_deps(self) -> T.List[dependencies.Dependency]:
+        return []
+
+    @property
+    def link_targets(self) -> T.List[LinkableTargetProto]:
+        return []
 
     def extract_all_objects(self, recursive: bool = True) -> ExtractedObjects:
         raise MesonException(f'Cannot extract objects from custom target {self.get_basename()!r}')
