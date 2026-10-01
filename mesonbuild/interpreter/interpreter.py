@@ -1004,9 +1004,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         # command line.
         if forced_options:
             for k, v in forced_options.items():
-                # FIXME: this should have no business poking at augments[],
-                # but set_option() does not do what we want
-                self.coredata.optstore.augments[k.evolve(subproject=subp_name)] = v
+                self.coredata.optstore.set_runtime_option(k.evolve(subproject=subp_name), v)
             default_options = {**forced_options, **default_options}
 
         if subp_name == '':
@@ -1196,7 +1194,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             if os.path.exists(os.path.join(self.environment.get_source_dir(), subdir, environment.build_filename)):
                 ast = None
             else:
-                ast = cargo_int.interpret(subdir)
+                ast = cargo_int.interpret(subdir, subp_name)
 
             return self._do_subproject_meson(
                 subp_name, subdir, default_options, kwargs, ast,
@@ -1277,9 +1275,9 @@ class Interpreter(InterpreterBase, HoldableObject):
                 mlog.log('Auto detected Visual Studio backend:', mlog.bold(self.backend.name))
             if not self.environment.first_invocation:
                 raise MesonBugException(f'Backend changed from {backend_name} to {self.backend.name}')
-            self.coredata.optstore.set_option(OptionKey('backend'), self.backend.name, first_invocation=True)
+            self.coredata.optstore.set_detected_option(OptionKey('backend'), self.backend.name)
 
-        self.environment.init_backend_options(backend_name)
+        self.coredata.init_backend_options(backend_name)
 
     def _validate_languages(self, langs: T.List[str], required: bool, node: mparser.BaseNode) -> T.List[Language]:
         valid: T.List[Language] = []
@@ -1338,18 +1336,13 @@ class Interpreter(InterpreterBase, HoldableObject):
         self._load_option_file()
 
         self.project_default_options = kwargs['default_options']
-        if self.environment.first_invocation or (self.subproject != '' and self.subproject not in self.coredata.initialized_subprojects):
-            if self.subproject == '':
-                self.coredata.optstore.initialize_from_top_level_project_call(self.project_default_options,
-                                                                              self.user_defined_options.cmd_line_options,
-                                                                              self.environment.options)
-            else:
-                self.coredata.optstore.initialize_from_subproject_call(self.subproject,
-                                                                       self.invoker_method_default_options,
-                                                                       self.project_default_options,
-                                                                       self.user_defined_options.cmd_line_options,
-                                                                       self.environment.options)
-                self.coredata.initialized_subprojects.add(self.subproject)
+        if self.subproject == '':
+            self.coredata.optstore.initialize_from_top_level_project_call(self.project_default_options)
+        else:
+            self.coredata.optstore.initialize_from_subproject_call(self.subproject,
+                                                                   self.invoker_method_default_options,
+                                                                   self.project_default_options)
+            self.coredata.initialized_subprojects.add(self.subproject)
 
         if not self.is_subproject():
             # We have to activate VS before adding languages and before calling
@@ -1360,6 +1353,10 @@ class Interpreter(InterpreterBase, HoldableObject):
             assert backend is None or isinstance(backend, str), 'for mypy'
             vsenv = self.coredata.optstore.get_value_for(OptionKey('vsenv'))
             assert isinstance(vsenv, bool), 'for mypy'
+            if self.environment.first_invocation:
+                # Compilers are detected in the Visual Studio environment and
+                # are not detected again, so the value must not change later.
+                self.coredata.optstore.lock_readonly_option(OptionKey('vsenv'), vsenv)
             force_vsenv = vsenv or backend.startswith('vs')
             mesonlib.setup_vsenv(force_vsenv)
         self.set_backend()
@@ -2727,7 +2724,7 @@ class Interpreter(InterpreterBase, HoldableObject):
 
         if self.relaxed(InterpreterRuleRelaxation.CARGO_SUBDIR) and \
            os.path.exists(os.path.join(self.environment.get_source_dir(), subdir, 'Cargo.toml')):
-            codeblock = self.cargo.interpret(subdir, self.root_subdir)
+            codeblock = self.cargo.interpret(subdir, self.subproject, self.root_subdir)
             self._save_ast(subdir, codeblock)
             self._evaluate_codeblock(codeblock, subdir)
         elif not self._evaluate_subdir(self.environment.get_source_dir(), subdir):

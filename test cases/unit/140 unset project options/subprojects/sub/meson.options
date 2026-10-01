@@ -1,0 +1,2 @@
+option('yielding', type: 'string', value: 'sub', yield: true)
+option('plain', type: 'string', value: 'sub')

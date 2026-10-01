@@ -1,0 +1,12 @@
+[package]
+name = "app"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+shared = { path = "../shared" }
+
+# Never true, so Cargo never builds "tool"; it is only declared here to say
+# that "tool" is a build-time code generator living in this workspace.
+[target.'cfg(any())'.build-dependencies]
+tool = { path = "../tool" }

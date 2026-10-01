@@ -11,7 +11,7 @@ import typing as T
 from mesonbuild.interpreterbase.decorators import FeatureNew
 
 from . import ExtensionModule, ModuleReturnValue, ModuleInfo, ModuleObject
-from .. import mesonlib, mlog
+from .. import cargo, mesonlib, mlog
 from ..build import (BothLibraries, BuildTarget, CustomTargetIndex, Executable, ExtractedObjects, GeneratedList,
                      CustomTarget, InvalidArguments, Jar, StructuredSources, SharedLibrary, StaticLibrary,
                      SharedModule)
@@ -26,7 +26,7 @@ from ..interpreter.type_checking import (
     INSTALL_DIR_KW, INSTALL_KW, STR_PARG, STR_OARG, SRC_VARG,
 )
 from ..interpreterbase import (
-    ContainerTypeInfo, InterpreterException, KwargInfo, TypedArgs,
+    ContainerTypeInfo, Disabler, InterpreterException, KwargInfo, TypedArgs,
     PosArgInfo, OptArgInfo,
 )
 from ..interpreter.interpreterobjects import Doctest
@@ -35,7 +35,6 @@ from ..programs import ExternalProgram, NonExistingExternalProgram
 
 if T.TYPE_CHECKING:
     from . import ModuleState
-    from .. import cargo
     from ..build import ExecutableKeywordArguments, GeneratedTypes, IncludeDirs, LinkableTypes, CommandTypes, StaticTypes
     from ..cargo.interpreter import RUST_ABI, PackageConfiguration
     from ..compilers.compilers import Language
@@ -325,12 +324,17 @@ class RustPackage(RustCrate):
                              for_machine: MachineChoice) -> T.List[Dependency]:
         dependencies: T.List[Dependency] = []
         cfg = self.package.cfg[for_machine]
+        seen: T.Set[str] = set()
 
-        if kwargs['dependencies']:
-            for dep_key, dep_pkg in cfg.dep_packages.items():
+        def dependencies_collect_kind(kind: cargo.DependencyKind) -> None:
+            for _, name, dep in cfg.iter_required_dependencies((kind,)):
+                dep_pkg = cfg.dep_packages[cargo.PackageKey(dep.package, dep.api)]
                 if dep_pkg.manifest.lib:
                     # Get the dependency name for this package (rust or proc-macro ABI)
                     depname = dep_pkg.get_rust_dependency_name()
+                    if depname in seen:
+                        continue
+                    seen.add(depname)
                     dependency = state.find_overridden_dependency(depname, for_machine)
                     if dependency is None:
                         if dep_pkg.ws_subdir != self.rust_ws.subdir or \
@@ -341,8 +345,11 @@ class RustPackage(RustCrate):
                     dependency = state.overridden_dependency(depname, for_machine)
                     dependencies.append(dependency)
 
+        if kwargs['dependencies']:
+            dependencies_collect_kind(cargo.DependencyKind.NORMAL)
+
         if kwargs['dev_dependencies']:
-            raise MesonException('dev_dependencies is not implemented yet')
+            dependencies_collect_kind(cargo.DependencyKind.DEV)
 
         if kwargs['system_dependencies']:
             for name, sys_dep in self.package.manifest.system_dependencies.items():
@@ -355,6 +362,13 @@ class RustPackage(RustCrate):
 
         return dependencies
 
+    def _dev_dependencies_missing(self, for_machine: MachineChoice) -> bool:
+        cfg = self.package.cfg[for_machine]
+        # The package has dev-dependencies, but they were not resolved,
+        # for example because of the value of rust.dev_dependencies.
+        return bool(cfg and cfg.dependencies.get(cargo.DependencyKind.DEV) and
+                    cargo.DependencyKind.DEV not in cfg.dependency_kinds)
+
     @TypedArgs(
         'package.dependencies',
         kw_types=[
@@ -363,8 +377,11 @@ class RustPackage(RustCrate):
             KwargInfo('system_dependencies', bool, default=True),
         ],
     )
-    def dependencies_method(self, state: ModuleState, args: T.List, kwargs: RustPackageDependencies) -> T.List[Dependency]:
+    def dependencies_method(self, state: ModuleState, args: T.List,
+                            kwargs: RustPackageDependencies) -> T.Union[T.List[Dependency], Disabler]:
         """Returns the dependencies for this package."""
+        if kwargs['dev_dependencies'] and self._dev_dependencies_missing(self.for_machine):
+            return Disabler()
         return self._dependencies_method(state, kwargs, self.for_machine)
 
     @staticmethod
@@ -1159,7 +1176,8 @@ class RustModule(ExtensionModule):
                 cargo_features.extend(features)
             self.interpreter.cargo.features = cargo_features
 
-        ws = self.interpreter.cargo.load_workspace(state.root_subdir, kwargs['extra_members'])
+        ws = self.interpreter.cargo.load_workspace(state.root_subdir, state.subproject,
+                                                   kwargs['extra_members'])
 
         # Cargo projects may not have a subprojects directory, because
         # dependencies are declared in Cargo.toml rather than .wrap files.
