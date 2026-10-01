@@ -7,6 +7,7 @@ from __future__ import annotations
 import dataclasses
 import itertools
 import os, re
+from pathlib import Path
 import typing as T
 import collections
 
@@ -19,11 +20,12 @@ from . import options
 from .mesonlib import (
     MesonException, MachineChoice, Popen_safe, PerMachine,
     PerMachineDefaultable, PerThreeMachineDefaultable, split_args,
-    MesonBugException, ThreeMachineChoice
+    MesonBugException, ThreeMachineChoice, path_is_in_root
 )
 from .options import OptionKey
 from . import mlog
 from .programs import ExternalProgram
+from .scripts import destdir_join
 
 from .envconfig import (
     BinaryTable, MachineInfo, Properties, CMakeVariables,
@@ -467,6 +469,13 @@ class Environment:
 
     def is_cross_build(self, when_building_for: MachineChoice = MachineChoice.HOST) -> bool:
         return self.machine_map[when_building_for] is not self.machine_map.build
+
+    def get_sys_root_path(self, for_machine: MachineChoice, path: str) -> str:
+        """Prefix path with the sys_root property, unless it is already inside it."""
+        sysroot = self.properties[for_machine].get_sys_root()
+        if path and sysroot and not path_is_in_root(Path(path), Path(sysroot)):
+            path = destdir_join(sysroot, path)
+        return path
 
     def dump_coredata(self) -> str:
         return coredata.save(self.coredata, self.get_build_dir())
