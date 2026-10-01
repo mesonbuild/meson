@@ -106,6 +106,9 @@ def detect_ninja(version: str = '1.8.2', log: bool = False) -> T.Optional[T.List
 
 def detect_ninja_command_and_version(version: str = '1.8.2', log: bool = False) -> T.Optional[T.Tuple[T.List[str], str]]:
     env_ninja = os.environ.get('NINJA', None)
+    if env_ninja and os.path.dirname(env_ninja) and not os.path.isabs(env_ninja):
+        raise mesonlib.MesonException(
+            f'NINJA environment variable must be a program name or an absolute path, not {env_ninja!r}')
     for n in [env_ninja] if env_ninja else ['ninja', 'ninja-build', 'samu']:
         prog = ExternalProgram(n, silent=True)
         if not prog.found():
