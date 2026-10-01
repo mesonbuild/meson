@@ -1175,6 +1175,8 @@ class BuildTarget(Target, BuildTargetProto):
             self.pic = True
             self.pie = True
         else:
+            if self.link_language == 'rust':
+                raise MesonException("link_language 'rust' requires a Rust source file")
             if self.structured_sources:
                 raise MesonException('structured sources are only supported in Rust targets')
 
