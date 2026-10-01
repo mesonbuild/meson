@@ -35,6 +35,14 @@ assert(prog.found(), 'Program version should match')
 prog = find_program('print-version-custom-argument.py', version : '>=1.0', version_argument : '-version')
 assert(prog.found(), 'Program version should match')
 
+# Fallback to a later name when an earlier match fails the version check (#14141)
+prog = find_program('print-version-old.py', 'print-version.py', version : '>=1.0')
+assert(prog.found(), 'Should fall back to print-version.py after version mismatch')
+assert(prog.version() == '1.0', 'Fallback program version should be 1.0')
+
+prog = find_program('print-version-old.py', 'print-version.py', version : '>=2.0', required : false)
+assert(not prog.found(), 'Both candidates are too old for >=2.0')
+
 prog = find_program('test_subdir.py', required : false)
 assert(not prog.found(), 'Program should not be found')
 

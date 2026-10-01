@@ -236,6 +236,81 @@ class NativeFileTests(BasePlatformTests):
     def test_find_program(self):
         self._simple_test('find_program', 'bash')
 
+    def test_find_program_machine_file_version(self):
+        old = self.helper_create_binary_wrapper('unused', version='1.0', release='1.0')
+        new = self.helper_create_binary_wrapper('unused', version='2.0', release='4.0')
+        system = self.helper_create_binary_wrapper('unused', version='3.0', release='5.0')
+        config = self.helper_create_native_file({'binaries': {
+            'meson-test-old': old,
+            'meson-test-new': new,
+            'meson-test-missing': 'meson-test-nonexistent-command',
+            'meson-test-python3': old,
+        }})
+        cases = [
+            ('unsuitable configured program',
+             "'meson-test-old', version: '>=2.0', required: false",
+             'assert(not prog.found())'),
+            ('required unsuitable configured program',
+             "'meson-test-old', version: '>=2.0'", None),
+            ('unsuitable configured program with disabler',
+             "'meson-test-old', version: '>=2.0', required: false, disabler: true",
+             'assert(is_disabler(prog))'),
+            ('next configured alternative',
+             "'meson-test-old', 'meson-test-new', version: '>=2.0'",
+             "assert(run_command(prog, '--version', check: true).stdout().strip() == '2.0')"),
+            ('next unconfigured alternative',
+             "'meson-test-old', 'meson-test-unconfigured', version: '>=2.0'",
+             "assert(run_command(prog, '--version', check: true).stdout().strip() == '3.0')"),
+            ('suitable configured program',
+             "'meson-test-new', version: '>=2.0'",
+             "assert(run_command(prog, '--version', check: true).stdout().strip() == '2.0')"),
+            ('unconfigured alternative before configured alternative',
+             "'meson-test-unconfigured', 'meson-test-new', version: '>=2.0'",
+             "assert(run_command(prog, '--version', check: true).stdout().strip() == '3.0')"),
+            ('unconfigured alternative first without version requirement',
+             "'meson-test-unconfigured', 'meson-test-new'",
+             "assert(run_command(prog, '--version', check: true).stdout().strip() == '3.0')"),
+            ('configured python3 does not fall back to the current interpreter',
+             "'meson-test-python3', version: '>=2.0', required: false",
+             'assert(not prog.found())'),
+            ('custom version argument',
+             "'meson-test-old', 'meson-test-new', version: '>=4.0', version_argument: '--release'",
+             "assert(run_command(prog, '--release', check: true).stdout().strip() == '4.0')"),
+            ('custom version argument for unconfigured alternative',
+             "'meson-test-old', 'meson-test-unconfigured', version: '>=5.0', version_argument: '--release'",
+             "assert(run_command(prog, '--release', check: true).stdout().strip() == '5.0')"),
+            ('missing configured program',
+             "'meson-test-missing', version: '>=2.0', required: false",
+             'assert(not prog.found())'),
+            ('missing configured program with alternative',
+             "'meson-test-missing', 'meson-test-new', version: '>=2.0'",
+             "assert(run_command(prog, '--version', check: true).stdout().strip() == '2.0')"),
+        ]
+        with tempfile.TemporaryDirectory() as d:
+            bindir = Path(d) / 'bin'
+            bindir.mkdir()
+            # Every configured name also has a newer program on PATH. A
+            # machine-file binding must prevent searching PATH for that name.
+            for name in ('old', 'new', 'missing', 'unconfigured'):
+                suffix = '.bat' if is_windows() else ''
+                shutil.copyfile(system, bindir / f'meson-test-{name}{suffix}')
+                if not is_windows():
+                    (bindir / f'meson-test-{name}').chmod(0o755)
+            env = {'PATH': str(bindir) + os.pathsep + os.environ['PATH']}
+            for name, args, assertion in cases:
+                with self.subTest(name):
+                    self.new_builddir()
+                    (Path(d) / 'meson.build').write_text(
+                        "project('machine-file program versions')\n"
+                        f'prog = find_program({args})\n' + (assertion or ''),
+                        encoding='utf-8')
+                    if assertion is None:
+                        with self.assertRaises(subprocess.CalledProcessError) as cm:
+                            self.init(d, extra_args=['--native-file', config], override_envvars=env)
+                        self.assertIn("Program 'meson-test-old' not found or not executable", cm.exception.output)
+                    else:
+                        self.init(d, extra_args=['--native-file', config], override_envvars=env)
+
     @skipIfNoExecutable('llvm-config')
     def test_config_tool_dep(self):
         # Do the skip at this level to avoid screwing up the cache
