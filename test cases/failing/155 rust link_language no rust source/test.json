@@ -1,0 +1,7 @@
+{
+  "stdout": [
+    {
+      "line": "test cases/failing/155 rust link_language no rust source/meson.build:7:0: ERROR: link_language 'rust' requires a Rust source file"
+    }
+  ]
+}
