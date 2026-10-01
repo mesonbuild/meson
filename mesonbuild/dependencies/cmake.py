@@ -620,7 +620,10 @@ class CMakeDependency(ExternalDependency):
                      configtool: T.Optional[str] = None, internal: T.Optional[str] = None,
                      system: T.Optional[str] = None, default_value: T.Optional[str] = None,
                      pkgconfig_define: PkgConfigDefineType = None) -> str:
-        if cmake and self.traceparser is not None:
+        if not cmake:
+            if default_value is None:
+                raise DependencyException(f'{self.name!r} is a CMake dependency, and neither the "cmake" keyword nor a default was passed')
+        elif self.traceparser is not None:
             try:
                 v = self.traceparser.vars[cmake]
             except KeyError:
@@ -638,7 +641,7 @@ class CMakeDependency(ExternalDependency):
                 return ';'.join(v)
         if default_value is not None:
             return default_value
-        raise DependencyException(f'Could not get cmake variable and no default provided for {self!r}')
+        raise DependencyException(f'Could not get variable {cmake!r} of {self.name!r} from CMake and no default provided')
 
 
 def sort_link_args(args: T.List[str]) -> T.List[str]:

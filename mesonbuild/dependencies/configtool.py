@@ -154,7 +154,10 @@ class ConfigToolDependency(ExternalDependency):
                      configtool: T.Optional[str] = None, internal: T.Optional[str] = None,
                      system: T.Optional[str] = None, default_value: T.Optional[str] = None,
                      pkgconfig_define: PkgConfigDefineType = None) -> str:
-        if configtool:
+        if not configtool:
+            if default_value is None:
+                raise DependencyException(f'{self.name!r} is a config-tool dependency, and neither the "configtool" keyword nor a default was passed')
+        else:
             p, out, _ = Popen_safe(self.config + self.get_variable_args(configtool))
             if p.returncode == 0:
                 variable = out.strip()
@@ -162,4 +165,4 @@ class ConfigToolDependency(ExternalDependency):
                 return variable
         if default_value is not None:
             return default_value
-        raise DependencyException(f'Could not get config-tool variable and no default provided for {self!r}')
+        raise DependencyException(f'Could not get variable {configtool!r} of {self.name!r} from {self.tool_name} and no default provided')

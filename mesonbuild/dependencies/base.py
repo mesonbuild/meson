@@ -287,7 +287,7 @@ class Dependency(HoldableObject):
                      pkgconfig_define: PkgConfigDefineType = None) -> str:
         if default_value is not None:
             return default_value
-        raise DependencyException(f'No default provided for dependency {self!r}, which is not pkg-config, cmake, or config-tool based.')
+        raise DependencyException(f'No default provided for dependency {self.name!r}, which is not pkg-config, cmake, or config-tool based.')
 
     def generate_system_dependency(self, include_type: IncludeType) -> 'Dependency':
         new_dep = copy.deepcopy(self)
@@ -395,10 +395,15 @@ class InternalDependency(Dependency):
                      configtool: T.Optional[str] = None, internal: T.Optional[str] = None,
                      system: T.Optional[str] = None, default_value: T.Optional[str] = None,
                      pkgconfig_define: PkgConfigDefineType = None) -> str:
-        val = self.variables.get(internal, default_value)
+        if not internal:
+            if default_value is None:
+                raise DependencyException(f'{self.name!r} is an internal dependency, and neither the "internal" keyword nor a default was passed')
+            val = default_value
+        else:
+            val = self.variables.get(internal, default_value)
         if val is not None:
             return val
-        raise DependencyException(f'Could not get an internal variable and no default provided for {self!r}')
+        raise DependencyException(f'Could not get variable {internal!r} of internal dependency {self.name!r} and no default provided')
 
     def generate_link_whole_dependency(self) -> Dependency:
         from ..build import SharedLibrary, CustomTarget, CustomTargetIndex
