@@ -1,7 +1,7 @@
 [binaries]
 c = 'cl'
 cpp = 'cl'
-fc = 'false'
+fortran = 'false'
 ar = 'lib'
 windres = 'rc'
 

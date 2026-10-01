@@ -11,7 +11,7 @@ endian = 'little'
 [binaries]
 c = ['false']
 cpp = ['false']
-fc = ['false']
+fortran = ['false']
 objc = ['false']
 objcpp = ['false']
 ar = ['false']
