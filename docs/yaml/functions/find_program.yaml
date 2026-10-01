@@ -10,14 +10,35 @@ description: |
     in subproject wrap files, if [`wrap_mode`](Builtin-options.md#core-options) is
     set to `forcefallback`
   1. [`[binaries]` section](Machine-files.md#binaries) in your machine files
-  1. Directories provided using the `dirs:` kwarg (see below)
   1. Project's source tree relative to the current subdir
      - If you use the return value of [[configure_file]], the
        current subdir inside the build tree is used instead
+  1. Directories provided using the `dirs:` kwarg (see below)
   1. `PATH` environment variable
   1. [`[provide]` sections](Wrap-dependency-system-manual.md#provide-section) in
     subproject wrap files, if [`wrap_mode`](Builtin-options.md#core-options) is
     set to anything other than `nofallback`
+
+  More precisely, program overrides and forced subproject fallbacks are checked first.
+  If neither provides a program, Meson tries the names in the order given.
+  Only after trying all names does it consider the remaining subproject fallbacks.
+
+  *Until 1.12.x* Meson looked first in the machine files for any name; then
+  searched for the program in the project's source tree, the directories listed
+  in `dirs:`, and `PATH`, as described above.  Machine-file entries
+  took precedence over system lookup, even if their version did not satisfy
+  the requirement.  Likewise, the first program found in the system was used
+  even if its version did not satisfy the requirement, without trying later names.
+
+  *Since 1.13.0*, the search is conducted separately for each name:
+
+  - If the first name is defined in a machine file, Meson uses that entry.
+
+  - Otherwise, Meson searches for the first name in the project's source tree,
+    the directories listed in `dirs:`, and `PATH`, as described above.
+
+  - If the program is not found or does not satisfy the requested version,
+    Meson tries the next name.
 
   Meson will also autodetect scripts with a shebang line and run them
   with the executable/interpreter specified in it both on Windows
@@ -63,7 +84,8 @@ varargs:
     This is meant to be used for cases where the
     program may have many alternative names, such as `foo` and
     `foo.py`. The function will check for the arguments one by one and the
-    first one that is found is returned.
+    first one that is found is returned. *Since 1.13.0*, programs that do not
+    satisfy the requested version can fall back to subsequent names.
 
 kwargs:
   required:
