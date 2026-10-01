@@ -191,11 +191,6 @@ class Environment:
         # 'optimization' and 'debug' keys, it override them.
         self.options: OptionDict = collections.OrderedDict()
 
-        # Environment variables with the name converted into an OptionKey type.
-        # These have subtly different behavior compared to machine files, so do
-        # not store them in self.options.  See _set_default_options_from_env.
-        self.env_opts: OptionDict = {}
-
         self.machinestore = machinefile.MachineFileStore(self.coredata.config_files, self.coredata.cross_files, self.source_dir)
 
         ## Read in native file(s) to override build machine configuration
@@ -382,17 +377,21 @@ class Environment:
                         key = OptionKey.from_string(keyname).evolve(machine=for_machine)
                         env_opts[key].extend(p_list)
 
-        # If this is an environment variable, we have to
-        # store it separately until the compiler is
-        # instantiated, as we don't know whether the
-        # compiler will want to use these arguments at link
-        # time and compile time (instead of just at compile
-        # time) until we're instantiating that `Compiler`
-        # object. This is required so that passing
-        # `-Dc_args=` on the command line and `$CFLAGS`
-        # have subtly different behavior. `$CFLAGS` will be
-        # added to the linker command line if the compiler
-        # acts as a linker driver, `-Dc_args` will not.
+        # NON_LANG_ENV_OPTIONS are stored together with the machine file options,
+        # so they have higher priority than default_options.
+        #
+        # set_environment_optoins() instead is for compiler and linker arguments
+        # environment variables, which are different.  They have lower priority
+        # than default_options, and have subtly different behavior than -Dc_args=
+        # on the command line: CFLAGS will be added to the linker command line
+        # if the compiler acts as a linker driver, -Dc_args will not.  This is
+        # only known once the compiler is instantiated; see add_lang_args().
+        #
+        # This difference is mostly for historical reasons.  Probably, ENVIRONMENT
+        # should be just below MACHINE_FILE, and taken into account by
+        # _overrides_project_default(), so that CFLAGS overrides default_options
+        # just like PKG_CONFIG_PATH/CMAKE_PREFIX_PATH do.  Then this loop would
+        # be unnecessary.
         for (_, keyname), for_machine in itertools.product(NON_LANG_ENV_OPTIONS, MachineChoice):
             key = OptionKey.from_string(keyname).evolve(machine=for_machine)
             # Only store options that are not already in self.options,
@@ -401,7 +400,25 @@ class Environment:
                 self.options[key] = env_opts[key]
                 del env_opts[key]
 
-        self.env_opts.update(env_opts)
+        # LDFLAGS and machine files may contain flags that nvcc is unable to
+        # handle, fix them up before passing them to the option store
+        #
+        # This is admittedly not great.  It would probably be better to
+        # override get_build_link_args() and get_external_link_args() similar
+        # to Rust, which would be consistent as it handles -Dcuda_link_args and
+        # add_project_link_arguments()/add_global_link_arguments().  However,
+        # it is risky because CUFLAGS (unlike RUSTFLAGS) is appended to the
+        # link arguments, and would be converted as Phase.LINKER instead of
+        # Phase.COMPILER...  but it's not like the current code is not wrong;
+        # just differently so.
+        for opt_dict in (self.options, env_opts):
+            for key, val in opt_dict.items():
+                if key.name == 'cuda_link_args' and isinstance(val, list):
+                    from .compilers.cuda import CudaCompiler, Phase
+                    opt_dict[key] = CudaCompiler.to_host_flags_base(val, Phase.LINKER)
+
+        if self.first_invocation:
+            self.coredata.optstore.set_environment_options(env_opts)
 
     def _set_default_binaries_from_env(self) -> None:
         """Set default binaries from the environment.
@@ -454,16 +471,13 @@ class Environment:
         self.coredata = coredata.CoreData(options, self.scratch_dir, meson_command)
         self.first_invocation = True
 
-    def init_backend_options(self, backend_name: str) -> None:
-        # Only init backend options on first invocation otherwise it would
-        # override values previously set from command line.
-        if not self.first_invocation:
-            return
-
-        self.coredata.init_backend_options(backend_name)
-        for k, v in self.options.items():
-            if self.coredata.optstore.is_backend_option(k):
-                self.coredata.optstore.set_option(k, v)
+    def init_user_options(self, cmd_line_options: T.Mapping[OptionKey, T.Optional[ElementaryOptionValues]]) -> None:
+        """Pass the options from the command line and, on the first run, from
+           the machine files to the option store, before the toplevel project
+           is configured."""
+        self.coredata.optstore.set_user_options(cmd_line_options)
+        if self.first_invocation:
+            self.coredata.optstore.set_machine_file_options(self.options)
 
     def is_cross_build(self, when_building_for: MachineChoice = MachineChoice.HOST) -> bool:
         return self.machine_map[when_building_for] is not self.machine_map.build
@@ -625,39 +639,30 @@ class Environment:
         argkey = OptionKey(f'{lang}_args', machine=for_machine)
         largkey = OptionKey(f'{lang}_link_args', machine=for_machine)
 
-        comp_args_from_envvar = False
-        comp_options = self.coredata.optstore.get_pending_value(argkey)
-        if comp_options is None:
-            comp_args_from_envvar = True
-            comp_options = self.env_opts.get(argkey, [])
-
-        link_options = self.coredata.optstore.get_pending_value(largkey)
-        if link_options is None:
-            link_options = self.env_opts.get(largkey, [])
-
-        assert isinstance(comp_options, (str, list)), 'for mypy'
-        assert isinstance(link_options, (str, list)), 'for mypy'
+        new_largs = largkey not in self.coredata.optstore
 
         cargs = options.UserStringArrayOption(
             argkey.name,
             description + ' compiler',
-            comp_options, split_args=True, allow_dups=True)
+            [], split_args=True, allow_dups=True)
 
         largs = options.UserStringArrayOption(
             largkey.name,
             description + ' linker',
-            link_options, split_args=True, allow_dups=True)
+            [], split_args=True, allow_dups=True)
 
         self.coredata.optstore.add_compiler_option(lang, argkey, cargs)
         self.coredata.optstore.add_compiler_option(lang, largkey, largs)
 
-        if comp.USED_FOR_SEPARATE_LINKING_STEP and comp_args_from_envvar:
+        if comp.USED_FOR_SEPARATE_LINKING_STEP and new_largs:
             # If the compiler acts as a linker driver, and we're using the
             # environment variable flags for both the compiler and linker
             # arguments, then put the compiler flags in the linker flags as well.
             # This is how autotools works, and the env vars feature is for
-            # autotools compatibility.
-            largs.extend_value(comp_options)
+            # autotools compatibility.  They are added even if the linker
+            # arguments come from the command line, but not if the compiler
+            # arguments do.
+            self.coredata.optstore.set_option_suffix(largkey, argkey)
 
     def update_build_machine(self, compilers: T.Optional[CompilerDict] = None) -> None:
         """Redetect the build machine and update the machine definitions

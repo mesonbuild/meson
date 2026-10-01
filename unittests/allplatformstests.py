@@ -74,7 +74,7 @@ from .helpers import (
 )
 
 if T.TYPE_CHECKING:
-    from mesonbuild.compilers.compilers import Language
+    from mesonbuild.compilers.compilers import Compiler, Language
     from mesonbuild.environment import Environment
 
 UNIT_MACHINEFILE_DIR = Path(__file__).parent / 'machinefiles'
@@ -2535,6 +2535,26 @@ class AllPlatformTests(BasePlatformTests):
             elif item['name'] == 'array':
                 self.assertEqual(item['value'], ['b', 'c'])
                 self.assertEqual(item['choices'], ['b', 'c', 'd'])
+
+        self.wipe()
+        self.mac_ci_delay()
+
+        # When the defaults change, the new defaults are used even if the
+        # old ones are still valid
+        options3 = str(testdir / 'meson_options.3.txt')
+        shutil.copy(options1, real_options)
+        self.init(str(testdir))
+        self.mac_ci_delay()
+        shutil.copy(options3, real_options)
+        self.build()
+        opts = self.introspect('--buildoptions')
+        for item in opts:
+            if item['name'] == 'combo':
+                self.assertEqual(item['value'], 'c')
+                self.assertEqual(item['choices'], ['a', 'b', 'c', 'd'])
+            elif item['name'] == 'array':
+                self.assertEqual(item['value'], ['c'])
+                self.assertEqual(item['choices'], ['a', 'b', 'c', 'd'])
 
     def test_options_listed_in_build_options(self) -> None:
         """Detect when changed options become listed in build options."""
@@ -5133,20 +5153,50 @@ class AllPlatformTests(BasePlatformTests):
     def test_env_flags_to_linker(self) -> None:
         # Compilers that act as drivers should add their compiler flags to the
         # linker, those that do not shouldn't
-        with mock.patch.dict(os.environ, {'CFLAGS': '-DCFLAG', 'LDFLAGS': '-flto'}):
-            env = get_fake_env()
+        from mesonbuild.compilers.c import GnuCCompiler
 
-            # Get the compiler so we know which compiler class to mock.
-            cc =  detect_compiler_for(env, 'c', MachineChoice.HOST, True, '')
+        for cls, linker_driver in ((VisualStudioCCompiler, False), (GnuCCompiler, True)):
+            with self.subTest(cls.__name__):
+                self.assertEqual(cls.USED_FOR_SEPARATE_LINKING_STEP, linker_driver)
+                with mock.patch.dict(os.environ, {'CFLAGS': '-DCFLAG', 'LDFLAGS': '-flto'}):
+                    env = get_fake_env()
+                env.coredata.optstore.initialize_from_top_level_project_call({})
+                env.add_lang_args('c', cls, MachineChoice.HOST)
 
-            # C does have a separate linking step. It can be done through the compiler
-            # driver or not; act accordingly.
-            link_args = env.coredata.optstore.get_value_for(OptionKey(f'{cc.language}_link_args', machine=cc.for_machine))
-            assert isinstance(link_args, list), 'for mypy'
-            if cc.USED_FOR_SEPARATE_LINKING_STEP:
-                self.assertEqual(sorted(link_args), sorted(['-DCFLAG', '-flto']))
-            else:
-                self.assertEqual(sorted(link_args), sorted(['-flto']))
+                link_args = env.coredata.optstore.get_value_for(OptionKey('c_link_args'))
+                assert isinstance(link_args, list), 'for mypy'
+                if linker_driver:
+                    self.assertEqual(sorted(link_args), sorted(['-DCFLAG', '-flto']))
+                else:
+                    self.assertEqual(sorted(link_args), sorted(['-flto']))
+
+    def test_env_flags_to_linker_with_options(self) -> None:
+        # $CFLAGS are added to linker arguments from the command line too, if
+        # the compiler acts as a linker driver, but not if the compiler
+        # arguments come from the command line.
+        from mesonbuild.compilers.c import GnuCCompiler
+
+        def link_args(cls: T.Type[Compiler], cmdline: T.Dict[OptionKey, str],
+                      envvars: T.Dict[str, str]) -> T.List[str]:
+            with mock.patch.dict(os.environ, envvars):
+                env = get_fake_env()
+            env.coredata.optstore.set_user_options(cmdline)
+            env.coredata.optstore.initialize_from_top_level_project_call({})
+            env.add_lang_args('c', cls, MachineChoice.HOST)
+            value = env.coredata.optstore.get_value_for(OptionKey('c_link_args'))
+            assert isinstance(value, list), 'for mypy'
+            return value
+
+        for cls, linker_driver in ((VisualStudioCCompiler, False), (GnuCCompiler, True)):
+            with self.subTest(cls.__name__):
+                self.assertEqual(cls.USED_FOR_SEPARATE_LINKING_STEP, linker_driver)
+                extra = ['-DCFLAG'] if linker_driver else []
+                self.assertEqual(link_args(cls, {OptionKey('c_link_args'): '-DLINK'},
+                                           {'CFLAGS': '-DCFLAG'}),
+                                 ['-DLINK'] + extra)
+                self.assertEqual(link_args(cls, {OptionKey('c_args'): '-DCARG'},
+                                           {'CFLAGS': '-DCFLAG', 'LDFLAGS': '-DLDFLAG'}),
+                                 ['-DLDFLAG'])
 
     def test_install_tag(self) -> None:
         testdir = os.path.join(self.unit_test_dir, '98 install all targets')
