@@ -193,7 +193,9 @@ class QtPkgConfigDependency(_QtBase, PkgConfigDependency, metaclass=mesonlib.Sim
                 self.is_found = False
                 return
             if self.private_headers:
+                # fd.o pkg-config does not apply PKG_CONFIG_SYSROOT_DIR to variables.
                 qt_inc_dir = mod.get_variable(pkgconfig='includedir')
+                qt_inc_dir = self.env.get_sys_root_path(self.for_machine, qt_inc_dir)
                 mod_private_dir = os.path.join(qt_inc_dir, 'Qt' + m)
                 if not os.path.isdir(mod_private_dir):
                     if self.env.machines[self.for_machine].is_darwin():
@@ -203,6 +205,7 @@ class QtPkgConfigDependency(_QtBase, PkgConfigDependency, metaclass=mesonlib.Sim
                         # headers; both public and private headers live under
                         # <libdir>/Qt<Module>.framework/Headers.
                         libdir = mod.get_variable(pkgconfig='libdir', default_value='')
+                        libdir = self.env.get_sys_root_path(self.for_machine, libdir)
                         framework_inc = os.path.join(libdir, f'Qt{m}.framework', 'Headers')
                         if libdir and os.path.isdir(framework_inc):
                             mod_private_dir = framework_inc
