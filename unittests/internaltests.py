@@ -65,6 +65,19 @@ from .helpers import IS_CI, chdir, skipIfNoPkgconfig
 
 class InternalTests(unittest.TestCase):
 
+    @unittest.skipIf(is_windows() or is_cygwin() or os.geteuid() == 0, 'needs a directory the test user cannot traverse')
+    def test_cmake_user_registry_unreadable_home(self):
+        from mesonbuild.dependencies.cmake import CMakeDependency
+        with tempfile.TemporaryDirectory() as tmpdir:
+            home = Path(tmpdir) / 'home'
+            (home / '.cmake' / 'packages' / 'Foo').mkdir(parents=True)
+            with mock.patch.dict(os.environ, {'HOME': str(home)}):
+                self.assertTrue(CMakeDependency._in_cmake_user_registry('Foo', 'foo'))
+                self.assertFalse(CMakeDependency._in_cmake_user_registry('Bar', 'bar'))
+                home.chmod(0)
+                CMakeDependency._cached_isdir.cache_clear()
+                self.assertFalse(CMakeDependency._in_cmake_user_registry('Foo', 'foo'))
+
     def test_cmake_skip_compiler_test_invalid(self):
         properties = mesonbuild.envconfig.Properties({'cmake_skip_compiler_test': True})
         with self.assertRaisesRegex(
