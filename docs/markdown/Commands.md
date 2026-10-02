@@ -17,6 +17,38 @@ Optional arguments. The most common workflow is to run
 For the full list of all available options for a specific command use
 the following syntax: `meson COMMAND --help`
 
+### convert
+
+{{ convert_usage.inc }}
+
+Converts the meson project to an another build system. The input
+are a series of TOML files, and the output are files in the target
+build system. Soong and Bazel are supported to varying degrees.
+
+**This is an unstable API.**
+
+{{ convert_arguments.inc }}
+
+#### Examples:
+
+Each project maintains own TOML to define the hermetic transformation.
+
+```
+meson convert --config=/path/to/myproject.toml \
+--project-dir=/path/to/my/target_repo
+--platforms/path/to/myplatform.toml \
+--dependencies=/path/to/mydeps.toml
+--output_dir=/path/to/output-dir
+```
+
+Projects registered in Meson's small hermetic database (such as Mesa3D)
+can use an abbreviated command to perform the conversion.  Users are
+encouraged to add the database.
+
+```
+meson convert android aosp_mesa3d
+```
+
 ### configure
 
 {{ configure_usage.inc }}
