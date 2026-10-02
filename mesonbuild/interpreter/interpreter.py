@@ -2392,6 +2392,8 @@ class Interpreter(InterpreterBase, HoldableObject):
 
         if '@DEPFILE@' in all_args:
             raise InterpreterException('run_target does not have support for @DEPFILE@')
+        if '@PRIVATE_DIR@' in all_args:
+            raise InterpreterException('run_target does not have support for @PRIVATE_DIR@')
 
         name = args[0]
         tg = build.RunTarget(name, all_args, kwargs['depends'], self.subdir, self.environment,
