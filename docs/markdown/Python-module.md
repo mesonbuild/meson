@@ -71,6 +71,11 @@ Keyword arguments are the following:
   built with this module, this keyword argument can be used to
   override the default behavior of `.install_sources()`.
   *since 0.64.0*
+- `limited_api`: a string containing the default value for the
+  `limited_api` keyword argument for `.dependency()` and
+  `.extension_module()`. Defaults to the empty string, meaning no
+  Limited API. Does not affect the Python installation search.
+  *Since 1.13.0*
 
 **Returns**: a [python installation][`python_installation` object]
 
@@ -127,6 +132,8 @@ the addition of the following:
   the extension targets. For example, '3.7' to target Python 3.7's version of
   the limited API. This behavior can be disabled by setting the value of
   `python.allow_limited_api`. See [Python module options](Builtin-options.md#python-module).
+  *since 1.13.0* If no value is passed, it is inherited from the
+  installation. An empty string disables the Limited API.
 
 Additionally, the following diverge from [[shared_module]]'s default behavior:
 
@@ -142,6 +149,12 @@ Note that Cython support uses `extension_module`, see [the reference for Cython]
 *since 0.63.0* `extension_module` automatically adds a dependency to the library
 if one is not explicitly provided. To support older versions, the user may need to
 add `dependencies : py_installation.dependency()`, see [[dependency]].
+
+*since 1.13.0* If a Python dependency is passed to the
+`extension_module` and the two have different, non-empty
+`limited_api` values, an error is raised. If they differ and one is
+empty, the dependency is replaced with a copy that uses the
+`extension_module`'s `limited_api` value.
 
 *Since 1.11.0* `rust_abi`, if unset, will default to `'c'` so that Rust
 extension modules produce a `cdylib` crate.
@@ -165,6 +178,8 @@ following keyword argument:
   application.
 - `disabler` *(since 0.60.0)*: if `true` and the dependency couldn't be found,
   returns a [disabler object](#disabler-object) instead of a not-found dependency.
+- `limited_api` *(since 1.13.0)*: See the documentation for the
+  argument of the same name to [][`extension_module()`].
 
 **Returns**: a [python dependency][`python_dependency` object]
 

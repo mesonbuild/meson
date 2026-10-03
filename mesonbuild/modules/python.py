@@ -54,19 +54,37 @@ if T.TYPE_CHECKING:
         disabler: bool
         modules: T.List[str]
         pure: T.Optional[bool]
+        limited_api: str
 
     class ExtensionModuleKw(SharedModuleKw):
 
         # Yes, these are different between SharedModule and ExtensionModule
         install_dir: T.Union[str, bool, None]  # type: ignore[misc]
-        limited_api: str
+        limited_api: T.Optional[str]
         subdir: NotRequired[T.Optional[str]]
+
+    class PythonFuncDependency(FuncDependency):
+
+        embed: bool
+        limited_api: T.Optional[str]
 
     MaybePythonProg = T.Union[NonExistingExternalProgram, 'PythonExternalProgram']
 
 
 _MOD_KWARGS = [k for k in SHARED_MOD_KWS if
                k.name not in {'name_prefix', 'name_suffix', 'install_dir'}]
+
+
+def limited_api_kwarg_validator(arg: T.Optional[str]) -> T.Optional[str]:
+    if arg is None or arg == '':
+        return None
+    python_api_version_format = re.compile(r'[0-9]\.[0-9]{1,2}')
+    decimal_match = python_api_version_format.fullmatch(arg)
+    if not decimal_match:
+        return 'must be a decimal version number of the form "X.Y" where X is a single digit and Y is one or two digits'
+    if mesonlib.version_compare(arg, '<3.2'):
+        return 'must be greater than or equal to 3.2'
+    return None
 
 
 class PythonExternalProgram(BasicPythonExternalProgram):
@@ -112,7 +130,7 @@ class PythonExternalProgram(BasicPythonExternalProgram):
 
 _PURE_KW = KwargInfo('pure', (bool, NoneType))
 _SUBDIR_KW = KwargInfo('subdir', str, default='')
-_LIMITED_API_KW = KwargInfo('limited_api', str, default='', since='1.3.0')
+_LIMITED_API_KW = KwargInfo('limited_api', (str, NoneType), since='1.3.0', validator=limited_api_kwarg_validator)
 _DEFAULTABLE_SUBDIR_KW = KwargInfo('subdir', (str, NoneType))
 
 class PythonInstallation(ProgramHolder['PythonExternalProgram']):
@@ -144,6 +162,7 @@ class PythonInstallation(ProgramHolder['PythonExternalProgram']):
         self.variables = info['variables']
         self.paths = info['paths']
         self.pure = python.pure
+        self.limited_api = python.limited_api
         self.platlib_install_path = os.path.join(prefix, python.platlib)
         self.purelib_install_path = os.path.join(prefix, python.purelib)
 
@@ -177,70 +196,30 @@ class PythonInstallation(ProgramHolder['PythonExternalProgram']):
 
             target_kwargs['install_dir'] = [self._get_install_dir_impl(False, subdir)]
 
-        target_suffix = self.suffix
+        limited_api_version = self._resolve_limited_api_version(kwargs['limited_api'])
 
         new_deps = kwargs['dependencies'].copy()
         pydep = next((dep for dep in new_deps if isinstance(dep, _PythonDependencyBase)), None)
         if pydep is None:
-            pydep = self._dependency_method_impl({'native': kwargs['native']})
+            pydep = self._dependency_method_impl({'native': kwargs['native'], 'limited_api': limited_api_version})
             if not pydep.found():
                 raise mesonlib.MesonException('Python dependency not found')
             new_deps.append(pydep)
             FeatureNew.single_use('python_installation.extension_module with implicit dependency on python',
                                   '0.63.0', self.subproject, 'use python_installation.dependency()',
                                   self.current_node)
-
-        limited_api_version = kwargs.get('limited_api')
-        allow_limited_api = self.interpreter.environment.coredata.optstore.get_value_for(OptionKey('python.allow_limited_api'))
-        if limited_api_version != '' and allow_limited_api:
-
-            target_suffix = self.limited_api_suffix
-
-            limited_api_version_hex = self._convert_api_version_to_py_version_hex(limited_api_version, pydep.version)
-            limited_api_definition = f'-DPy_LIMITED_API={limited_api_version_hex}'
-
-            new_c_args = kwargs['c_args'].copy()
-            new_c_args.append(limited_api_definition)
-            target_kwargs['c_args'] = new_c_args
-
-            new_cpp_args = kwargs['cpp_args'].copy()
-            new_cpp_args.append(limited_api_definition)
-            target_kwargs['cpp_args'] = new_cpp_args
-
-            # On Windows, the limited API DLL is python3.dll, not python3X.dll.
-            # FIXME: pydep.for_machine is nicer, but InternalDependency does not have the attribute
-            for_machine = self.interpreter.build.machine_map[kwargs['native']]
-            if self.interpreter.environment.machines[for_machine].is_windows():
-                pydep_copy = copy.copy(pydep)
-                if isinstance(pydep_copy, _PythonDependencyBase):
-                    pydep_copy.find_libpy_windows(self.env, limited_api=True)
-                if not pydep_copy.found():
-                    raise mesonlib.MesonException('Python dependency supporting limited API not found')
-
-                new_deps.remove(pydep)
-                new_deps.append(pydep_copy)
-
-            # When compiled under MSVC, Python's PC/pyconfig.h forcibly inserts pythonMAJOR.MINOR.lib
-            # into the linker path when not running in debug mode via a series #pragma comment(lib, "")
-            # directives. We manually override these here as this interferes with the intended
-            # use of the 'limited_api' kwarg
-            compilers = self.interpreter.environment.coredata.compilers[for_machine]
-            if any(compiler.get_id() == 'msvc' for compiler in compilers.values()):
-                pyver = pydep.version.replace('.', '')
-                python_windows_debug_link_exception = f'/NODEFAULTLIB:python{pyver}_d.lib'
-                python_windows_release_link_exception = f'/NODEFAULTLIB:python{pyver}.lib'
-
-                new_link_args = kwargs['link_args'].copy()
-
-                is_debug = self.interpreter.environment.coredata.optstore.get_value_for('debug')
-                if is_debug:
-                    new_link_args.append(python_windows_debug_link_exception)
-                else:
-                    new_link_args.append(python_windows_release_link_exception)
-
-                target_kwargs['link_args'] = new_link_args
+        elif pydep.limited_api != limited_api_version:
+            if pydep.limited_api and limited_api_version:
+                raise InvalidArguments(f'Extension module {args[0]!r} requests Limited API version {limited_api_version} '
+                                       f'but the Python dependency uses version {pydep.limited_api}')
+            new_pydep = pydep.with_limited_api(limited_api_version)
+            if not new_pydep.found():
+                raise mesonlib.MesonException('Python dependency not found')
+            new_deps[new_deps.index(pydep)] = new_pydep
 
         target_kwargs['dependencies'] = new_deps
+
+        target_suffix = self.limited_api_suffix if limited_api_version else self.suffix
 
         # msys2's python3 has "-cpython-36m.dll", we have to be clever
         # FIXME: explain what the specific cleverness is here
@@ -258,21 +237,18 @@ class PythonInstallation(ProgramHolder['PythonExternalProgram']):
             self.current_node, T.cast('T.Tuple[str, SourcesVarargsType]', args),
             target_kwargs, SharedModule)
 
-    def _convert_api_version_to_py_version_hex(self, api_version: str, detected_version: str) -> str:
-        python_api_version_format = re.compile(r'[0-9]\.[0-9]{1,2}')
-        decimal_match = python_api_version_format.fullmatch(api_version)
-        if not decimal_match:
-            raise InvalidArguments(f'Python API version invalid: "{api_version}".')
-        if mesonlib.version_compare(api_version, '<3.2'):
-            raise InvalidArguments(f'Python Limited API version invalid: {api_version} (must be greater than 3.2)')
-        if mesonlib.version_compare(api_version, '>' + detected_version):
-            raise InvalidArguments(f'Python Limited API version too high: {api_version} (detected {detected_version})')
-
-        version_components = api_version.split('.')
-        major = int(version_components[0])
-        minor = int(version_components[1])
-
-        return '0x{:02x}{:02x}0000'.format(major, minor)
+    def _resolve_limited_api_version(self, limited_api: T.Optional[str]) -> str:
+        # Returns '' when the limited API is not requested or is disabled by the
+        # python.allow_limited_api option. The 'X.Y' format is checked by the kwarg validator.
+        if not self.interpreter.environment.coredata.optstore.get_value_for(OptionKey('python.allow_limited_api')):
+            return ''
+        if limited_api is None:
+            limited_api = self.limited_api
+        if not limited_api:
+            return ''
+        if mesonlib.version_compare(limited_api, '>' + self.version):
+            raise InvalidArguments(f'Python Limited API version too high: {limited_api} (detected {self.version})')
+        return limited_api
 
     def _dependency_method_impl(self, kwargs: DependencyObjectKWs) -> Dependency:
         for_machine = self.interpreter.build.machine_map[kwargs['native']]
@@ -302,11 +278,12 @@ class PythonInstallation(ProgramHolder['PythonExternalProgram']):
         kw_types=[
             *DEPENDENCY_KWS,
             KwargInfo('embed', bool, default=False, since='0.53.0'),
+            _LIMITED_API_KW.evolve(since='1.13.0'),
         ],
     )
     @disablerIfNotFound
     @InterpreterObject.method('dependency')
-    def dependency_method(self, args: T.List['TYPE_var'], kwargs: FuncDependency) -> 'Dependency':
+    def dependency_method(self, args: T.List['TYPE_var'], kwargs: PythonFuncDependency) -> 'Dependency':
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
         nkwargs = T.cast('DependencyObjectKWs', kwargs.copy())
         nkwargs['required'] = required
@@ -314,6 +291,7 @@ class PythonInstallation(ProgramHolder['PythonExternalProgram']):
             mlog.log('Dependency', mlog.bold('python'), 'skipped: feature', mlog.bold(feature), 'disabled')
             return NotFoundDependency('python', self.interpreter.environment)
         else:
+            nkwargs['limited_api'] = self._resolve_limited_api_version(kwargs['limited_api'])
             dep = self._dependency_method_impl(nkwargs)
             if required and not dep.found():
                 raise mesonlib.MesonException('Python dependency not found')
@@ -535,6 +513,7 @@ class PythonModule(ExtensionModule):
             KwargInfo('disabler', bool, default=False, since='0.49.0'),
             KwargInfo('modules', ContainerTypeInfo(list, str), listify=True, default=[], since='0.51.0'),
             _PURE_KW.evolve(default=True, since='0.64.0'),
+            _LIMITED_API_KW.evolve(default='', since='1.13.0'),
         ],
     )
     def find_installation(self, state: 'ModuleState', args: T.Tuple[T.Optional[str]],
@@ -603,6 +582,7 @@ class PythonModule(ExtensionModule):
             assert isinstance(python, PythonExternalProgram), 'for mypy'
             python = copy.copy(python)
             python.pure = kwargs['pure']
+            python.limited_api = kwargs['limited_api']
             return python
 
         raise mesonlib.MesonBugException('Unreachable code was reached (PythonModule.find_installation).')
