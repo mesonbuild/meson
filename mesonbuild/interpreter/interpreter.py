@@ -3075,7 +3075,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             if depfile:
                 mlog.log('Reading depfile:', mlog.bold(depfile))
                 with open(depfile, encoding='utf-8') as f:
-                    df = DepFile(f.readlines())
+                    df = DepFile(f.readlines(), self.environment.build_dir)
                     deps = df.get_all_dependencies(ofile_fname)
                     for dep in deps:
                         self.add_build_def_file(dep)
