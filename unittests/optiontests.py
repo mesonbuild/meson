@@ -8,7 +8,9 @@ from mesonbuild.options import (
 from mesonbuild.envconfig import MachineInfo
 from mesonbuild.utils.universal import MesonException, MachineChoice
 
+import copy
 import os
+import typing as T
 import unittest
 
 
@@ -42,7 +44,7 @@ class OptionTests(unittest.TestCase):
         vo = UserStringOption(k.name, 'An option of some sort', default_value)
         optstore.add_system_option(k.name, vo)
         self.assertEqual(optstore.get_value_for(k), default_value)
-        optstore.initialize_from_top_level_project_call({OptionKey('someoption'): new_value}, {}, {})
+        optstore.initialize_from_top_level_project_call({OptionKey('someoption'): new_value})
         self.assertEqual(optstore.get_value_for(k), new_value)
 
     def test_machine_vs_project(self):
@@ -57,8 +59,8 @@ class OptionTests(unittest.TestCase):
         vo = UserStringOption(k.name, 'You know what this is', default_value)
         optstore.add_system_option(k.name, vo)
         self.assertEqual(optstore.get_value_for(k), default_value)
-        optstore.initialize_from_top_level_project_call({OptionKey(name): proj_value}, {},
-                                                        {OptionKey(name): mfile_value})
+        optstore.set_machine_file_options({OptionKey(name): mfile_value})
+        optstore.initialize_from_top_level_project_call({OptionKey(name): proj_value})
         self.assertEqual(optstore.get_value_for(k), mfile_value)
 
     def test_subproject_system_option(self):
@@ -70,7 +72,8 @@ class OptionTests(unittest.TestCase):
         new_value = 'true'
         k = OptionKey(name)
         subk = k.evolve(subproject='sub')
-        optstore.initialize_from_top_level_project_call({}, {}, {OptionKey(name): new_value})
+        optstore.set_machine_file_options({OptionKey(name): new_value})
+        optstore.initialize_from_top_level_project_call({})
         vo = UserStringOption(k.name, 'An option of some sort', default_value)
         optstore.add_system_option(subk, vo)
         self.assertEqual(optstore.get_value_for(subk), new_value)
@@ -180,7 +183,8 @@ class OptionTests(unittest.TestCase):
 
         vo = UserStringOption(name, 'A top level option', 'default1')
         optstore.add_project_option(OptionKey(name, ''), vo)
-        optstore.initialize_from_top_level_project_call({}, cmd_line, {})
+        optstore.set_user_options(cmd_line)
+        optstore.initialize_from_top_level_project_call({})
         self.assertEqual(optstore.get_value_for(name, ''), top_value)
         self.assertEqual(num_options(optstore), 1)
 
@@ -190,7 +194,7 @@ class OptionTests(unittest.TestCase):
         self.assertEqual(optstore.get_value_for(name, subp), top_value)
         self.assertEqual(num_options(optstore), 2)
 
-        optstore.initialize_from_subproject_call(subp, {}, {}, cmd_line, {})
+        optstore.initialize_from_subproject_call(subp, {}, {})
         self.assertEqual(optstore.get_value_for(name, ''), top_value)
         self.assertEqual(optstore.get_value_for(name, subp), sub_value)
 
@@ -207,6 +211,8 @@ class OptionTests(unittest.TestCase):
                              top_value,
                              choices=['c++98', 'c++11', 'c++14', 'c++17', 'c++20', 'c++23'])
         optstore.add_system_option(name, co)
+        optstore.initialize_from_subproject_call(sub_name, {}, {})
+        optstore.initialize_from_subproject_call(sub2_name, {}, {})
         self.assertEqual(optstore.get_value_for(name), top_value)
         self.assertEqual(optstore.get_value_for(name, sub_name), top_value)
         self.assertEqual(optstore.get_value_for(name, sub2_name), top_value)
@@ -214,24 +220,28 @@ class OptionTests(unittest.TestCase):
         # First augment a subproject
         with self.subTest('set subproject override'):
             optstore.set_from_configure_command({OptionKey.from_string(f'{sub_name}:{name}'): aug_value})
+            optstore.resolve_configured()
             self.assertEqual(optstore.get_value_for(name), top_value)
             self.assertEqual(optstore.get_value_for(name, sub_name), aug_value)
             self.assertEqual(optstore.get_value_for(name, sub2_name), top_value)
 
         with self.subTest('unset subproject override'):
             optstore.set_from_configure_command({OptionKey.from_string(f'{sub_name}:{name}'): None})
+            optstore.resolve_configured()
             self.assertEqual(optstore.get_value_for(name), top_value)
             self.assertEqual(optstore.get_value_for(name, sub_name), top_value)
             self.assertEqual(optstore.get_value_for(name, sub2_name), top_value)
 
         # And now augment the top level option
         optstore.set_from_configure_command({OptionKey.from_string(f':{name}'): aug_value})
+        optstore.resolve_configured()
         self.assertEqual(optstore.get_value_for(name, None), top_value)
         self.assertEqual(optstore.get_value_for(name, ''), aug_value)
         self.assertEqual(optstore.get_value_for(name, sub_name), top_value)
         self.assertEqual(optstore.get_value_for(name, sub2_name), top_value)
 
         optstore.set_from_configure_command({OptionKey.from_string(f':{name}'): None})
+        optstore.resolve_configured()
         self.assertEqual(optstore.get_value_for(name), top_value)
         self.assertEqual(optstore.get_value_for(name, sub_name), top_value)
         self.assertEqual(optstore.get_value_for(name, sub2_name), top_value)
@@ -250,8 +260,10 @@ class OptionTests(unittest.TestCase):
                              choices=['c++98', 'c++11', 'c++14', 'c++17', 'c++20', 'c++23'],
                              )
         optstore.add_system_option(name, co)
+        optstore.initialize_from_subproject_call(sub_name, {}, {})
         optstore.set_from_configure_command({OptionKey.from_string(f'{sub_name}:{name}'): aug_value})
         optstore.set_from_configure_command({OptionKey.from_string(f'{sub_name}:{name}'): set_value})
+        optstore.resolve_configured()
         self.assertEqual(optstore.get_value_for(name), top_value)
         self.assertEqual(optstore.get_value_for(name, sub_name), set_value)
 
@@ -268,7 +280,8 @@ class OptionTests(unittest.TestCase):
         optstore.add_compiler_option('cpp', key, co)
 
         cmd_line = {key: opt_value}
-        optstore.initialize_from_top_level_project_call({}, cmd_line, {})
+        optstore.set_user_options(cmd_line)
+        optstore.initialize_from_top_level_project_call({})
         self.assertEqual(optstore.get_option_and_value_for(key.as_build())[1], opt_value)
         self.assertEqual(optstore.get_value_for(key.as_build()), opt_value)
 
@@ -286,8 +299,8 @@ class OptionTests(unittest.TestCase):
         optstore.add_compiler_option('cpp', key, co)
 
         spcall = {key: opt_value}
-        optstore.initialize_from_top_level_project_call({}, {}, {})
-        optstore.initialize_from_subproject_call(subp, spcall, {}, {}, {})
+        optstore.initialize_from_top_level_project_call({})
+        optstore.initialize_from_subproject_call(subp, spcall, {})
         self.assertEqual(optstore.get_option_and_value_for(key.evolve(subproject=subp,
                                                                             machine=MachineChoice.BUILD))[1], opt_value)
         self.assertEqual(optstore.get_value_for(key.evolve(subproject=subp,
@@ -307,7 +320,8 @@ class OptionTests(unittest.TestCase):
             optstore.add_compiler_option('cpp', k, co)
 
         cmd_line = {key: opt_value}
-        optstore.initialize_from_top_level_project_call({}, cmd_line, {})
+        optstore.set_user_options(cmd_line)
+        optstore.initialize_from_top_level_project_call({})
         print(optstore.options)
 
         self.assertEqual(optstore.get_option_and_value_for(key)[1], opt_value)
@@ -329,6 +343,14 @@ class OptionTests(unittest.TestCase):
     def test_reconfigure_b_nonexistent(self):
         optstore = OptionStore(False)
         optstore.set_from_configure_command({OptionKey('b_ndebug'): True})
+        optstore.resolve_configured()
+
+    def test_reconfigure_backend_nonexistent(self):
+        # Backend options are only accepted as pending on the first invocation.
+        optstore = OptionStore(False)
+        with self.assertRaises(MesonException):
+            optstore.set_from_configure_command({OptionKey('backend_whatever'): '1'})
+            optstore.resolve_configured()
 
     def test_unconfigure_nonexistent(self):
         optstore = OptionStore(False)
@@ -350,8 +372,9 @@ class OptionTests(unittest.TestCase):
         cmd_line = {OptionKey(name): True}
         spcall = {OptionKey(name): False}
 
-        optstore.initialize_from_top_level_project_call({}, cmd_line, {})
-        optstore.initialize_from_subproject_call(subp, spcall, {}, cmd_line, {})
+        optstore.set_user_options(cmd_line)
+        optstore.initialize_from_top_level_project_call({})
+        optstore.initialize_from_subproject_call(subp, spcall, {})
         self.assertEqual(optstore.get_value_for(name, ''), True)
         self.assertEqual(optstore.get_value_for(name, subp), False)
 
@@ -370,8 +393,9 @@ class OptionTests(unittest.TestCase):
         subp_proj_default = {OptionKey(name): '3'}
         cmd_line = {OptionKey(name): new_value}
 
-        optstore.initialize_from_top_level_project_call(toplevel_proj_default, cmd_line, {})
-        optstore.initialize_from_subproject_call(subp, {}, subp_proj_default, cmd_line, {})
+        optstore.set_user_options(cmd_line)
+        optstore.initialize_from_top_level_project_call(toplevel_proj_default)
+        optstore.initialize_from_subproject_call(subp, {}, subp_proj_default)
         self.assertEqual(optstore.get_value_for(name, subp), new_value)
         self.assertEqual(optstore.get_value_for(name), new_value)
 
@@ -390,8 +414,8 @@ class OptionTests(unittest.TestCase):
         toplevel_proj_default = {OptionKey(name, subproject=subp): subp_value, OptionKey(name): default_value}
         subp_proj_default = {OptionKey(name): '3'}
 
-        optstore.initialize_from_top_level_project_call(toplevel_proj_default, {}, {})
-        optstore.initialize_from_subproject_call(subp, {}, subp_proj_default, {}, {})
+        optstore.initialize_from_top_level_project_call(toplevel_proj_default)
+        optstore.initialize_from_subproject_call(subp, {}, subp_proj_default)
         self.assertEqual(optstore.get_value_for(name, subp), subp_value)
         self.assertEqual(optstore.get_value_for(name), default_value)
 
@@ -411,8 +435,9 @@ class OptionTests(unittest.TestCase):
         subp_proj_default = {OptionKey(name): '3'}
         cmd_line = {OptionKey(name): global_value, OptionKey(name, subproject=subp): new_value}
 
-        optstore.initialize_from_top_level_project_call(toplevel_proj_default, cmd_line, {})
-        optstore.initialize_from_subproject_call(subp, {}, subp_proj_default, cmd_line, {})
+        optstore.set_user_options(cmd_line)
+        optstore.initialize_from_top_level_project_call(toplevel_proj_default)
+        optstore.initialize_from_subproject_call(subp, {}, subp_proj_default)
         self.assertEqual(optstore.get_value_for(name, subp), new_value)
         self.assertEqual(optstore.get_value_for(name), global_value)
 
@@ -432,8 +457,9 @@ class OptionTests(unittest.TestCase):
         subp_proj_default = {OptionKey(name): subp_value}
         cmd_line = {OptionKey(name, subproject=''): toplevel_value}
 
-        optstore.initialize_from_top_level_project_call(toplevel_proj_default, cmd_line, {})
-        optstore.initialize_from_subproject_call(subp, {}, subp_proj_default, cmd_line, {})
+        optstore.set_user_options(cmd_line)
+        optstore.initialize_from_top_level_project_call(toplevel_proj_default)
+        optstore.initialize_from_subproject_call(subp, {}, subp_proj_default)
         self.assertEqual(optstore.get_value_for(name, subp), subp_value)
         self.assertEqual(optstore.get_value_for(name, ''), toplevel_value)
 
@@ -457,11 +483,182 @@ class OptionTests(unittest.TestCase):
             o = UserBooleanOption('debug', 'Enable debug symbols and other information', True)
             optstore.add_system_option(o.name, o)
 
-            optstore.initialize_from_top_level_project_call(mainopt, {}, {})
-            optstore.initialize_from_subproject_call(subp, {}, subopt, {}, {})
+            optstore.initialize_from_top_level_project_call(mainopt)
+            optstore.initialize_from_subproject_call(subp, {}, subopt)
             self.assertEqual(optstore.get_value_for('buildtype', subp), 'debug')
             self.assertEqual(optstore.get_value_for('optimization', subp), '0')
             self.assertEqual(optstore.get_value_for('debug', subp), True)
+
+    def _configure_buildtype(self, cmd_line: T.Dict[str, str], machine_file: T.Dict[str, str],
+                             toplevel: T.Dict[str, str], sub: T.Optional[T.Dict[str, str]] = None) -> OptionStore:
+        optstore = OptionStore(False)
+        optstore.init_builtins()
+        optstore.set_machine_file_options({OptionKey.from_string(k): v for k, v in machine_file.items()})
+        optstore.set_user_options({OptionKey.from_string(k): v for k, v in cmd_line.items()})
+        optstore.initialize_from_top_level_project_call({OptionKey.from_string(k): v for k, v in toplevel.items()})
+        if sub is not None:
+            optstore.initialize_from_subproject_call('sub', {}, {OptionKey.from_string(k): v for k, v in sub.items()})
+        return optstore
+
+    def test_buildtype_same_source(self):
+        """Within the same source, explicit values of debug and optimization
+           override buildtype, whatever their order; in lower-priority sources,
+           they are overridden by buildtype."""
+        cases = [
+            # cmd_line, machine_file, toplevel, (buildtype, optimization, debug)
+            ({'debug': 'true', 'buildtype': 'release'}, {}, {}, ('release', '3', True)),
+            ({'optimization': '2', 'buildtype': 'release'}, {}, {}, ('release', '2', False)),
+            ({}, {'debug': 'true', 'buildtype': 'release'}, {}, ('release', '3', True)),
+            ({}, {}, {'optimization': '2', 'buildtype': 'release'}, ('release', '2', False)),
+            ({'buildtype': 'debug'}, {}, {'buildtype': 'release', 'optimization': '2'}, ('debug', '0', True)),
+            ({'optimization': '2'}, {'buildtype': 'release'}, {'optimization': '1'}, ('release', '2', False)),
+        ]
+        for cmd_line, machine_file, toplevel, expected in cases:
+            with self.subTest(cmd_line=cmd_line, machine_file=machine_file, toplevel=toplevel):
+                optstore = self._configure_buildtype(cmd_line, machine_file, toplevel)
+                self.assertEqual((optstore.get_value_for('buildtype'),
+                                  optstore.get_value_for('optimization'),
+                                  optstore.get_value_for('debug')), expected)
+
+    def test_buildtype_subproject(self):
+        """buildtype for a subproject overrides the subproject's own default_options
+           for debug and optimization, but a global buildtype does not."""
+        sub = {'buildtype': 'release', 'optimization': '2'}
+        cases = [
+            ({'sub:buildtype': 'debug'}, ('debug', '0', True)),
+            ({'buildtype': 'debug'}, ('debug', '2', True)),
+        ]
+        for cmd_line, expected in cases:
+            with self.subTest(cmd_line=cmd_line):
+                optstore = self._configure_buildtype(cmd_line, {}, {}, sub)
+                self.assertEqual((optstore.get_value_for('buildtype', 'sub'),
+                                  optstore.get_value_for('optimization', 'sub'),
+                                  optstore.get_value_for('debug', 'sub')), expected)
+
+    def test_option_suffix(self):
+        """The value of an option from environment variables is appended to
+           an array option, whatever the source of the latter."""
+        args = OptionKey('c_args')
+        link_args = OptionKey('c_link_args')
+        optstore = OptionStore(False)
+        optstore.add_system_option(args, UserStringArrayOption(args.name, 'Compiler arguments', []))
+        optstore.add_system_option(link_args, UserStringArrayOption(link_args.name, 'Linker arguments', []))
+        optstore.set_environment_options({args: ['-O2'], link_args: ['-ldefault']})
+        optstore.set_option_suffix(link_args, args)
+
+        optstore.set_user_options({})
+        optstore.initialize_from_top_level_project_call({})
+        self.assertEqual(optstore.get_value_for(args), ['-O2'])
+        self.assertEqual(optstore.get_value_for(link_args), ['-ldefault', '-O2'])
+
+        optstore.set_user_options({link_args: '-luser'})
+        optstore.initialize_from_top_level_project_call({})
+        self.assertEqual(optstore.get_value_for(args), ['-O2'])
+        self.assertEqual(optstore.get_value_for(link_args), ['-luser', '-O2'])
+        self.assertEqual(optstore.get_value_for(link_args.evolve(subproject='sub')),
+                         ['-luser', '-O2'])
+
+        # The value is only appended if it comes from the environment.
+        optstore.set_user_options({link_args: '-luser', args: '-g'})
+        optstore.initialize_from_top_level_project_call({})
+        self.assertEqual(optstore.get_value_for(args), ['-g'])
+        self.assertEqual(optstore.get_value_for(link_args), ['-luser'])
+
+    def test_detected_option(self):
+        """A detected option keeps its value when the other sources change, and
+           the user cannot change it."""
+        name = 'vsenv'
+        optstore = OptionStore(False)
+        prefix = UserStringOption('prefix', 'This is needed by OptionStore', '/usr')
+        optstore.add_system_option('prefix', prefix)
+        optstore.add_system_option(name, UserBooleanOption(name, 'Activate Visual Studio environment',
+                                                           False, readonly=True))
+        optstore.set_user_options({})
+        optstore.initialize_from_top_level_project_call({})
+        optstore.lock_readonly_option(OptionKey(name), False)
+
+        # A new value in project() default_options is ignored...
+        optstore.set_user_options({})
+        optstore.initialize_from_top_level_project_call({OptionKey(name): True})
+        self.assertEqual(optstore.get_value_for(name), False)
+
+        # ... and changing it from the command line is an error.
+        with self.assertRaises(MesonException):
+            optstore.set_from_configure_command({OptionKey(name): 'true'})
+
+    def test_prefix_dependent_directories(self):
+        """Directories whose default depends on the prefix follow it when the
+           options are resolved again, unless they are set explicitly."""
+        optstore = OptionStore(False)
+        optstore.init_builtins()
+        sysconfdir = OptionKey('sysconfdir')
+        default_sysconfdir = optstore.options[sysconfdir].default
+
+        def configure(cmd_line: T.Dict[OptionKey, str], project_default_options: T.Dict[OptionKey, str]) -> None:
+            optstore.set_user_options(cmd_line)
+            optstore.initialize_from_top_level_project_call(project_default_options)
+
+        configure({OptionKey('prefix'): '/usr'}, {})
+        self.assertEqual(optstore.get_value_for(sysconfdir), '/etc')
+
+        configure({OptionKey('prefix'): '/usr', sysconfdir: '/opt/etc'}, {})
+        self.assertEqual(optstore.get_value_for(sysconfdir), '/opt/etc')
+
+        configure({OptionKey('prefix'): '/opt/foo'}, {})
+        self.assertEqual(optstore.get_value_for('prefix'), '/opt/foo')
+        self.assertEqual(optstore.get_value_for(sysconfdir), default_sysconfdir)
+
+        configure({}, {OptionKey('prefix'): '/usr'})
+        self.assertEqual(optstore.get_value_for(sysconfdir), '/etc')
+
+    def test_reconfigure_default_options(self):
+        """Changes to default_options take effect when the options are resolved again."""
+        name = 'someoption'
+        subp = 'subp'
+        optstore = OptionStore(False)
+        prefix = UserStringOption('prefix', 'This is needed by OptionStore', '/usr')
+        optstore.add_system_option('prefix', prefix)
+        optstore.add_system_option(name, UserStringOption(name, 'A global option', 'default'))
+
+        def configure(cmd_line: T.Dict[OptionKey, str], toplevel: T.Optional[str], sub: T.Optional[str]) -> None:
+            optstore.set_user_options(cmd_line)
+            optstore.initialize_from_top_level_project_call({OptionKey(name): toplevel} if toplevel else {})
+            optstore.initialize_from_subproject_call(subp, {}, {OptionKey(name): sub} if sub else {})
+
+        configure({}, 'top', 'sub')
+        self.assertEqual(optstore.get_value_for(name), 'top')
+        self.assertEqual(optstore.get_value_for(name, subp), 'sub')
+
+        configure({}, None, None)
+        self.assertEqual(optstore.get_value_for(name), 'default')
+        self.assertEqual(optstore.get_value_for(name, subp), 'default')
+
+        configure({OptionKey(name): 'cmdline'}, 'top', 'sub')
+        self.assertEqual(optstore.get_value_for(name), 'cmdline')
+        self.assertEqual(optstore.get_value_for(name, subp), 'cmdline')
+
+        configure({}, 'top', 'sub')
+        self.assertEqual(optstore.get_value_for(name), 'top')
+        self.assertEqual(optstore.get_value_for(name, subp), 'sub')
+
+    def test_invalid_pending_value(self):
+        """If the pending value of an option is invalid when the option is added,
+           the option is not left behind, so that the value is checked again
+           when the option is added later."""
+        name = 'c_std'
+        opt = UserComboOption(name, 'C language standard to use', 'none', choices=['none', 'c11'])
+
+        key = OptionKey(name)
+        optstore = OptionStore(False)
+        optstore.initialize_from_top_level_project_call({key: 'c23'})
+        with self.assertRaises(MesonException):
+            optstore.add_compiler_option('c', key, copy.copy(opt))
+        self.assertNotIn(key, optstore)
+
+        # Resolving again, as done when reconfiguring, does not fail.
+        optstore.initialize_from_top_level_project_call({key: 'c23'})
+        with self.assertRaises(MesonException):
+            optstore.add_compiler_option('c', key, copy.copy(opt))
 
     def test_deprecated_nonstring_value(self):
         # TODO: add a lot more deprecated option tests
@@ -482,8 +679,8 @@ class OptionTests(unittest.TestCase):
         prefix = UserStringOption('prefix', 'This is needed by OptionStore', '/usr')
         optstore.add_system_option('prefix', prefix)
 
-        optstore.initialize_from_top_level_project_call({}, {}, {})
-        optstore.initialize_from_subproject_call(subproject, {}, {OptionKey(name): 'true'}, {}, {})
+        optstore.initialize_from_top_level_project_call({})
+        optstore.initialize_from_subproject_call(subproject, {}, {OptionKey(name): 'true'})
 
         bo = UserBooleanOption(name, 'LTO', False)
         key = OptionKey(name, subproject=subproject)
