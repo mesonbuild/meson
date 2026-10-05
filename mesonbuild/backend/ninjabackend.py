@@ -2136,8 +2136,16 @@ class NinjaBackend(backends.Backend):
         deps: T.List[str] = []
         project_deps: T.List[RustDep] = []
         args: T.List[str] = []
+        linked_deps: T.Set[str] = set()
 
         def _link_library(libname: str, static: bool, bundle: bool = False) -> None:
+            # rustc will fail with "overriding link modifiers from
+            # command line is not supported" if a modifier is applied
+            # and the library appears more than once
+            if libname in linked_deps:
+                return
+            linked_deps.add(libname)
+
             orig_libname = libname
             type_ = 'static' if static else 'dylib'
             modifiers = []
