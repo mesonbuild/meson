@@ -2147,3 +2147,13 @@ class LinuxlikeTests(BasePlatformTests):
                     self.assertRegex(out, 'value *: *' + expected)
                 finally:
                     self.wipe()
+
+    @skipUnless(is_linux(), "Ninja file differs on different platforms")
+    def test_recursive_link_whole(self):
+        testdir = os.path.join(self.unit_test_dir, '123 recursive link whole')
+        self.init(testdir)
+        self.build()
+        with open(os.path.join(self.builddir, 'build.ninja'), encoding='utf-8') as f:
+            content = f.read()
+        self.assertIn('build lib3.a: STATIC_LINKER libwhole.a.p/libwhole.c.o lib2.a.p/lib2.c.o lib1.a.p/lib1.c.o subprojects/sub/libsub.a.p/libsub.c.o lib3.a.p/lib3.c.o\n', content)
+        self.assertIn('build testmeson: c_LINKER testmeson.p/main.c.o | lib3.a libshared.so.p/libshared.so.symbols\n', content)
