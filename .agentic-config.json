@@ -3,7 +3,7 @@
     "project_name": "meson",
     "description": "A C project with Python (pip/setuptools)",
     "generated_by": "Braxis",
-    "generated_at": "2026-10-06T23:09:12.466920",
+    "generated_at": "2026-10-06T23:50:37.621559",
     "schema_version": "1.0"
   },
   "project": {
@@ -73,8 +73,8 @@
       "language_version": "N/A",
       "package_manager": "npm",
       "key_tools": [
-        "pytest",
-        "JUnit"
+        "JUnit",
+        "pytest"
       ]
     }
   },

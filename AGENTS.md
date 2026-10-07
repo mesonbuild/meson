@@ -12,7 +12,7 @@ meson is a C project using Python (pip/setuptools).
 - **Primary Language:** C
 - **Build System:** Python (pip/setuptools)
 - **Test Framework:** JUnit, pytest
-- **Total Files:** 5671
+- **Total Files:** 5673
 - **Test Files:** 158
 - **AI Readiness Score:** 98/100 (Agent-Optimized)
 
