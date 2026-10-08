@@ -48,7 +48,7 @@ topic](https://github.com/topics/meson).
  - [OpenH264](https://github.com/cisco/openh264), open source H.264 codec
  - [OpenRC](https://github.com/OpenRC/openrc), an init system for Unix-like operating systems
  - [Pacman](https://gitlab.archlinux.org/pacman/pacman.git), a package manager for Arch Linux
- - [PicoLibc](https://github.com/keith-packard/picolibc), a standard C library for small embedded systems with limited RAM
+ - [PicoLibc](https://github.com/picolibc/picolibc), a standard C library for small embedded systems with limited RAM
  - [PipeWire](https://github.com/PipeWire/pipewire), a framework for video and audio for containerized applications
  - [PostgreSQL](https://www.postgresql.org/), an advanced open source relational database
  - [QEMU](https://qemu.org), a processor emulator and virtualizer
