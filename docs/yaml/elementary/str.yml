@@ -113,6 +113,8 @@ methods:
     version = '1'
     # Converts the string to an int and throws an error if it can't be
     ver_int = version.to_int()
+    # Since 1.12.0, also supports hexadecimal, octal, and binary:
+    assert('0xff'.to_int() == 255)
     ```
 
 # str.contains()
