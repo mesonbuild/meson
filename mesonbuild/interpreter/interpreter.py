@@ -1690,6 +1690,12 @@ class Interpreter(InterpreterBase, HoldableObject):
             args.append('cpp')
             internal.add('cpp')
 
+        if 'rust' in args and 'c' not in langs:
+            # When using pkg-config dependencies with Rust, a C compiler is
+            # needed to translate `-lfoo` flags into the appropriate syntax.
+            args.append('c')
+            internal.add('c')
+
         if 'nasm' in langs:
             FeatureNew.single_use('Adding NASM language', '0.64.0', self.subproject, location=self.current_node)
 
