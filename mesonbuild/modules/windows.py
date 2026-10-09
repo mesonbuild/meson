@@ -191,10 +191,12 @@ class WindowsModule(ExtensionModule):
 
             if rescomp_type == ResourceCompilerType.rc:
                 compiler = self.detect_compiler(state.environment.coredata.compilers[MachineChoice.HOST])
+                compiler_exe, *compiler_args = compiler.get_exelist(False)
                 command.extend(state.environment.get_build_command())
                 command.extend(['--internal', 'rc',
                                 '--rc', *rescomp.get_command(),
-                                '--cl', *compiler.get_exelist(False)])
+                                '--cl', compiler_exe,
+                                *(f'--Xarg={x}' for x in compiler_args)])
 
                 if compiler.id in {'msvc', 'clang-cl', 'intel-cl'}:
                     depfile_type = 'msvc'
