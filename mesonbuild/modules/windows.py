@@ -194,7 +194,6 @@ class WindowsModule(ExtensionModule):
                 compiler_exe, *compiler_args = compiler.get_exelist(False)
                 command.extend(state.environment.get_build_command())
                 command.extend(['--internal', 'rc',
-                                '--rc', *rescomp.get_command(),
                                 '--cl', compiler_exe,
                                 *(f'--Xarg={x}' for x in compiler_args)])
 
@@ -216,9 +215,9 @@ class WindowsModule(ExtensionModule):
                                     '--Xarg=-MF@DEPFILE@',
                                     '--Xarg=-DRC_INVOKED',
                                     ])
-            else:
-                command.extend(rescomp.get_command())
+                command.append('--rc')
 
+            command.extend(rescomp.get_command())
             command.extend(res_args)
 
             # instruct binutils windres to generate a preprocessor depfile
