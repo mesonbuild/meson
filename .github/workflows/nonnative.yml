@@ -36,7 +36,7 @@ jobs:
     - run: |
         apt-get -y purge clang gcc gdc
         apt-get -y autoremove
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     - name: Run tests
       run: bash -c 'source /ci/env_vars.sh; cd $GITHUB_WORKSPACE; ./run_tests.py $CI_ARGS --cross ubuntu-armhf.json --cross-only'
 
@@ -46,6 +46,6 @@ jobs:
     env:
       MESON_CI_JOBNAME: cuda-cross-${{ github.job }}
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     - name: Run tests
       run: bash -c 'source /ci/env_vars.sh; cd $GITHUB_WORKSPACE; ./run_tests.py $CI_ARGS --cross cuda-cross.json --cross-only'
