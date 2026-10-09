@@ -11,15 +11,16 @@ import typing as T
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--rc', nargs='+', required=True)
 parser.add_argument('--cl', required=True)
 parser.add_argument('--Xarg', action='append')
 
 
 def run(args: T.List[str]) -> int:
-    options, rc_args = parser.parse_known_args(args)
+    # --rc is not a real argument, everything after it is kept verbatim
+    sep = args.index('--rc')
+    options = parser.parse_args(args[:sep])
+    rc, *rc_args = args[sep + 1:]
     target = rc_args[-1] if rc_args else None
-    rc = options.rc
 
     # Use preprocessor to display include files
     include_args = [a for a in rc_args if a.startswith(('/I', '-I'))]
@@ -31,5 +32,5 @@ def run(args: T.List[str]) -> int:
         print('Error running preprocessor to find resource dependencies', file=sys.stderr)
         # continue anyway. the resource compiler should catch the error later
 
-    cmd = [*rc, *rc_args]
+    cmd = [rc, *rc_args]
     return subprocess.call(cmd)
