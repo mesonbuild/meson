@@ -519,6 +519,7 @@ Thread model: posix'''), '21.9.0')
     def _fake_msvc_cc(self, cflags='-DCFLAG', ldflags='/SUBSYSTEM:CONSOLE'):
         with mock.patch.dict(os.environ, {'CFLAGS': cflags, 'LDFLAGS': ldflags}):
             env = get_fake_env()
+        env.coredata.optstore.initialize_from_top_level_project_call({})
         env.add_lang_args('c', VisualStudioCCompiler, MachineChoice.HOST)
         linker = linkers.MSVCDynamicLinker(env, MachineChoice.HOST, [])
         return VisualStudioCCompiler([], [], '20.00', MachineChoice.HOST, env, 'x64', linker=linker)
@@ -527,6 +528,7 @@ Thread model: posix'''), '21.9.0')
                      linker_cls=linkers.GnuBFDDynamicLinker):
         with mock.patch.dict(os.environ, {'CFLAGS': cflags, 'LDFLAGS': ldflags}):
             env = get_fake_env()
+        env.coredata.optstore.initialize_from_top_level_project_call({})
         env.add_lang_args('c', GnuCCompiler, MachineChoice.HOST)
         linker = linker_cls([], env, MachineChoice.HOST,
                             ManyInOneLinkerOptionStyle('-Wl,', ','), [])

@@ -119,8 +119,9 @@ class DataTests(unittest.TestCase):
 
         mod_subcontents = []
         content = self._get_section_content("Module options", sections, md)
-        subsections = tee(re.finditer(r"^### (.+)$", content, re.MULTILINE))
-        for idx, mod in enumerate(['Pkgconfig', 'Python']):
+        modules = ['Pkgconfig', 'Python', 'Rust']
+        subsections = tee(re.finditer(r"^### (.+)$", content, re.MULTILINE), len(modules))
+        for idx, mod in enumerate(modules):
             mod_subcontents.append(self._get_section_content(f'{mod} module', subsections[idx], content))
         for subcontent in u_subcontents + mod_subcontents:
             # Find the option names
@@ -169,7 +170,8 @@ class DataTests(unittest.TestCase):
                 debug = False
             else:
                 raise RuntimeError(f'Invalid debug value {debug!r} in row:\n{m.group()}')
-            env.coredata.optstore.set_option(OptionKey('buildtype'), buildtype)
+            env.coredata.optstore.set_user_options({OptionKey('buildtype'): buildtype})
+            env.coredata.optstore.initialize_from_top_level_project_call({})
             self.assertEqual(env.coredata.optstore.get_value_for('buildtype'), buildtype)
             self.assertEqual(env.coredata.optstore.get_value_for('optimization'), opt)
             self.assertEqual(env.coredata.optstore.get_value_for('debug'), debug)

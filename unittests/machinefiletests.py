@@ -626,6 +626,23 @@ class NativeFileTests(BasePlatformTests):
         else:
             self.fail('Did not find werror in build options?')
 
+    def test_builtin_options_backend(self):
+        # Backend options from the machine file must exist for the backend
+        # that is in use, like those from the command line.
+        if self.backend is not Backend.ninja:
+            raise SkipTest('Test uses options of the Ninja backend')
+        testcase = os.path.join(self.common_test_dir, '1 trivial')
+
+        config = self.helper_create_native_file({'built-in options': {'backend_max_links': 2}})
+        self.init(testcase, extra_args=['--native-file', config])
+        self.assertEqual(self.getconf('backend_max_links'), 2)
+
+        self.new_builddir()
+        config = self.helper_create_native_file({'built-in options': {'backend_startup_project': 'foo'}})
+        with self.assertRaises(subprocess.CalledProcessError) as cm:
+            self.init(testcase, extra_args=['--native-file', config])
+        self.assertIn('Unknown option', cm.exception.stdout)
+
     def test_builtin_options_conf_overrides_env(self):
         testcase = os.path.join(self.common_test_dir, '2 cpp')
         config = self.helper_create_native_file({'built-in options': {'pkg_config_path': '/foo'}})
