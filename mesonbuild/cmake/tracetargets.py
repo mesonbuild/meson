@@ -41,6 +41,7 @@ def _get_framework_include_path(path: Path) -> T.Optional[str]:
 class ResolvedTarget:
     def __init__(self) -> None:
         self.include_directories: T.List[str] = []
+        self.private_include_directories: T.List[str] = []
         self.link_flags:          T.List[str] = []
         self.public_link_flags:   T.List[str] = []
         self.public_compile_opts: T.List[str] = []
@@ -112,6 +113,9 @@ def resolve_cmake_trace_targets(target_name: str,
 
         if 'INTERFACE_INCLUDE_DIRECTORIES' in tgt.properties:
             res.include_directories += [x for x in tgt.properties['INTERFACE_INCLUDE_DIRECTORIES'] if x]
+
+        if curr == target_name and 'INCLUDE_DIRECTORIES' in tgt.properties:
+            res.private_include_directories += [x for x in tgt.properties['INCLUDE_DIRECTORIES'] if x]
 
         if 'INTERFACE_LINK_OPTIONS' in tgt.properties:
             res.public_link_flags += [x for x in tgt.properties['INTERFACE_LINK_OPTIONS'] if x]
