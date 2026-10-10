@@ -58,6 +58,7 @@ if T.TYPE_CHECKING:
         required: bool
         static: T.Optional[bool]
         version: T.List[str]
+        llvm: T.Optional[ExternalDependency]
 
         # Only in the python dependency
         embed: bool
