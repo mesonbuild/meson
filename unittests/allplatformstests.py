@@ -222,6 +222,13 @@ class AllPlatformTests(BasePlatformTests):
         self.assertEqual(conf_str(['#cmakedefine VAR xxx ${VAR} yyy ${VAR}'], confdata, 'cmake'), '#define VAR xxx value yyy value\n')
         self.assertEqual(conf_str(['#define VAR xxx ${VAR} yyy ${VAR}'], confdata, 'cmake'), '#define VAR xxx value yyy value')
 
+        # An empty replacement must not hide the next variable
+        confdata.values = {'A': ('', 'description'), 'B': ('', 'description'), 'P': ('pkg', 'description')}
+        self.assertEqual(conf_str(['@A@@B@@P@'], confdata, 'cmake@'), 'pkg')
+        self.assertEqual(conf_str(['@A@@B@ x @P@'], confdata, 'cmake'), ' x pkg')
+        self.assertEqual(conf_str(['${A}${B}${P}'], confdata, 'cmake'), 'pkg')
+        self.assertEqual(conf_str(['x @A@@P@ @B@@P@'], confdata, 'cmake@'), 'x pkg pkg')
+
         # Handles meson format exceptions
         #   Unknown format
         self.assertRaises(MesonException, conf_str, ['#mesondefine VAR xxx'], confdata, 'unknown_format')
