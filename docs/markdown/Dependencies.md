@@ -45,17 +45,17 @@ non-found dependencies.
 
 Meson also allows one to get variables that are defined in a
 `pkg-config` file. This can be done by using the
-[[dep.get_pkgconfig_variable]] function.
+[[dep.get_variable]] function with the `pkgconfig` keyword.
 
 ```meson
-zdep_prefix = zdep.get_pkgconfig_variable('prefix')
+zdep_prefix = zdep.get_variable(pkgconfig : 'prefix')
 ```
 
-These variables can also be redefined by passing the `define_variable`
-parameter, which might be useful in certain situations:
+These variables can also be redefined by passing the `pkgconfig_define`
+keyword, which might be useful in certain situations:
 
 ```meson
-zdep_prefix = zdep.get_pkgconfig_variable('libdir', define_variable: ['prefix', '/tmp'])
+zdep_prefix = zdep.get_variable(pkgconfig : 'libdir', pkgconfig_define : ['prefix', '/tmp'])
 ```
 
 The dependency detector works with all libraries that provide a
@@ -81,8 +81,8 @@ var = foo_dep.get_variable(cmake : 'CMAKE_VAR', pkgconfig : 'pkg-config-var', co
 
 It accepts the keywords 'cmake', 'pkgconfig', 'pkgconfig_define',
 'configtool', 'internal', 'system', and 'default_value'.
-'pkgconfig_define' works just like the 'define_variable' argument to
-`get_pkgconfig_variable`. When this method is invoked the keyword
+'pkgconfig_define' redefines pkg-config variables before the lookup, as
+in the pkg-config example earlier on this page. When this method is invoked the keyword
 corresponding to the underlying type of the dependency will be used to
 look for a variable. If that variable cannot be found or if the caller
 does not provide an argument for the type of dependency, one of the
