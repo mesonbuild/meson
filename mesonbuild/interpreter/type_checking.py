@@ -1086,7 +1086,7 @@ def _pkgconfig_define_convertor(x: T.List[str]) -> PkgConfigDefineType:
     return None
 
 def _pkgconfig_define_feature_validator(x: list[str]) -> T.Iterable[FeatureCheckBase]:
-    if len(x) > 1:
+    if len(x) > 2:
         yield FeatureNew(
             'dependency.get_variable keyword argument "pkgconfig_define" with more than one pair',
             '1.3.0', 'In previous versions, this silently returned a malformed value.')
