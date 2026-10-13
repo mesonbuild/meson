@@ -110,8 +110,8 @@ if T.TYPE_CHECKING:
     class GtkDoc(TypedDict):
 
         src_dir: T.List[T.Union[str, build.IncludeDirs]]
-        main_sgml: str
-        main_xml: str
+        main_sgml: T.Optional[str]
+        main_xml: T.Optional[str]
         module_version: str
         namespace: str
         mode: Literal['xml', 'smgl', 'auto', 'none']
@@ -1523,6 +1523,8 @@ class GnomeModule(ExtensionModule):
             if main_file is not None:
                 raise InvalidArguments('gnome.gtkdoc: main_xml and main_sgml are exclusive arguments')
             main_file = main_xml
+        elif main_file is None:
+            raise InvalidArguments('gnome.gtkdoc: one of main_xml or main_sgml is required')
         moduleversion = kwargs['module_version']
         targetname = modulename + ('-' + moduleversion if moduleversion else '') + '-doc'
         command = state.environment.get_build_command()

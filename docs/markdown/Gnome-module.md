@@ -391,7 +391,7 @@ of the module.
 * `install`: if true, installs the generated docs
 * `install_dir`: the directory to install the generated docs relative
   to the gtk-doc html dir or an absolute path (default: module name)
-* `main_xml`: specifies the main XML file
+* `main_xml`: specifies the main XML file; either this or `main_sgml` is required
 * `main_sgml`: equal to `main_xml`
 * `mkdb_args`: a list of arguments to pass to `gtkdoc-mkdb`
 * `namespace`: specifies the name space to pass to `gtkdoc-mkdb`
