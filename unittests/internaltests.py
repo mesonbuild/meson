@@ -52,7 +52,7 @@ from mesonbuild.mesonlib import (
 from mesonbuild.options import OptionKey, UserBooleanOption
 from mesonbuild.interpreter.type_checking import (
     STR_PARG, INT_PARG, BOOL_PARG, STR_OARG, INT_OARG, STR_VARG,
-    INSTALL_MODE_KW, in_set_validator, NoneType,
+    INSTALL_MODE_KW, in_set_validator, NoneType, _pkgconfig_define_feature_validator,
 )
 from mesonbuild.dependencies.pkgconfig import PkgConfigDependency, PkgConfigInterface, PkgConfigCLI
 from mesonbuild.programs import ExternalProgram
@@ -788,6 +788,12 @@ Thread model: posix'''), '21.9.0')
                 self.assertEqual(qcc.get_preprocess_only_args(), ['-E', '-Wp,-P'])
                 # get_preprocess_to_file_args() builds on get_preprocess_only_args().
                 self.assertEqual(qcc.get_preprocess_to_file_args(), ['-E', '-Wp,-P', suffix])
+
+    def test_pkgconfig_define_feature_validator(self):
+        # One pair is a flat list of two strings, and needs no newer Meson.
+        self.assertEqual(list(_pkgconfig_define_feature_validator([])), [])
+        self.assertEqual(list(_pkgconfig_define_feature_validator(['prefix', '/tmp'])), [])
+        self.assertEqual(len(list(_pkgconfig_define_feature_validator(['prefix', '/tmp', 'libdir', '/x']))), 1)
 
     def test_qcc_unsupported_features_raise(self):
         # qcc/q++ have no alternate-linker-selection equivalent, so Meson
