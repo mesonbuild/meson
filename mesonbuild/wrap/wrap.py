@@ -75,6 +75,11 @@ def patch_command() -> T.Optional[str]:
                 break
             _exclude_paths.append(os.path.dirname(_patch.get_path()))
         return _patch.get_path() if _patch.found() else None
+    elif mesonlib.is_aix():
+        # AIX and IBM i come with an old patch command by default, which fails with complex diffs (with embedded commit messages)
+        # But GNU patch can be installed with the package manager (yum install patch-gnu)
+        # For simplicity, we assume GNU patch isn't installed and let Git apply the patch itself
+        return None
     else:
         return shutil.which('patch')
 
