@@ -184,6 +184,7 @@ These are provided by the `.system()` method call.
 | freebsd             | FreeBSD and its derivatives |
 | gnu                 | GNU Hurd |
 | haiku               | |
+| ironclad            | |
 | linux               | |
 | netbsd              | |
 | openbsd             | |
@@ -212,6 +213,7 @@ Native names as returned by the `.kernel()` method.
 | xnu                 | Kernel of various Apple OSes    |
 | illumos             | Kernel derived from OpenSolaris by community efforts |
 | solaris             | Kernel derived from OpenSolaris by Oracle |
+| ironclad            | |
 | dragonfly | |
 | haiku| |
 | fuchsia             | Google's Fuchsia |
@@ -219,7 +221,6 @@ Native names as returned by the `.kernel()` method.
 | os400               | IBM i (formerly known as OS/400) |
 | neutrino            | QNX Neutrino microkernel |
 | none                | For e.g. bare metal embedded    |
-
 
 ## Subsystem names (since 1.2.0)
 
