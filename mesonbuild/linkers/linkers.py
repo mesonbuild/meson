@@ -1005,6 +1005,20 @@ class LLVMLD64DynamicLinker(AppleDynamicLinker):
         return []
 
 
+class MoldMachODynamicLinker(AppleDynamicLinker):
+
+    id = 'ld64.mold'
+
+    def no_warn_duplicate_libraries(self) -> T.List[str]:
+        return self._apply_prefix('-no_warn_duplicate_libraries')
+
+    def get_lto_obj_cache_path(self, path: str) -> T.List[str]:
+        return self._apply_prefix(['-object_path_lto', path])
+
+    def export_dynamic_args(self) -> T.List[str]:
+        return self._apply_prefix('-export_dynamic')
+
+
 class GnuDynamicLinker(GnuLikeDynamicLinkerMixin, PosixDynamicLinkerMixin, DynamicLinker):
 
     """Representation of GNU ld.bfd and ld.gold."""
