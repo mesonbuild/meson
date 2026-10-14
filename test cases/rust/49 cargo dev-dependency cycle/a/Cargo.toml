@@ -1,0 +1,11 @@
+[package]
+name = "a"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["rlib"]
+
+# Cargo allows this cycle because it only closes through a's test target.
+[dev-dependencies]
+b = { path = "../b" }

@@ -509,3 +509,39 @@ all.
 *Since 1.3.0* The `python.allow_limited_api` option affects whether the
 `limited_api` keyword argument of the `extension_module` method is respected.
 If set to `false`, the effect of the `limited_api` argument is disabled.
+
+### Rust module
+
+| Option           | Default value | Possible values        | Description                                                |
+|------------------|---------------|------------------------|------------------------------------------------------------|
+| dev_dependencies | workspace     | true, false, workspace | Resolve dev-dependencies of Cargo packages (Since 1.13.0) |
+
+*Since 1.13.0* The `rust.dev_dependencies` option controls whether the
+`[dev-dependencies]` of Cargo packages are taken into account; Cargo uses them
+for tests, examples and benchmarks.  The option can be set separately for each
+subproject, and it applies to the Cargo packages that are built as part of that
+subproject, whether with [`rust.workspace()`](Rust-module.md) or as a Cargo
+subproject.
+
+With the default value, `workspace`, `[dev-dependencies]` are resolved for
+the members of Cargo workspaces that a Meson project builds directly with
+[`rust.workspace()`](Rust-module.md); this includes the toplevel project's
+workspace and nested workspaces in Meson subprojects, but not crates that
+are built as dependencies, for example with `dependency()` or `subproject()`.  This matches the behavior of
+`cargo`, which resolves `[dev-dependencies]` only for the members of
+the workspace being built and not for their dependencies.
+
+The values `true` and `false` enable or disable them regardless of the project.
+For example, `-Dfoo-1-rs:rust.dev_dependencies=true` also resolves the
+`[dev-dependencies]` of the Cargo subproject `foo-1-rs`, while
+`-Drust.dev_dependencies=false` disables them everywhere.  Enabling them for
+all subprojects with `-Drust.dev_dependencies=true` is rarely useful, because
+the `[dev-dependencies]` of crates from crates.io are usually not listed in
+`Cargo.lock`.
+
+For a Cargo subproject, the option is read when `rust.workspace()` resolves
+dependencies, before the subproject itself is configured.  Therefore, it can
+be set for a specific Cargo subproject from the command line, a machine
+file, or the toplevel project's `default_options`; `default_options`
+in the subproject's `project()`, in `subproject()`, or in `dependency()`
+calls do not affect it.

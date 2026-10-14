@@ -280,6 +280,44 @@ Cargo subprojects.
 either because the dependency is optional and no feature enables it,
 or because it is declared under a `target` clause that is never true.
 
+A package requested this way is built for the machine it is reachable from: the build
+machine for a `[build-dependencies]` entry, the host machine otherwise, or both if it
+is reachable both ways.  `[build-dependencies]` are never resolved on their own; a
+build-time crate is only built if it is listed in `extra_members`.
+
+For example, this can be used to mark a generator declared as
+
+```toml
+[target.'cfg(any())'.build-dependencies]
+generator = { path = "generator" }
+```
+
+as a package for the build machine, and to ensure its dependencies are also configured
+for the build machine.  Because the package is built for the build machine, `native: true`
+has to be passed when retrieving it:
+
+```meson
+cargo = rust.workspace(extra_members: ['generator'])
+gen_pkg = cargo.package('generator', native: true)
+gen = gen_pkg.executable()
+```
+
+*Since 1.13.0*, the [`rust.dev_dependencies`](Builtin-options.md#rust-module)
+option controls whether the `[dev-dependencies]` of the workspace members are
+resolved.  When it is enabled for the project that calls `workspace()`, Meson
+resolves the `[dev-dependencies]` of the members that are built as entry points,
+that is the default members plus any `extra_members`; this is the same set of
+packages that `cargo test` would build.  Cargo subprojects are controlled by the
+value of the option for that subproject; the default value, `workspace`, enables
+it for workspaces that a Meson project builds directly, but not for crates
+that are built as dependencies, which matches the behavior of Cargo.
+
+As with `cargo test`, the features that dev-dependencies request are unified
+with the rest of the build, so enabling the option can change the features of
+the libraries that are built.  Unlike Cargo, Meson does not build separate
+artifacts for tests, so a library and the tests that link it always share one
+set of features.
+
 The first invocation of `workspace()` establishes the *Cargo interpreter*
 that resolves dependencies and features for both the toplevel project (the one
 containing `Cargo.lock`) and all subprojects that are invoked with the `cargo` method,
@@ -456,7 +494,10 @@ The returned dependencies can be used directly in build target declarations.
 
 Keyword arguments:
 - `dependencies`: (`bool`, default: true) Whether to include regular Rust crate dependencies
-- `dev_dependencies`: (`bool`, default: false) Whether to include development dependencies (not yet implemented)
+- `dev_dependencies`: (`bool`, default: false) *Since 1.13.0* Whether to include development
+  dependencies.  If the package has `[dev-dependencies]` but they were not resolved, for example
+  because the [`rust.dev_dependencies`](Builtin-options.md#rust-module) option is not enabled
+  for the project that builds the package, a disabler is returned.
 - `system_dependencies`: (`bool`, default: true) Whether to include system dependencies
 
 #### package.library()
