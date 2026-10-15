@@ -238,7 +238,9 @@ class ConverterTarget:
         self.generated: T.List[Path] = []
         self.generated_ctgt: T.List[CustomTargetReference] = []
         self.includes: T.List[Path] = []
+        self.public_includes: T.List[Path] = []
         self.sys_includes: T.List[Path] = []
+        self.public_sys_includes: T.List[Path] = []
         self.link_with: T.List[T.Union[ConverterTarget, ConverterCustomTarget]] = []
         self.object_libs: T.List[ConverterTarget] = []
         self.compile_opts: T.Dict[Language, T.List[str]] = {}
@@ -364,6 +366,7 @@ class ConverterTarget:
             self.pie = True
 
         # Use the CMake trace, if required
+        private_includes: T.Set[Path] = set()
         tgt = trace.targets.get(self.cmake_name)
         if tgt:
             self.depends_raw = trace.targets[self.cmake_name].depends
@@ -372,6 +375,11 @@ class ConverterTarget:
 
             rtgt = resolve_cmake_trace_targets(self.cmake_name, trace, self.env, clib_compiler=self.clib_compiler)
             self.includes += [Path(x) for x in rtgt.include_directories]
+            self.includes += [Path(x) for x in rtgt.private_include_directories]
+            private_includes = (
+                {Path(x) for x in rtgt.private_include_directories}
+                - {Path(x) for x in rtgt.include_directories}
+            )
             self.link_flags += rtgt.link_flags
             self.public_link_flags += rtgt.public_link_flags
             self.public_compile_opts += rtgt.public_compile_opts
@@ -467,6 +475,13 @@ class ConverterTarget:
         # Make sure '.' is always in the include directories
         if Path('.') not in self.includes:
             self.includes += [Path('.')]
+
+        # Preserve implicit source/build includes, but do not export directories
+        # which the target explicitly marked PRIVATE. Normalize them with the
+        # same rules as the file API paths before comparing.
+        private_includes = set(non_optional(rel_path(x, True, False) for x in private_includes))
+        self.public_includes = [x for x in self.includes if x not in private_includes]
+        self.public_sys_includes = [x for x in self.sys_includes if x not in private_includes]
 
         # make install dir relative to the install prefix
         if self.install_dir and self.install_dir.is_absolute():
@@ -1171,6 +1186,7 @@ class CMakeInterpreter:
 
             # Determine the variable names
             inc_var = f'{tgt.name}_inc'
+            public_inc_var = f'{tgt.name}_public_inc'
             dir_var = f'{tgt.name}_dir'
             sys_var = f'{tgt.name}_sys'
             src_var = f'{tgt.name}_src'
@@ -1230,9 +1246,14 @@ class CMakeInterpreter:
 
             # Generate the function nodes
             dir_node = assign(dir_var, function('include_directories', tgt.includes))
+            public_dir_node = assign(public_inc_var, array([
+                function('include_directories', tgt.public_includes),
+                function('include_directories', tgt.public_sys_includes, {'is_system': True}),
+            ]))
             sys_node = assign(sys_var, function('include_directories', tgt.sys_includes, {'is_system': True}))
             inc_node = assign(inc_var, array([id_node(dir_var), id_node(sys_var)]))
-            node_list = [dir_node, sys_node, inc_node]
+            node_list = [dir_node, public_dir_node, sys_node, inc_node]
+            dep_kwargs['include_directories'] = id_node(public_inc_var)
             if tgt_func == 'header_only':
                 del dep_kwargs['link_with']
                 dep_node = assign(dep_var, function('declare_dependency', kwargs=dep_kwargs))
