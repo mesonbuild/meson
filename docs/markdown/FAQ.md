@@ -338,6 +338,8 @@ needs.
 Yes! :) We have a relatively sedate version support policy. You can read about
 it in the [Contributing documentation](Contributing.md#python)
 
+We have an [LTS policy](LTS-releases.md) describing exactly what we support.
+
 We are also willing to support old versions of meson as LTS releases,
 particularly, if it is the final version to support a given python version. If
 you have a use case, please discuss it with us and be willing to help backport
