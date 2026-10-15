@@ -2207,6 +2207,8 @@ class NinjaBackend(backends.Backend):
             else:
                 args.append(f'-Clink-arg={lib}')
 
+        linked_deps = set()
+
         for e in external_deps:
             prev: T.Optional[str] = None
             for prev, a in lookbehind(e.get_link_args()):
@@ -2224,9 +2226,13 @@ class NinjaBackend(backends.Backend):
                     # handled once the framework name is available
                     continue
                 elif is_library(a):
-                    if isinstance(target, build.StaticLibrary):
+                    # rustc will fail with "overriding link modifiers from
+                    # command line is not supported" if a modifier is applied
+                    # and the library appears more than once
+                    if isinstance(target, build.StaticLibrary) and a not in linked_deps:
                         static = a.endswith(('.a', '.lib'))
                         _link_library(a, static)
+                        linked_deps.add(a)
                         continue
 
                     dir_, _ = os.path.split(a)
