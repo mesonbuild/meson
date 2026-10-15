@@ -39,6 +39,7 @@ from mesonbuild.compilers.objcpp import ClangObjCPPCompiler, GnuObjCPPCompiler
 from mesonbuild.compilers.d import DmdDCompiler, LLVMDCompiler
 from mesonbuild.compilers.detect import detect_c_compiler
 from mesonbuild.compilers.mixins.visualstudio import MSVCCompiler, ClangClCompiler
+from mesonbuild.dependencies.boost import BoostDependency, BoostLibraryFile
 from mesonbuild.linkers import linkers
 from mesonbuild.interpreterbase import (
     ObjectHolder, DefaultObject, InvalidArguments, TypedArgs, ContainerTypeInfo,
@@ -1192,6 +1193,62 @@ Thread model: posix'''), '21.9.0')
             self._test_all_naming(cc, patterns, 'windows-mingw')
 
         self._test_find_library_undefined(cc)
+
+    def test_boost_library_preference(self):
+        boost = BoostDependency.__new__(BoostDependency)
+        boost.multithreading = True
+        boost.arch = ''
+        boost.debug = False
+        boost.for_machine = MachineChoice.HOST
+        boost.env = mock.Mock()
+        boost.env.coredata.optstore.get_value_for.side_effect = KeyError
+        boost.env.machines = {MachineChoice.HOST: mock.Mock()}
+        boost.env.machines[MachineChoice.HOST].is_openbsd.return_value = False
+
+        def filter_libs(static: bool, explicit_static: bool, names: T.List[str],
+                        modules: T.Sequence[str] = ('thread',)) -> T.List[str]:
+            boost.static = static
+            boost.explicit_static = explicit_static
+            boost.modules = list(modules)
+            libs = sorted(BoostLibraryFile(Path(name)) for name in names)
+            return [lib.name for lib in boost.filter_libraries(libs, '')]
+
+        both = ['libboost_thread.a', 'libboost_thread.so']
+        for static, explicit_static, expected in [
+            (False, False, 'libboost_thread.so'),
+            (True, False, 'libboost_thread.a'),
+            (False, True, 'libboost_thread.so'),
+            (True, True, 'libboost_thread.a'),
+        ]:
+            with self.subTest(static=static, explicit_static=explicit_static):
+                self.assertEqual(filter_libs(static, explicit_static, both), [expected])
+
+        self.assertEqual(filter_libs(True, False, ['libboost_thread.so']), ['libboost_thread.so'])
+        self.assertEqual(filter_libs(False, False, ['libboost_thread.a']), ['libboost_thread.a'])
+        self.assertEqual(filter_libs(True, False, both, ('asio', 'thread')), ['libboost_thread.a'])
+
+        modules = ('filesystem', 'thread')
+        for static, names, expected in [
+            (True,
+             ['libboost_filesystem.so', 'libboost_thread.a', 'libboost_thread.so'],
+             ['libboost_filesystem.so', 'libboost_thread.so']),
+            (False,
+             ['libboost_filesystem.a', 'libboost_thread.a', 'libboost_thread.so'],
+             ['libboost_filesystem.a', 'libboost_thread.a']),
+        ]:
+            with self.subTest(static=static, fallback=True):
+                self.assertEqual(filter_libs(static, False, names, modules), expected)
+
+        for static, names, expected in [
+            (True,
+             ['libboost_filesystem.so', 'libboost_thread.a', 'libboost_thread.so'],
+             ['libboost_thread.a']),
+            (False,
+             ['libboost_filesystem.a', 'libboost_thread.a', 'libboost_thread.so'],
+             ['libboost_thread.so']),
+        ]:
+            with self.subTest(static=static, explicit_static=True):
+                self.assertEqual(filter_libs(static, True, names, modules), expected)
 
     def _test_find_library_undefined(self, cc):
         '''
