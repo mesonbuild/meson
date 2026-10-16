@@ -831,6 +831,29 @@ class LinuxlikeTests(BasePlatformTests):
                              msg=('Expected file %s to have mode %s but found %s instead.' %
                                   (datafile, want_mode, found_mode)))
 
+    def test_cpp_modules_gcc(self):
+        if self.backend is not Backend.ninja:
+            raise SkipTest(f'C++ modules only work with the Ninja backend (not {self.backend.name}).')
+        testdir = os.path.join(self.unit_test_dir, '142 cpp modules gcc')
+        env = get_fake_env(testdir, self.builddir, self.prefix)
+        cpp = detect_cpp_compiler(env, MachineChoice.HOST)
+        if cpp.get_id() != 'gcc' or version_compare(cpp.version, '<11'):
+            raise SkipTest('C++ module partitions require GCC 11 or newer.')
+        # Building a single object only succeeds if the module dependencies of
+        # that object were found, as nothing else orders the module units
+        # before it.
+        for obj in ['libmod_a.a.p/a_impl.cpp.o', 'libmod_b.a.p/b_user.cpp.o']:
+            with self.subTest(obj=obj):
+                self.new_builddir()
+                self.init(testdir)
+                self.build(obj)
+        self.build()
+        self.run_tests()
+        self.assertPathExists(os.path.join(self.builddir, 'gcm.cache', 'Example.Mod-Part1.gcm'))
+        # The compiled module files declared to Ninja are the ones GCC writes,
+        # otherwise their objects would be rebuilt every time.
+        self.assertBuildIsNoop()
+
     def test_cpp_std_override(self):
         testdir = os.path.join(self.unit_test_dir, '6 std override')
         self.init(testdir)

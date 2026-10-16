@@ -233,8 +233,13 @@ class DependencyScanner:
             else:
                 extension = 'mod'
             return os.path.join(self.target_data.private_dir, f'{namebase}.{extension}')
-        # Partition a:b goes to a file named a-b.ifc
-        return '{}.ifc'.format(self.exports[src].replace(':', '-'))
+        # Partition a:b goes to a file named a-b
+        namebase = self.exports[src].replace(':', '-')
+        if self.target_data.cpp_compiler_id == 'gcc':
+            # The default module mapper of GCC puts the files in gcm.cache,
+            # relative to the working directory of the compiler.
+            return os.path.join('gcm.cache', f'{namebase}.gcm')
+        return f'{namebase}.ifc'
 
     def scan(self) -> int:
         for s, lang in self.sources:

@@ -138,11 +138,14 @@ class TargetDependencyScannerInfo:
         will be created from them.
     :param sources: a list of sources mapping them to the language rules to use
         to scan them.
+    :param cpp_compiler_id: The id of the C++ compiler of the target, if any,
+        which determines the names of the compiled module files.
     """
 
     private_dir: str
     source2object: T.Dict[str, str]
     sources: T.List[T.Tuple[str, Literal['cpp', 'fortran']]]
+    cpp_compiler_id: T.Optional[str] = None
 
 
 @unique
@@ -1247,14 +1250,20 @@ class NinjaBackend(backends.Backend):
         rule_name = 'depscan'
         scan_sources = list(self.select_sources_to_scan(compiled_sources))
 
+        cpp = target.compilers.get('cpp')
         scaninfo = TargetDependencyScannerInfo(
-            self.get_target_private_dir(target), source2object, scan_sources)
+            self.get_target_private_dir(target), source2object, scan_sources,
+            cpp.get_id() if cpp else None)
 
         write = True
         if os.path.exists(pickle_abs):
             with open(pickle_abs, 'rb') as p:
                 old = pickle.load(p)
-            write = old != scaninfo
+            try:
+                write = old != scaninfo
+            except AttributeError:
+                # Written by a version of Meson without some of the fields
+                pass
 
         if write:
             with open(pickle_abs, 'wb') as p:

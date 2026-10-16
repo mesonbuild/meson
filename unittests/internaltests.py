@@ -1696,27 +1696,31 @@ Thread model: posix'''), '21.9.0')
             with self.subTest(text=text):
                 self.assertEqual(parse(text), (exports, imports))
 
-    def test_depscan_cpp_partitions(self):
+    DEPSCAN_PARTITION_SOURCES = {
+        'foo.ixx': 'export module foo.bar;\nexport import :baz;\n',
+        'foo-baz.ixx': 'export module foo.bar:baz;\nimport :qux;\n',
+        'foo-qux.cpp': 'module foo.bar:qux;\n',
+    }
+
+    def _run_depscan(self, sources: T.Dict[str, str], cpp_compiler_id: str) -> T.Dict[str, T.Any]:
         from mesonbuild.backend.ninjabackend import TargetDependencyScannerInfo
-        sources = {
-            'foo.ixx': 'export module foo.bar;\nexport import :baz;\n',
-            'foo-baz.ixx': 'export module foo.bar:baz;\nimport :qux;\n',
-            'foo-qux.cpp': 'module foo.bar:qux;\n',
-        }
         with tempfile.TemporaryDirectory() as tmpdir:
             for name, text in sources.items():
                 with open(os.path.join(tmpdir, name), 'w', encoding='utf-8') as f:
                     f.write(text)
             srcs = [os.path.join(tmpdir, s) for s in sources]
-            info = TargetDependencyScannerInfo(tmpdir, {s: s + '.obj' for s in srcs}, [(s, 'cpp') for s in srcs])
+            info = TargetDependencyScannerInfo(tmpdir, {s: s + '.obj' for s in srcs}, [(s, 'cpp') for s in srcs],
+                                               cpp_compiler_id)
             pickle_file = os.path.join(tmpdir, 'scan.dat')
             with open(pickle_file, 'wb') as f:
                 pickle.dump(info, f)
             json_file = os.path.join(tmpdir, 'depscan.json')
             self.assertEqual(mesonbuild.scripts.depscan.run([json_file, pickle_file]), 0)
             with open(json_file, encoding='utf-8') as f:
-                rules = {os.path.basename(r['primary-output']): r for r in json.load(f)['rules']}
+                return {os.path.basename(r['primary-output']): r for r in json.load(f)['rules']}
 
+    def test_depscan_cpp_partitions(self):
+        rules = self._run_depscan(self.DEPSCAN_PARTITION_SOURCES, 'msvc')
         self.assertEqual(rules['foo.ixx.obj']['provides'][0]['compiled-module-path'], 'foo.bar.ifc')
         self.assertEqual(rules['foo-baz.ixx.obj']['outputs'], ['foo.bar-baz.ifc'])
         self.assertEqual(rules['foo-qux.cpp.obj']['outputs'], ['foo.bar-qux.ifc'])
@@ -1725,6 +1729,15 @@ Thread model: posix'''), '21.9.0')
         self.assertEqual([(r['logical-name'], r['compiled-module-path']) for r in rules['foo-baz.ixx.obj']['requires']],
                          [('foo.bar:qux', 'foo.bar-qux.ifc')])
         self.assertEqual(rules['foo-qux.cpp.obj']['requires'], [])
+
+    def test_depscan_cpp_gcc_module_paths(self):
+        rules = self._run_depscan(self.DEPSCAN_PARTITION_SOURCES, 'gcc')
+        gcm = lambda name: os.path.join('gcm.cache', name)
+        self.assertEqual(rules['foo.ixx.obj']['outputs'], [gcm('foo.bar.gcm')])
+        self.assertEqual(rules['foo-baz.ixx.obj']['outputs'], [gcm('foo.bar-baz.gcm')])
+        self.assertEqual(rules['foo-qux.cpp.obj']['outputs'], [gcm('foo.bar-qux.gcm')])
+        self.assertEqual([r['compiled-module-path'] for r in rules['foo.ixx.obj']['requires']],
+                         [gcm('foo.bar-baz.gcm')])
 
     def test_log_once(self):
         f = io.StringIO()
