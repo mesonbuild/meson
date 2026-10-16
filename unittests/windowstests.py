@@ -447,6 +447,28 @@ class WindowsTests(BasePlatformTests):
         self.init(os.path.join(self.unit_test_dir, '85 cpp modules'))
         self.build()
 
+    def test_modules_partitions(self):
+        if self.backend is not Backend.ninja:
+            raise SkipTest(f'C++ modules only work with the Ninja backend (not {self.backend.name}).')
+        if 'VSCMD_VER' not in os.environ:
+            raise SkipTest('C++ modules is only supported with Visual Studio.')
+        if version_compare(os.environ['VSCMD_VER'], '<16.10.0'):
+            raise SkipTest('C++ modules are only supported with VS 2019 Preview or newer.')
+        testdir = os.path.join(self.unit_test_dir, '141 cpp modules partitions')
+        # Building a single object only succeeds if the module dependencies of
+        # that object were found, as nothing else orders the module units
+        # before it. This covers both the implementation unit, that needs the
+        # primary interface of its own target, and the importer, that needs
+        # the interface of another target.
+        for obj in ['libmod_a.a.p/a_impl.cpp.obj', 'libmod_b.a.p/b_user.cpp.obj']:
+            with self.subTest(obj=obj):
+                self.new_builddir()
+                self.init(testdir)
+                self.build(obj)
+        self.build()
+        self.run_tests()
+        self.assertBuildIsNoop()
+
     def test_non_utf8_fails(self):
         # FIXME: VS backend does not use flags from compiler.get_always_args()
         # and thus it's missing /utf-8 argument. Was that intentional? This needs

@@ -1667,6 +1667,11 @@ Thread model: posix'''), '21.9.0')
                 ('export module foo:baz;\nimport :qux;\n', ['foo:baz'], ['foo:qux']),
                 # a partition import outside of a module unit is ignored
                 ('import :baz;\n', [], []),
+                # implementation units import their primary module interface
+                ('module foo.bar;\nimport :baz;\n', [], ['foo.bar', 'foo.bar:baz']),
+                # the global module fragment is not a module declaration
+                ('module;\n#include <cstdio>\nmodule foo;\n', [], ['foo']),
+                ('module;\n#include <cstdio>\nexport module foo;\n', ['foo'], []),
         ]:
             with self.subTest(text=text):
                 self.assertEqual(parse(text), (exports, imports))

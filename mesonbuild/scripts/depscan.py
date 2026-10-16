@@ -89,6 +89,10 @@ def parse_cpp_module_declarations(text: str) -> T.Tuple[T.List[str], T.List[str]
                 exports.append(f'{module_name}:{partition}')
             elif exported:
                 exports.append(module_name)
+            else:
+                # An implementation unit (`module a;`) implicitly imports
+                # its primary module interface.
+                imports.append(module_name)
             continue
         import_match = CPP_IMPORT_RE.match(line)
         if import_match:
