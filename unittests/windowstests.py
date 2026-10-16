@@ -21,7 +21,7 @@ from mesonbuild.mesonlib import (
 )
 from mesonbuild.options import OptionKey
 from mesonbuild.compilers import (
-    detect_c_compiler, detect_d_compiler, compiler_from_language,
+    detect_c_compiler, detect_cpp_compiler, detect_d_compiler, compiler_from_language,
 )
 from mesonbuild.programs import ExternalProgram
 import mesonbuild.dependencies.base
@@ -437,23 +437,28 @@ class WindowsTests(BasePlatformTests):
         self.init(testdir, extra_args=['-Db_vscrt=mtd'])
         sanitycheck_vscrt('/MTd')
 
+    def _skip_unless_msvc_modules(self) -> None:
+        env = get_fake_env()
+        try:
+            cpp = detect_cpp_compiler(env, MachineChoice.HOST)
+        except EnvironmentException:
+            raise SkipTest('No C++ compiler found.')
+        if cpp.get_id() != 'msvc':
+            raise SkipTest('C++ modules dependency scanning is only supported with MSVC.')
+        if version_compare(cpp.version, '<19.29'):
+            raise SkipTest('C++ modules require Visual Studio 2019 16.10 or newer.')
+
     def test_modules(self):
         if self.backend is not Backend.ninja:
             raise SkipTest(f'C++ modules only work with the Ninja backend (not {self.backend.name}).')
-        if 'VSCMD_VER' not in os.environ:
-            raise SkipTest('C++ modules is only supported with Visual Studio.')
-        if version_compare(os.environ['VSCMD_VER'], '<16.10.0'):
-            raise SkipTest('C++ modules are only supported with VS 2019 Preview or newer.')
+        self._skip_unless_msvc_modules()
         self.init(os.path.join(self.unit_test_dir, '85 cpp modules'))
         self.build()
 
     def test_modules_partitions(self):
         if self.backend is not Backend.ninja:
             raise SkipTest(f'C++ modules only work with the Ninja backend (not {self.backend.name}).')
-        if 'VSCMD_VER' not in os.environ:
-            raise SkipTest('C++ modules is only supported with Visual Studio.')
-        if version_compare(os.environ['VSCMD_VER'], '<16.10.0'):
-            raise SkipTest('C++ modules are only supported with VS 2019 Preview or newer.')
+        self._skip_unless_msvc_modules()
         testdir = os.path.join(self.unit_test_dir, '141 cpp modules partitions')
         # Building a single object only succeeds if the module dependencies of
         # that object were found, as nothing else orders the module units
@@ -474,10 +479,7 @@ class WindowsTests(BasePlatformTests):
     def test_modules_unity(self):
         if self.backend not in {Backend.ninja, Backend.vs}:
             raise SkipTest(f'C++ modules only work with the Ninja and Visual Studio backends (not {self.backend.name}).')
-        if 'VSCMD_VER' not in os.environ:
-            raise SkipTest('C++ modules is only supported with Visual Studio.')
-        if version_compare(os.environ['VSCMD_VER'], '<16.10.0'):
-            raise SkipTest('C++ modules are only supported with VS 2019 Preview or newer.')
+        self._skip_unless_msvc_modules()
         testdir = os.path.join(self.unit_test_dir, '144 cpp modules unity')
         if self.backend is Backend.ninja:
             # The imports are only visible in the sources included by the

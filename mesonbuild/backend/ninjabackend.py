@@ -1222,9 +1222,8 @@ class NinjaBackend(backends.Backend):
         # MSVC only offers c++20 from version 19.29, which supports modules
         if cppversion not in ('latest', 'c++latest', 'vc++latest', 'c++20', 'vc++20'):
             return False
-        if not mesonlib.current_vs_supports_modules():
-            return False
-        if mesonlib.version_compare(cpp.version, '<19.28.28617'):
+        # Visual Studio 2019 16.10 is the first version with complete support
+        if mesonlib.version_compare(cpp.version, '<19.29'):
             return False
         return True
 
