@@ -1106,6 +1106,10 @@ class ZigCCDynamicLinker(LLVMDynamicLinker):
     def get_thinlto_cache_args(self, path: str) -> T.List[str]:
         return []
 
+    def fatal_warnings(self) -> T.List[str]:
+        # ld.zigcc only learned --fatal-warnings in Zig 0.17.
+        return []
+
 
 class WASMDynamicLinker(GnuLikeDynamicLinkerMixin, PosixDynamicLinkerMixin, DynamicLinker):
 

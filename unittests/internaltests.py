@@ -480,6 +480,17 @@ Thread model: posix'''), '21.9.0')
         self.assertEqual(largs, [])
 
 
+    def test_zigcc_linker_fatal_warnings_is_noop(self):
+        # ld.zigcc only supports --fatal-warnings as of Zig 0.17, so Meson must
+        # not emit it for the version we detect here. See issue #16260.
+        env = get_fake_env()
+        # Construction probes the linker; keep the unit test off the filesystem.
+        with mock.patch.object(linkers.LLVMDynamicLinker, '_supports_flag', return_value=True):
+            linker = linkers.ZigCCDynamicLinker(
+                [], env, MachineChoice.HOST, ManyInOneLinkerOptionStyle('-Wl,', ','), [])
+        self.assertEqual(linker.fatal_warnings(), [])
+
+
     def test_msvc_unix_args_to_native(self):
         # joined
         self.assertEqual(MSVCCompiler.unix_args_to_native(['-isystemfoo']), ['/Ifoo'])
