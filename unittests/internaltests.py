@@ -1648,6 +1648,16 @@ Thread model: posix'''), '21.9.0')
                 ('import foo;\nint main() { return 0; }\n', [], ['foo']),
                 # interface importing another module
                 ('export module foo;\nimport bar;\nimport baz;\n', ['foo'], ['bar', 'baz']),
+                # dotted names
+                ('export module foo.bar;\nimport baz.qux.quux;\n', ['foo.bar'], ['baz.qux.quux']),
+                # whitespace anywhere
+                ('  export   module\tfoo.bar ;\n\timport  baz ;\n', ['foo.bar'], ['baz']),
+                # re-exported imports are still imports
+                ('export module foo;\nexport import bar;\n  export\timport baz.qux;\n', ['foo'], ['bar', 'baz.qux']),
+                # header units are not named modules
+                ('import <vector>;\nimport "foo.h";\nexport import <string>;\n', [], []),
+                # identifiers that merely start with the keywords
+                ('important;\nimport_foo;\nexported module foo;\nexport modules foo;\n', [], []),
         ]:
             with self.subTest(text=text):
                 self.assertEqual(parse(text), (exports, imports))

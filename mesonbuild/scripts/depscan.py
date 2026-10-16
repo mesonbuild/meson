@@ -55,8 +55,11 @@ if T.TYPE_CHECKING:
         rules: T.List[Rule]
 
 
-CPP_IMPORT_RE = re.compile(r'\w*import ([a-zA-Z0-9]+);')
-CPP_EXPORT_RE = re.compile(r'\w*export module ([a-zA-Z0-9]+);')
+# Module names are dot separated identifiers, such as `foo` or `foo.bar`.
+# Header units (`import <foo>;` and `import "foo.h";`) are not matched.
+CPP_MODULE_NAME_PAT = r'\w+(?:\.\w+)*'
+CPP_IMPORT_RE = re.compile(rf'\s*(?:export\s+)?import\s+({CPP_MODULE_NAME_PAT})\s*;')
+CPP_EXPORT_RE = re.compile(rf'\s*export\s+module\s+({CPP_MODULE_NAME_PAT})\s*;')
 
 FORTRAN_INCLUDE_PAT = r"^\s*include\s*['\"](\w+\.\w+)['\"]"
 FORTRAN_MODULE_PAT = r"^\s*\bmodule\b\s+(\w+)\s*(?:!+.*)*$"
