@@ -67,6 +67,20 @@ FORTRAN_MODULE_RE = re.compile(FORTRAN_MODULE_PAT, re.IGNORECASE)
 FORTRAN_SUBMOD_RE = re.compile(FORTRAN_SUBMOD_PAT, re.IGNORECASE)
 FORTRAN_USE_RE = re.compile(FORTRAN_USE_PAT, re.IGNORECASE)
 
+
+def parse_cpp_module_declarations(text: str) -> T.Tuple[T.List[str], T.List[str]]:
+    exports: T.List[str] = []
+    imports: T.List[str] = []
+    for line in text.split('\n'):
+        import_match = CPP_IMPORT_RE.match(line)
+        export_match = CPP_EXPORT_RE.match(line)
+        if import_match:
+            imports.append(import_match.group(1))
+        if export_match:
+            exports.append(export_match.group(1))
+    return exports, imports
+
+
 class DependencyScanner:
     def __init__(self, pickle_file: str, outfile: str):
         with open(pickle_file, 'rb') as pf:
@@ -131,19 +145,15 @@ class DependencyScanner:
 
     def scan_cpp_file(self, fname: str) -> None:
         fpath = pathlib.Path(fname)
-        for line in fpath.read_text(encoding='utf-8-sig', errors='ignore').split('\n'):
-            import_match = CPP_IMPORT_RE.match(line)
-            export_match = CPP_EXPORT_RE.match(line)
-            if import_match:
-                needed = import_match.group(1)
-                self.imports[fname].append(needed)
-            if export_match:
-                exported_module = export_match.group(1)
-                if exported_module in self.provided_by:
-                    raise RuntimeError(f'Multiple files provide module {exported_module}.')
-                self.sources_with_exports.append(fname)
-                self.provided_by[exported_module] = fname
-                self.exports[fname] = exported_module
+        exports, imports = parse_cpp_module_declarations(fpath.read_text(encoding='utf-8-sig', errors='ignore'))
+        if imports:
+            self.imports[fname].extend(imports)
+        for exported_module in exports:
+            if exported_module in self.provided_by:
+                raise RuntimeError(f'Multiple files provide module {exported_module}.')
+            self.sources_with_exports.append(fname)
+            self.provided_by[exported_module] = fname
+            self.exports[fname] = exported_module
 
     def module_name_for(self, src: str, lang: Literal['cpp', 'fortran']) -> str:
         if lang == 'fortran':

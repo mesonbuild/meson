@@ -28,6 +28,7 @@ import mesonbuild.environment
 import mesonbuild.modules.cuda
 import mesonbuild.modules.gnome
 import mesonbuild.scripts.depfixer
+import mesonbuild.scripts.depscan
 import mesonbuild.scripts.env2mfile
 import mesonbuild.scripts.symbolextractor
 from mesonbuild import coredata
@@ -1634,6 +1635,22 @@ Thread model: posix'''), '21.9.0')
             d = mesonbuild.depfile.DepFile(f, '/path/to/src')
             deps = d.get_all_dependencies(target)
             self.assertEqual(sorted(deps), sorted(expdeps))
+
+    def test_depscan_cpp_module_decls(self):
+        parse = mesonbuild.scripts.depscan.parse_cpp_module_declarations
+        for (text, exports, imports) in [
+                # no module declarations
+                ('', [], []),
+                ('#include <cstdio>\nint main() { return 0; }\n', [], []),
+                # module interface
+                ('export module foo;\n', ['foo'], []),
+                # importer
+                ('import foo;\nint main() { return 0; }\n', [], ['foo']),
+                # interface importing another module
+                ('export module foo;\nimport bar;\nimport baz;\n', ['foo'], ['bar', 'baz']),
+        ]:
+            with self.subTest(text=text):
+                self.assertEqual(parse(text), (exports, imports))
 
     def test_log_once(self):
         f = io.StringIO()
