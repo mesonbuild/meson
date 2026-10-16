@@ -456,6 +456,10 @@ class Backend:
         if compilers.is_llvm_ir(source) or \
            compilers.is_assembly(source):
             return False
+        # A translation unit can only contain one module declaration, which
+        # cannot come from an #include
+        if compilers.is_cpp_module_interface(source):
+            return False
         suffix = os.path.splitext(source)[1][1:].lower()
         for lang in LANGS_CANT_UNITY:
             if lang not in target.compilers:

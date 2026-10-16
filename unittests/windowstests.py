@@ -469,6 +469,17 @@ class WindowsTests(BasePlatformTests):
         self.run_tests()
         self.assertBuildIsNoop()
 
+    def test_modules_unity(self):
+        if self.backend not in {Backend.ninja, Backend.vs}:
+            raise SkipTest(f'C++ modules only work with the Ninja and Visual Studio backends (not {self.backend.name}).')
+        if 'VSCMD_VER' not in os.environ:
+            raise SkipTest('C++ modules is only supported with Visual Studio.')
+        if version_compare(os.environ['VSCMD_VER'], '<16.10.0'):
+            raise SkipTest('C++ modules are only supported with VS 2019 Preview or newer.')
+        self.init(os.path.join(self.unit_test_dir, '144 cpp modules unity'))
+        self.build()
+        self.run_tests()
+
     def test_non_utf8_fails(self):
         # FIXME: VS backend does not use flags from compiler.get_always_args()
         # and thus it's missing /utf-8 argument. Was that intentional? This needs
