@@ -14,3 +14,11 @@ mod_b = static_library('mod_b', 'b/user.cpp', link_with: mod_a)
 
 app = executable('app', 'main.cpp', link_with: [mod_b, mod_a])
 test('app', app)
+
+# The provider of the module is only reached transitively, through a
+# dependency object of another library.
+dep_b = declare_dependency(link_with: mod_b)
+mod_c = static_library('mod_c', 'c/user.cpp', dependencies: dep_b)
+
+app_c = executable('app_c', 'main_c.cpp', link_with: mod_c)
+test('app_c', app_c)

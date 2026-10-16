@@ -463,10 +463,12 @@ class WindowsTests(BasePlatformTests):
         # Building a single object only succeeds if the module dependencies of
         # that object were found, as nothing else orders the module units
         # before it. This covers both the implementation unit, that needs the
-        # primary interface of its own target, and the importer, that needs
-        # the interface of another target.
+        # primary interface of its own target, the importer, that needs the
+        # interface of another target, and the importer that only reaches
+        # that target transitively through a dependency object.
         for std in ['c++20', 'c++latest']:
-            for obj in ['libmod_a.a.p/a_impl.cpp.obj', 'libmod_b.a.p/b_user.cpp.obj']:
+            for obj in ['libmod_a.a.p/a_impl.cpp.obj', 'libmod_b.a.p/b_user.cpp.obj',
+                        'libmod_c.a.p/c_user.cpp.obj']:
                 with self.subTest(std=std, obj=obj):
                     self.new_builddir()
                     self.init(testdir, extra_args=[f'-Dcpp_std={std}'])
