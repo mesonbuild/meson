@@ -450,6 +450,20 @@ class Backend:
         osrc = f'{target.get_basename()}-unity{number}.{suffix}'
         return mesonlib.File.from_built_file(self.get_target_private_dir(target), osrc)
 
+    def get_target_source_can_unity(self, target: build.BuildTarget, source: mesonlib.FileOrString) -> bool:
+        if isinstance(source, File):
+            source = source.fname
+        if compilers.is_llvm_ir(source) or \
+           compilers.is_assembly(source):
+            return False
+        suffix = os.path.splitext(source)[1][1:].lower()
+        for lang in LANGS_CANT_UNITY:
+            if lang not in target.compilers:
+                continue
+            if suffix in target.compilers[lang].file_suffixes:
+                return False
+        return True
+
     def generate_unity_files(self, target: build.BuildTarget, unity_src: list[File]) -> list[mesonlib.File]:
         abs_files: T.List[str] = []
         result: T.List[mesonlib.File] = []

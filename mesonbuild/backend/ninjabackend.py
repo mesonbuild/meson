@@ -886,20 +886,6 @@ class NinjaBackend(backends.Backend):
             srcs[f] = s
         return srcs
 
-    def get_target_source_can_unity(self, target: build.BuildTarget, source: FileOrString) -> bool:
-        if isinstance(source, File):
-            source = source.fname
-        if compilers.is_llvm_ir(source) or \
-           compilers.is_assembly(source):
-            return False
-        suffix = os.path.splitext(source)[1][1:].lower()
-        for lang in backends.LANGS_CANT_UNITY:
-            if lang not in target.compilers:
-                continue
-            if suffix in target.compilers[lang].file_suffixes:
-                return False
-        return True
-
     def create_target_source_introspection(self, target: build.Target, comp: compilers.Compiler,
                                            parameters: CompilerArgs | T.List[str],
                                            sources: FileList,
