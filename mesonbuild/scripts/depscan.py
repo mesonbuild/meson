@@ -64,6 +64,50 @@ CPP_PARTITION_IMPORT_RE = re.compile(rf'\s*(?:export\s+)?import\s*:\s*({CPP_MODU
 # `[export] module name[:part];`
 CPP_MODULE_RE = re.compile(rf'\s*(export\s+)?module\s+({CPP_MODULE_NAME_PAT})\s*(?::\s*({CPP_MODULE_NAME_PAT})\s*)?;')
 
+# Comments and literals, which may contain text looking like module
+# declarations. Raw strings are matched before plain strings, and the
+# lookbehind on character literals skips digit separators (`1'000`).
+CPP_COMMENT_OR_LITERAL_RE = re.compile(
+    r'//[^\n]*'
+    r'|/\*.*?\*/'
+    r'|(?<!\w)(?:u8|u|U|L)?R"([^()\\\s]{0,16})\(.*?\)\1"'
+    r'|"(?:\\.|[^"\\\n])*"'
+    r"|(?<!\w)'(?:\\.|[^'\\\n])*'",
+    re.DOTALL)
+CPP_IF_ZERO_RE = re.compile(r'\s*#\s*if\s+0\s*$')
+CPP_IF_RE = re.compile(r'\s*#\s*if(?:n?def)?\b')
+CPP_ELSE_RE = re.compile(r'\s*#\s*(?:else|elif(?:n?def)?)\b')
+CPP_ENDIF_RE = re.compile(r'\s*#\s*endif\b')
+
+
+def _remove_cpp_inactive_text(text: str) -> T.List[str]:
+    """Remove comments, literals and `#if 0` blocks from C++ source.
+
+    Other preprocessor conditionals are not evaluated.
+
+    :param text: The contents of the source file
+    :return: The remaining lines of the file
+    """
+    # Keep the newlines of what is removed so lines stay where they are.
+    text = CPP_COMMENT_OR_LITERAL_RE.sub(lambda m: ' ' + '\n' * m.group(0).count('\n'), text)
+    lines: T.List[str] = []
+    # Nesting level inside the `#if 0` block being skipped, 0 when not skipping.
+    depth = 0
+    for line in text.split('\n'):
+        if depth == 0:
+            if CPP_IF_ZERO_RE.match(line):
+                depth = 1
+            else:
+                lines.append(line)
+        elif CPP_IF_RE.match(line):
+            depth += 1
+        elif CPP_ENDIF_RE.match(line):
+            depth -= 1
+        elif depth == 1 and CPP_ELSE_RE.match(line):
+            # The `#else` or `#elif` branch of `#if 0` may be active.
+            depth = 0
+    return lines
+
 FORTRAN_INCLUDE_PAT = r"^\s*include\s*['\"](\w+\.\w+)['\"]"
 FORTRAN_MODULE_PAT = r"^\s*\bmodule\b\s+(\w+)\s*(?:!+.*)*$"
 FORTRAN_SUBMOD_PAT = r"^\s*\bsubmodule\b\s*\((\w+:?\w+)\)\s*(\w+)"
@@ -79,7 +123,7 @@ def parse_cpp_module_declarations(text: str) -> T.Tuple[T.List[str], T.List[str]
     imports: T.List[str] = []
     # The module the current unit belongs to, needed to resolve partition imports.
     module_name: T.Optional[str] = None
-    for line in text.split('\n'):
+    for line in _remove_cpp_inactive_text(text):
         module_match = CPP_MODULE_RE.match(line)
         if module_match:
             exported, module_name, partition = module_match.groups()

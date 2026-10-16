@@ -1672,6 +1672,26 @@ Thread model: posix'''), '21.9.0')
                 # the global module fragment is not a module declaration
                 ('module;\n#include <cstdio>\nmodule foo;\n', [], ['foo']),
                 ('module;\n#include <cstdio>\nexport module foo;\n', ['foo'], []),
+                # comments
+                ('// import foo;\nimport bar; // import baz;\n', [], ['bar']),
+                ('/* export module foo; */ export module bar;\n', ['bar'], []),
+                ('/*\nimport foo;\n*/\nimport bar;\n', [], ['bar']),
+                ('/* // */ import foo;\n', [], ['foo']),
+                # string and character literals
+                ('const char *s = "/*";\nimport foo;\nconst char *t = "*/";\n', [], ['foo']),
+                ('auto s = R"x(\nimport foo;\n)x";\nimport bar;\n', [], ['bar']),
+                ("char c = '\"';\nimport foo;\nconst char *s = \"\";\n", [], ['foo']),
+                ("int i = 1'000;\nimport foo;\nint j = 2'000;\n", [], ['foo']),
+                # `#if 0` blocks, which may be nested
+                ('#if 0\nimport foo;\n#endif\nimport bar;\n', [], ['bar']),
+                ('#if 0\n#ifdef X\nimport foo;\n#endif\nimport baz;\n#endif\nimport bar;\n', [], ['bar']),
+                ('#if 0\nimport foo;\n#else\nimport bar;\n#endif\n', [], ['bar']),
+                ('#if 0\nimport foo;\n#elif X\nimport bar;\n#endif\n', [], ['bar']),
+                ('#if 0\n#if 1\n#else\nimport foo;\n#endif\n#endif\nimport bar;\n', [], ['bar']),
+                # other conditions are not evaluated
+                ('#if 1\nimport foo;\n#endif\n#ifdef X\nimport bar;\n#endif\n', [], ['foo', 'bar']),
+                # Windows line endings
+                ('// import foo;\r\n#if 0\r\nimport bar;\r\n#endif\r\nimport baz;\r\n', [], ['baz']),
         ]:
             with self.subTest(text=text):
                 self.assertEqual(parse(text), (exports, imports))
