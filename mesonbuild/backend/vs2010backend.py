@@ -1637,7 +1637,14 @@ class Vs2010Backend(backends.Backend):
 
         (sources, headers, objects, _languages) = self.split_sources(target.sources)
         if self.is_unity(target):
-            sources = self.generate_unity_files(target, sources)
+            unity_src: list[File] = []
+            separate_src: list[File] = []
+            for s in sources:
+                if self.get_target_source_can_unity(target, s):
+                    unity_src.append(s)
+                else:
+                    separate_src.append(s)
+            sources = separate_src + self.generate_unity_files(target, unity_src)
         if target.for_machine is MachineChoice.BUILD:
             platform = self.build_platform
         else:
