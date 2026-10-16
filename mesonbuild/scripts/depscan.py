@@ -59,7 +59,10 @@ if T.TYPE_CHECKING:
 # Header units (`import <foo>;` and `import "foo.h";`) are not matched.
 CPP_MODULE_NAME_PAT = r'\w+(?:\.\w+)*'
 CPP_IMPORT_RE = re.compile(rf'\s*(?:export\s+)?import\s+({CPP_MODULE_NAME_PAT})\s*;')
-CPP_EXPORT_RE = re.compile(rf'\s*export\s+module\s+({CPP_MODULE_NAME_PAT})\s*;')
+# `import :part;` imports a partition of the module the current unit belongs to.
+CPP_PARTITION_IMPORT_RE = re.compile(rf'\s*(?:export\s+)?import\s*:\s*({CPP_MODULE_NAME_PAT})\s*;')
+# `[export] module name[:part];`
+CPP_MODULE_RE = re.compile(rf'\s*(export\s+)?module\s+({CPP_MODULE_NAME_PAT})\s*(?::\s*({CPP_MODULE_NAME_PAT})\s*)?;')
 
 FORTRAN_INCLUDE_PAT = r"^\s*include\s*['\"](\w+\.\w+)['\"]"
 FORTRAN_MODULE_PAT = r"^\s*\bmodule\b\s+(\w+)\s*(?:!+.*)*$"
@@ -74,13 +77,26 @@ FORTRAN_USE_RE = re.compile(FORTRAN_USE_PAT, re.IGNORECASE)
 def parse_cpp_module_declarations(text: str) -> T.Tuple[T.List[str], T.List[str]]:
     exports: T.List[str] = []
     imports: T.List[str] = []
+    # The module the current unit belongs to, needed to resolve partition imports.
+    module_name: T.Optional[str] = None
     for line in text.split('\n'):
+        module_match = CPP_MODULE_RE.match(line)
+        if module_match:
+            exported, module_name, partition = module_match.groups()
+            if partition:
+                # Both interface (`export module a:b;`) and internal
+                # (`module a:b;`) partitions provide `a:b`.
+                exports.append(f'{module_name}:{partition}')
+            elif exported:
+                exports.append(module_name)
+            continue
         import_match = CPP_IMPORT_RE.match(line)
-        export_match = CPP_EXPORT_RE.match(line)
         if import_match:
             imports.append(import_match.group(1))
-        if export_match:
-            exports.append(export_match.group(1))
+            continue
+        partition_import_match = CPP_PARTITION_IMPORT_RE.match(line)
+        if partition_import_match and module_name:
+            imports.append(f'{module_name}:{partition_import_match.group(1)}')
     return exports, imports
 
 
@@ -169,7 +185,8 @@ class DependencyScanner:
             else:
                 extension = 'mod'
             return os.path.join(self.target_data.private_dir, f'{namebase}.{extension}')
-        return '{}.ifc'.format(self.exports[src])
+        # Partition a:b goes to a file named a-b.ifc
+        return '{}.ifc'.format(self.exports[src].replace(':', '-'))
 
     def scan(self) -> int:
         for s, lang in self.sources:

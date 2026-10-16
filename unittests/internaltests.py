@@ -1658,9 +1658,48 @@ Thread model: posix'''), '21.9.0')
                 ('import <vector>;\nimport "foo.h";\nexport import <string>;\n', [], []),
                 # identifiers that merely start with the keywords
                 ('important;\nimport_foo;\nexported module foo;\nexport modules foo;\n', [], []),
+                # interface partition
+                ('export module foo.bar:baz;\n', ['foo.bar:baz'], []),
+                # internal partition
+                ('module foo.bar : baz;\n', ['foo.bar:baz'], []),
+                # partition imports resolve against the current module
+                ('export module foo.bar;\nexport import :baz;\nimport : qux;\n', ['foo.bar'], ['foo.bar:baz', 'foo.bar:qux']),
+                ('export module foo:baz;\nimport :qux;\n', ['foo:baz'], ['foo:qux']),
+                # a partition import outside of a module unit is ignored
+                ('import :baz;\n', [], []),
         ]:
             with self.subTest(text=text):
                 self.assertEqual(parse(text), (exports, imports))
+
+    def test_depscan_cpp_partitions(self):
+        from mesonbuild.backend.ninjabackend import TargetDependencyScannerInfo
+        sources = {
+            'foo.ixx': 'export module foo.bar;\nexport import :baz;\n',
+            'foo-baz.ixx': 'export module foo.bar:baz;\nimport :qux;\n',
+            'foo-qux.cpp': 'module foo.bar:qux;\n',
+        }
+        with tempfile.TemporaryDirectory() as tmpdir:
+            for name, text in sources.items():
+                with open(os.path.join(tmpdir, name), 'w', encoding='utf-8') as f:
+                    f.write(text)
+            srcs = [os.path.join(tmpdir, s) for s in sources]
+            info = TargetDependencyScannerInfo(tmpdir, {s: s + '.obj' for s in srcs}, [(s, 'cpp') for s in srcs])
+            pickle_file = os.path.join(tmpdir, 'scan.dat')
+            with open(pickle_file, 'wb') as f:
+                pickle.dump(info, f)
+            json_file = os.path.join(tmpdir, 'depscan.json')
+            self.assertEqual(mesonbuild.scripts.depscan.run([json_file, pickle_file]), 0)
+            with open(json_file, encoding='utf-8') as f:
+                rules = {os.path.basename(r['primary-output']): r for r in json.load(f)['rules']}
+
+        self.assertEqual(rules['foo.ixx.obj']['provides'][0]['compiled-module-path'], 'foo.bar.ifc')
+        self.assertEqual(rules['foo-baz.ixx.obj']['outputs'], ['foo.bar-baz.ifc'])
+        self.assertEqual(rules['foo-qux.cpp.obj']['outputs'], ['foo.bar-qux.ifc'])
+        self.assertEqual([(r['logical-name'], r['compiled-module-path']) for r in rules['foo.ixx.obj']['requires']],
+                         [('foo.bar:baz', 'foo.bar-baz.ifc')])
+        self.assertEqual([(r['logical-name'], r['compiled-module-path']) for r in rules['foo-baz.ixx.obj']['requires']],
+                         [('foo.bar:qux', 'foo.bar-qux.ifc')])
+        self.assertEqual(rules['foo-qux.cpp.obj']['requires'], [])
 
     def test_log_once(self):
         f = io.StringIO()
