@@ -1213,14 +1213,14 @@ class NinjaBackend(backends.Backend):
         for arg in target.compilers['cpp'].get_cpp_modules_args():
             if arg in target.extra_args['cpp']:
                 return True
-        # Currently only the preview version of Visual Studio is supported.
         cpp = target.compilers['cpp']
         if cpp.get_id() != 'msvc':
             return False
         cppversion = self.get_target_option(target, OptionKey('cpp_std',
                                                               machine=target.for_machine,
                                                               subproject=target.subproject))
-        if cppversion not in ('latest', 'c++latest', 'vc++latest'):
+        # MSVC only offers c++20 from version 19.29, which supports modules
+        if cppversion not in ('latest', 'c++latest', 'vc++latest', 'c++20', 'vc++20'):
             return False
         if not mesonlib.current_vs_supports_modules():
             return False

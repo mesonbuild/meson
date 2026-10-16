@@ -460,14 +460,16 @@ class WindowsTests(BasePlatformTests):
         # before it. This covers both the implementation unit, that needs the
         # primary interface of its own target, and the importer, that needs
         # the interface of another target.
-        for obj in ['libmod_a.a.p/a_impl.cpp.obj', 'libmod_b.a.p/b_user.cpp.obj']:
-            with self.subTest(obj=obj):
-                self.new_builddir()
-                self.init(testdir)
-                self.build(obj)
-        self.build()
-        self.run_tests()
-        self.assertBuildIsNoop()
+        for std in ['c++20', 'c++latest']:
+            for obj in ['libmod_a.a.p/a_impl.cpp.obj', 'libmod_b.a.p/b_user.cpp.obj']:
+                with self.subTest(std=std, obj=obj):
+                    self.new_builddir()
+                    self.init(testdir, extra_args=[f'-Dcpp_std={std}'])
+                    self.build(obj)
+            with self.subTest(std=std):
+                self.build()
+                self.run_tests()
+                self.assertBuildIsNoop()
 
     def test_modules_unity(self):
         if self.backend not in {Backend.ninja, Backend.vs}:
