@@ -1644,7 +1644,7 @@ class Vs2010Backend(backends.Backend):
                     unity_src.append(s)
                 else:
                     separate_src.append(s)
-            sources = separate_src + self.generate_unity_files(target, unity_src)
+            sources = separate_src + list(self.generate_unity_files(target, unity_src))
         if target.for_machine is MachineChoice.BUILD:
             platform = self.build_platform
         else:

@@ -476,7 +476,19 @@ class WindowsTests(BasePlatformTests):
             raise SkipTest('C++ modules is only supported with Visual Studio.')
         if version_compare(os.environ['VSCMD_VER'], '<16.10.0'):
             raise SkipTest('C++ modules are only supported with VS 2019 Preview or newer.')
-        self.init(os.path.join(self.unit_test_dir, '144 cpp modules unity'))
+        testdir = os.path.join(self.unit_test_dir, '144 cpp modules unity')
+        if self.backend is Backend.ninja:
+            # The imports are only visible in the sources included by the
+            # unity files. Building a unity object first only succeeds if
+            # those were scanned, in the same target and in another one.
+            for obj in ['liblib.a.p/meson-generated_lib-unity0.cpp.obj',
+                        'libuser.a.p/meson-generated_user-unity0.cpp.obj']:
+                with self.subTest(obj=obj):
+                    self.new_builddir()
+                    self.init(testdir)
+                    self.build(obj)
+        else:
+            self.init(testdir)
         self.build()
         self.run_tests()
 

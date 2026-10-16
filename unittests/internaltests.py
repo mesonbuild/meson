@@ -1694,7 +1694,21 @@ Thread model: posix'''), '21.9.0')
                 ('// import foo;\r\n#if 0\r\nimport bar;\r\n#endif\r\nimport baz;\r\n', [], ['baz']),
         ]:
             with self.subTest(text=text):
-                self.assertEqual(parse(text), (exports, imports))
+                self.assertEqual(parse(text)[:2], (exports, imports))
+
+    def test_depscan_cpp_module_unit_name(self):
+        parse = mesonbuild.scripts.depscan.parse_cpp_module_declarations
+        for (text, module_name) in [
+                ('import foo;\n', None),
+                ('module;\n#include <cstdio>\nimport foo;\n', None),
+                ('export module foo.bar;\n', 'foo.bar'),
+                ('export module foo.bar:baz;\n', 'foo.bar'),
+                ('module foo.bar:baz;\n', 'foo.bar'),
+                ('module;\nmodule foo.bar;\n', 'foo.bar'),
+                ('// module foo;\n', None),
+        ]:
+            with self.subTest(text=text):
+                self.assertEqual(parse(text)[2], module_name)
 
     DEPSCAN_PARTITION_SOURCES = {
         'foo.ixx': 'export module foo.bar;\nexport import :baz;\n',
@@ -1702,15 +1716,24 @@ Thread model: posix'''), '21.9.0')
         'foo-qux.cpp': 'module foo.bar:qux;\n',
     }
 
-    def _run_depscan(self, sources: T.Dict[str, str], cpp_compiler_id: str) -> T.Dict[str, T.Any]:
+    def _run_depscan(self, sources: T.Dict[str, str], cpp_compiler_id: str,
+                     unity: T.Optional[T.Dict[str, T.List[str]]] = None) -> T.Dict[str, T.Any]:
+        """Scan sources, where unity maps unity file names to the sources they include."""
         from mesonbuild.backend.ninjabackend import TargetDependencyScannerInfo
+        unity = unity or {}
         with tempfile.TemporaryDirectory() as tmpdir:
             for name, text in sources.items():
                 with open(os.path.join(tmpdir, name), 'w', encoding='utf-8') as f:
                     f.write(text)
-            srcs = [os.path.join(tmpdir, s) for s in sources]
+            in_unity = {s for included in unity.values() for s in included}
+            unity_sources: T.Dict[str, T.List[str]] = {}
+            for name, included in unity.items():
+                unity_sources[os.path.join(tmpdir, name)] = [os.path.join(tmpdir, s) for s in included]
+                with open(os.path.join(tmpdir, name), 'w', encoding='utf-8') as f:
+                    f.writelines(f'#include<{s}>\n' for s in unity_sources[os.path.join(tmpdir, name)])
+            srcs = [os.path.join(tmpdir, s) for s in [*sources, *unity] if s not in in_unity]
             info = TargetDependencyScannerInfo(tmpdir, {s: s + '.obj' for s in srcs}, [(s, 'cpp') for s in srcs],
-                                               cpp_compiler_id)
+                                               cpp_compiler_id, unity_sources)
             pickle_file = os.path.join(tmpdir, 'scan.dat')
             with open(pickle_file, 'wb') as f:
                 pickle.dump(info, f)
@@ -1738,6 +1761,38 @@ Thread model: posix'''), '21.9.0')
         self.assertEqual(rules['foo-qux.cpp.obj']['outputs'], [gcm('foo.bar-qux.gcm')])
         self.assertEqual([r['compiled-module-path'] for r in rules['foo.ixx.obj']['requires']],
                          [gcm('foo.bar-baz.gcm')])
+
+    def test_depscan_cpp_unity(self):
+        sources = {
+            'foo.ixx': 'export module foo;\n',
+            'a.cpp': '#include <cstdio>\nimport foo;\n',
+            'b.cpp': 'import bar;\n',
+            'c.cpp': 'int c() { return 0; }\n',
+        }
+        rules = self._run_depscan(sources, 'msvc', {'t-unity0.cpp': ['a.cpp', 'b.cpp', 'c.cpp']})
+        self.assertEqual(sorted(rules), ['foo.ixx.obj', 't-unity0.cpp.obj'])
+        # The unity object needs what its included sources import
+        self.assertEqual([(r['logical-name'], r.get('compiled-module-path')) for r in rules['t-unity0.cpp.obj']['requires']],
+                         [('foo', 'foo.ifc'), ('bar', None)])
+        self.assertNotIn('outputs', rules['t-unity0.cpp.obj'])
+
+    def test_depscan_cpp_duplicate_imports(self):
+        sources = {
+            'foo.ixx': 'export module foo;\n',
+            'a.cpp': 'import foo;\nimport bar;\n',
+            'b.cpp': 'import bar;\nimport foo;\n',
+            'c.cpp': '#ifdef X\nimport foo;\n#else\nimport foo;\n#endif\n',
+        }
+        rules = self._run_depscan(sources, 'msvc', {'t-unity0.cpp': ['a.cpp', 'b.cpp']})
+        self.assertEqual([r['logical-name'] for r in rules['t-unity0.cpp.obj']['requires']], ['foo', 'bar'])
+        self.assertEqual([r['logical-name'] for r in rules['c.cpp.obj']['requires']], ['foo'])
+
+    def test_depscan_cpp_unity_module_unit(self):
+        for text in ['module foo;\n', 'export module foo;\n', 'module foo:bar;\n']:
+            with self.subTest(text=text):
+                sources = {'foo.ixx': 'export module foo;\n', 'a.cpp': 'int a() { return 0; }\n', 'impl.cpp': text}
+                with self.assertRaisesRegex(MesonException, r'impl\.cpp is a unit of the C\+\+ module foo'):
+                    self._run_depscan(sources, 'msvc', {'t-unity0.cpp': ['a.cpp', 'impl.cpp']})
 
     def test_log_once(self):
         f = io.StringIO()

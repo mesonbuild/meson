@@ -12,6 +12,8 @@ import pickle
 import re
 import typing as T
 
+from ..utils.core import MesonException
+
 if T.TYPE_CHECKING:
     from typing_extensions import Literal, TypedDict, NotRequired
     from ..backend.ninjabackend import TargetDependencyScannerInfo
@@ -118,7 +120,7 @@ FORTRAN_SUBMOD_RE = re.compile(FORTRAN_SUBMOD_PAT, re.IGNORECASE)
 FORTRAN_USE_RE = re.compile(FORTRAN_USE_PAT, re.IGNORECASE)
 
 
-def parse_cpp_module_declarations(text: str) -> T.Tuple[T.List[str], T.List[str]]:
+def parse_cpp_module_declarations(text: str) -> T.Tuple[T.List[str], T.List[str], T.Optional[str]]:
     exports: T.List[str] = []
     imports: T.List[str] = []
     # The module the current unit belongs to, needed to resolve partition imports.
@@ -145,7 +147,7 @@ def parse_cpp_module_declarations(text: str) -> T.Tuple[T.List[str], T.List[str]
         partition_import_match = CPP_PARTITION_IMPORT_RE.match(line)
         if partition_import_match and module_name:
             imports.append(f'{module_name}:{partition_import_match.group(1)}')
-    return exports, imports
+    return exports, imports, module_name
 
 
 class DependencyScanner:
@@ -210,9 +212,27 @@ class DependencyScanner:
                 # a3 does not depend on the a1 parent module directly, only transitively.
                 self.imports[fname].append(parent_module_name_full)
 
+    def scan_cpp_unity_file(self, fname: str, included: T.List[str]) -> None:
+        # The unity file only includes other sources, the object built from it
+        # needs the modules those sources import.
+        for inc in included:
+            text = pathlib.Path(inc).read_text(encoding='utf-8-sig', errors='ignore')
+            _, imports, module_name = parse_cpp_module_declarations(text)
+            if module_name is not None:
+                raise MesonException(
+                    f'{inc} is a unit of the C++ module {module_name} and cannot be part of the unity '
+                    f'source {fname}. Disable unity builds for this target, or use the .ixx or .cppm '
+                    'extension if it is a module interface unit.')
+            if imports:
+                self.imports[fname].extend(imports)
+
     def scan_cpp_file(self, fname: str) -> None:
+        included = self.target_data.unity_sources.get(fname)
+        if included is not None:
+            self.scan_cpp_unity_file(fname, included)
+            return
         fpath = pathlib.Path(fname)
-        exports, imports = parse_cpp_module_declarations(fpath.read_text(encoding='utf-8-sig', errors='ignore'))
+        exports, imports, _ = parse_cpp_module_declarations(fpath.read_text(encoding='utf-8-sig', errors='ignore'))
         if imports:
             self.imports[fname].extend(imports)
         for exported_module in exports:
@@ -258,7 +278,9 @@ class DependencyScanner:
             if src in self.sources_with_exports:
                 rule['outputs'] = [self.module_name_for(src, lang)]
             if src in self.imports:
-                for modname in self.imports[src]:
+                # A module may be imported more than once, for example by
+                # several sources of a unity file
+                for modname in dict.fromkeys(self.imports[src]):
                     provider_src = self.provided_by.get(modname)
                     if provider_src == src:
                         continue
