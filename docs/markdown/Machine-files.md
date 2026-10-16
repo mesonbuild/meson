@@ -356,6 +356,41 @@ An incomplete list of options is:
 - pkg_config_path
 - cmake_prefix_path
 
+### [host_machine]
+
+*Since 0.56.0*
+
+The `[host_machine]` section is used in cross-compilation to describe
+the machine on which the compiled binary will run. It is not needed
+for native builds, where Meson auto-detects this information.
+
+The following keys are available:
+
+| Key | Type | Description |
+|-----|------|-------------|
+| `system` | string | The operating system name (e.g. `'linux'`, `'windows'`, `'darwin'`) |
+| `cpu_family` | string | The CPU family (e.g. `'x86_64'`, `'aarch64'`, `'arm'`) |
+| `cpu` | string | The specific CPU model (e.g. `'x86_64'`, `'armv8-a'`) |
+| `endian` | string | The endianness: `'little'` or `'big'` |
+
+Depending on the target system, additional keys may be available
+(e.g. `subsystem` and `kernel` for Windows targets). These values are
+also accessible in `meson.build` via the
+[`@host_machine`](Cross-compilation.md#machine-entries) variable.
+
+Example:
+
+```ini
+[host_machine]
+system = 'windows'
+cpu_family = 'x86_64'
+cpu = 'x86_64'
+endian = 'little'
+```
+
+See also the [Cross compilation](Cross-compilation.md#machine-entries)
+page for more details on build, host, and target machine concepts.
+
 ## Loading multiple machine files
 
 Native files allow layering (cross files can be layered since Meson
