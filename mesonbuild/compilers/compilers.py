@@ -90,6 +90,8 @@ cpp_suffixes = set(lang_suffixes['cpp']) | c_cpp_suffixes
 c_suffixes = set(lang_suffixes['c']) | c_cpp_suffixes
 assembler_suffixes = {'s', 'S', 'sx', 'asm', 'masm'}
 llvm_ir_suffixes = {'ll'}
+# C++ module interface units, which must be compiled as their own translation unit
+cpp_module_interface_suffixes = {'ixx', 'cppm'}
 all_suffixes = set(itertools.chain(*lang_suffixes.values(), assembler_suffixes, llvm_ir_suffixes, c_cpp_suffixes))
 source_suffixes = all_suffixes - header_suffixes
 # List of languages that by default consume and output libraries following the
@@ -177,6 +179,12 @@ def is_llvm_ir(fname: 'mesonlib.FileOrString') -> bool:
         fname = fname.fname
     suffix = fname.split('.')[-1]
     return suffix in llvm_ir_suffixes
+
+def is_cpp_module_interface(fname: 'mesonlib.FileOrString') -> bool:
+    if isinstance(fname, mesonlib.File):
+        fname = fname.fname
+    suffix = fname.split('.')[-1].lower()
+    return suffix in cpp_module_interface_suffixes
 
 @lru_cache(maxsize=None)
 def cached_is_object_by_name(fname: str) -> bool:
@@ -1580,6 +1588,13 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
         return []
 
     def get_cpp_modules_args(self) -> T.List[str]:
+        return []
+
+    def get_cpp_modules_depfile_args(self) -> T.List[str]:
+        """Arguments to keep module dependencies out of the dependency file.
+
+        Module dependencies are handled by the dependency scanner instead.
+        """
         return []
 
     @abc.abstractmethod

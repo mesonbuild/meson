@@ -450,14 +450,36 @@ class Backend:
         osrc = f'{target.get_basename()}-unity{number}.{suffix}'
         return mesonlib.File.from_built_file(self.get_target_private_dir(target), osrc)
 
-    def generate_unity_files(self, target: build.BuildTarget, unity_src: list[File]) -> list[mesonlib.File]:
+    def get_target_source_can_unity(self, target: build.BuildTarget, source: mesonlib.FileOrString) -> bool:
+        if isinstance(source, File):
+            source = source.fname
+        if compilers.is_llvm_ir(source) or \
+           compilers.is_assembly(source):
+            return False
+        # A translation unit can only contain one module declaration, which
+        # cannot come from an #include
+        if compilers.is_cpp_module_interface(source):
+            return False
+        suffix = os.path.splitext(source)[1][1:].lower()
+        for lang in LANGS_CANT_UNITY:
+            if lang not in target.compilers:
+                continue
+            if suffix in target.compilers[lang].file_suffixes:
+                return False
+        return True
+
+    def generate_unity_files(self, target: build.BuildTarget, unity_src: list[File]) -> dict[mesonlib.File, list[File]]:
+        """Generate the unity source files of a target.
+
+        :return: A mapping of each unity source file to the sources it includes
+        """
         abs_files: T.List[str] = []
-        result: T.List[mesonlib.File] = []
+        result: T.Dict[mesonlib.File, T.List[File]] = {}
         compsrcs = classify_unity_sources(target.compilers.values(), unity_src)
         unity_size = self.get_target_option(target, 'unity_size')
         assert isinstance(unity_size, int), 'for mypy'
 
-        def init_language_file(suffix: str, unity_file_number: int) -> T.TextIO:
+        def init_language_file(suffix: str, unity_file_number: int) -> T.Tuple[T.TextIO, T.List[File]]:
             unity_src = self.get_unity_source_file(target, suffix, unity_file_number)
             outfileabs = unity_src.absolute_path(self.environment.get_source_dir(),
                                                  self.environment.get_build_dir())
@@ -466,8 +488,9 @@ class Backend:
             outfileabs_tmp_dir = os.path.dirname(outfileabs_tmp)
             if not os.path.exists(outfileabs_tmp_dir):
                 os.makedirs(outfileabs_tmp_dir)
-            result.append(unity_src)
-            return open(outfileabs_tmp, 'w', encoding='utf-8')
+            included: T.List[File] = []
+            result[unity_src] = included
+            return open(outfileabs_tmp, 'w', encoding='utf-8'), included
 
         # For each language, generate unity source files and return the list
         for comp, srcs in compsrcs.items():
@@ -476,14 +499,16 @@ class Backend:
             # TODO: this could be simplified with an algorithm that pre-sorts
             # the sources into the size of chunks we want
             ofile = None
+            included: T.List[File] = []
             for src in srcs:
                 if files_in_current >= unity_size:
                     if ofile:
                         ofile.close()
-                    ofile = init_language_file(comp.get_default_suffix(), unity_file_number)
+                    ofile, included = init_language_file(comp.get_default_suffix(), unity_file_number)
                     unity_file_number += 1
                     files_in_current = 0
                 ofile.write(f'#include<{src.absolute_path(self.source_dir, self.build_dir)}>\n')
+                included.append(src)
                 files_in_current += 1
             if ofile:
                 ofile.close()
@@ -985,7 +1010,13 @@ class Backend:
                 if comp.language in LANGS_CANT_UNITY:
                     sources += srcs
                     continue
-                for i in range((len(srcs) + unity_size - 1) // unity_size):
+                unity_srcs: T.List[File] = []
+                for src in srcs:
+                    if self.get_target_source_can_unity(extobj.target, src):
+                        unity_srcs.append(src)
+                    else:
+                        sources.append(src)
+                for i in range((len(unity_srcs) + unity_size - 1) // unity_size):
                     _src = self.get_unity_source_file(extobj.target,
                                                       comp.get_default_suffix(), i)
                     sources.append(_src)

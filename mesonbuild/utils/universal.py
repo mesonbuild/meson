@@ -102,7 +102,6 @@ __all__ = [
     'as_posix',
     'check_direntry_issues',
     'classify_unity_sources',
-    'current_vs_supports_modules',
     'darwin_get_object_archs',
     'default_libdir',
     'default_libexecdir',
@@ -962,15 +961,6 @@ def detect_vcs(source_dir: T.Union[str, Path]) -> T.Optional[VcsData]:
                 vcs.wc_dir = str(curdir)
                 return vcs
     return None
-
-def current_vs_supports_modules() -> bool:
-    # if in a developer terminal, the version is available
-    # and can be used to avoid using modules for older versions
-    # of the MSVC executable.
-    vsver = os.environ.get('VSCMD_VER', '')
-    return not vsver \
-        or version_compare(vsver, '>=16.10.0') \
-        or (vsver.startswith('16.9.0') and '-pre.' in vsver)
 
 _VERSION_TOK_RE = re.compile(r'(\d+)|([a-zA-Z]+)')
 

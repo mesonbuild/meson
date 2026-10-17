@@ -4872,6 +4872,14 @@ class AllPlatformTests(BasePlatformTests):
         out = self.init(testdir)
         self.assertNotRegex(out, "WARNING:.*can't be converted to File object")
 
+    def test_unity_extract_objects_separate_sources(self):
+        testdir = os.path.join(self.unit_test_dir, '143 unity extract separate sources')
+        # With unity_size=2, three sources would need two unity files if the
+        # assembly file was part of the unity build.
+        self.init(testdir, extra_args=['-Dunity=on', '-Dunity_size=2'])
+        self.build()
+        self.run_tests()
+
     def test_multi_output_custom_target_no_warning(self):
         testdir = os.path.join(self.common_test_dir, '228 custom_target source')
 

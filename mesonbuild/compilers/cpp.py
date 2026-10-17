@@ -553,6 +553,12 @@ class GnuCPPCompiler(_StdCPPLibMixin, GnuCPPStds, GnuCompiler, CPPCompiler):
     def get_cpp_modules_args(self) -> T.List[str]:
         return ['-fmodules', '-fmodules-ts']
 
+    def get_cpp_modules_depfile_args(self) -> T.List[str]:
+        # The rules GCC writes for modules cannot be parsed by Ninja
+        if version_compare(self.version, '>=11'):
+            return ['-Mno-modules']
+        return []
+
     def get_embed_args(self, path: str) -> list[str]:
         # Requires C23 or C++26 standard and GCC 15
         return [f'--embed-dir={path}']

@@ -138,11 +138,17 @@ class TargetDependencyScannerInfo:
         will be created from them.
     :param sources: a list of sources mapping them to the language rules to use
         to scan them.
+    :param cpp_compiler_id: The id of the C++ compiler of the target, if any,
+        which determines the names of the compiled module files.
+    :param unity_sources: A mapping of the unity source files to scan to the
+        sources they include.
     """
 
     private_dir: str
     source2object: T.Dict[str, str]
     sources: T.List[T.Tuple[str, Literal['cpp', 'fortran']]]
+    cpp_compiler_id: T.Optional[str] = None
+    unity_sources: T.Dict[str, T.List[str]] = dataclasses.field(default_factory=dict)
 
 
 @unique
@@ -883,20 +889,6 @@ class NinjaBackend(backends.Backend):
             srcs[f] = s
         return srcs
 
-    def get_target_source_can_unity(self, target: build.BuildTarget, source: FileOrString) -> bool:
-        if isinstance(source, File):
-            source = source.fname
-        if compilers.is_llvm_ir(source) or \
-           compilers.is_assembly(source):
-            return False
-        suffix = os.path.splitext(source)[1][1:].lower()
-        for lang in backends.LANGS_CANT_UNITY:
-            if lang not in target.compilers:
-                continue
-            if suffix in target.compilers[lang].file_suffixes:
-                return False
-        return True
-
     def create_target_source_introspection(self, target: build.Target, comp: compilers.Compiler,
                                            parameters: CompilerArgs | T.List[str],
                                            sources: FileList,
@@ -1170,13 +1162,16 @@ class NinjaBackend(backends.Backend):
                 compiled_sources.append(s)
                 source2object[s] = o
 
+        # The sources included by each unity source file
+        unity_includes: T.Dict[str, T.List[str]] = {}
         if is_unity:
-            for src in self.generate_unity_files(target, unity_src):
+            for src, included in self.generate_unity_files(target, unity_src).items():
                 o, s = self.generate_single_compile(target, src, True, [*unity_deps, *header_deps, *d_generated_deps],
                                                     fortran_order_deps, fortran_inc_args, unity_src)
                 obj_list.append(o)
                 compiled_sources.append(s)
                 source2object[s] = o
+                unity_includes[s] = [i.rel_to_builddir(self.build_to_src) for i in included]
         if is_compile_target:
             # Skip the link stage for this special type of target
             return
@@ -1188,7 +1183,7 @@ class NinjaBackend(backends.Backend):
         else:
             final_obj_list = obj_list
 
-        self.generate_dependency_scan_target(target, compiled_sources, source2object, fortran_order_deps)
+        self.generate_dependency_scan_target(target, compiled_sources, source2object, fortran_order_deps, unity_includes)
 
         if isinstance(target, build.SharedLibrary):
             self.generate_shsym(target)
@@ -1218,25 +1213,25 @@ class NinjaBackend(backends.Backend):
         for arg in target.compilers['cpp'].get_cpp_modules_args():
             if arg in target.extra_args['cpp']:
                 return True
-        # Currently only the preview version of Visual Studio is supported.
         cpp = target.compilers['cpp']
         if cpp.get_id() != 'msvc':
             return False
         cppversion = self.get_target_option(target, OptionKey('cpp_std',
                                                               machine=target.for_machine,
                                                               subproject=target.subproject))
-        if cppversion not in ('latest', 'c++latest', 'vc++latest'):
+        # MSVC only offers c++20 from version 19.29, which supports modules
+        if cppversion not in ('latest', 'c++latest', 'vc++latest', 'c++20', 'vc++20'):
             return False
-        if not mesonlib.current_vs_supports_modules():
-            return False
-        if mesonlib.version_compare(cpp.version, '<19.28.28617'):
+        # Visual Studio 2019 16.10 is the first version with complete support
+        if mesonlib.version_compare(cpp.version, '<19.29'):
             return False
         return True
 
     def generate_dependency_scan_target(self, target: build.BuildTarget,
                                         compiled_sources: T.List[str],
                                         source2object: T.Dict[str, str],
-                                        object_deps: T.List[File]) -> None:
+                                        object_deps: T.List[File],
+                                        unity_includes: T.Dict[str, T.List[str]]) -> None:
         if not self.should_use_dyndeps_for_target(target):
             return
         self._uses_dyndeps = True
@@ -1246,15 +1241,24 @@ class NinjaBackend(backends.Backend):
         pickle_abs = os.path.join(self.get_target_private_dir_abs(target), pickle_base).replace('\\', '/')
         rule_name = 'depscan'
         scan_sources = list(self.select_sources_to_scan(compiled_sources))
+        # Unity source files only include other sources, those are the ones to scan
+        unity_sources = {s: unity_includes[s] for s, lang in scan_sources
+                         if lang == 'cpp' and s in unity_includes}
 
+        cpp = target.compilers.get('cpp')
         scaninfo = TargetDependencyScannerInfo(
-            self.get_target_private_dir(target), source2object, scan_sources)
+            self.get_target_private_dir(target), source2object, scan_sources,
+            cpp.get_id() if cpp else None, unity_sources)
 
         write = True
         if os.path.exists(pickle_abs):
             with open(pickle_abs, 'rb') as p:
                 old = pickle.load(p)
-            write = old != scaninfo
+            try:
+                write = old != scaninfo
+            except AttributeError:
+                # Written by a version of Meson without some of the fields
+                pass
 
         if write:
             with open(pickle_abs, 'wb') as p:
@@ -1266,6 +1270,8 @@ class NinjaBackend(backends.Backend):
         # they use or export.
         for s in scan_sources:
             elem.deps.add(s[0])
+        for included in unity_sources.values():
+            elem.deps.update(included)
         elem.add_orderdep(self.order_deps_to_strings(target, object_deps))
         elem.add_item('name', target.name)
         self.add_build(elem)
@@ -3346,6 +3352,8 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         # C++ import std is complicated enough to get its own method.
         istd_args, istd_dep = self.handle_cpp_import_std(target, compiler)
         commands.extend(istd_args)
+        if compiler.language == 'cpp' and self.should_use_dyndeps_for_target(target):
+            commands.extend(compiler.get_cpp_modules_depfile_args())
         header_deps += istd_dep
         if extra_args is not None:
             commands.extend(extra_args)

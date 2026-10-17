@@ -28,6 +28,7 @@ import mesonbuild.environment
 import mesonbuild.modules.cuda
 import mesonbuild.modules.gnome
 import mesonbuild.scripts.depfixer
+import mesonbuild.scripts.depscan
 import mesonbuild.scripts.env2mfile
 import mesonbuild.scripts.symbolextractor
 from mesonbuild import coredata
@@ -1634,6 +1635,164 @@ Thread model: posix'''), '21.9.0')
             d = mesonbuild.depfile.DepFile(f, '/path/to/src')
             deps = d.get_all_dependencies(target)
             self.assertEqual(sorted(deps), sorted(expdeps))
+
+    def test_depscan_cpp_module_decls(self):
+        parse = mesonbuild.scripts.depscan.parse_cpp_module_declarations
+        for (text, exports, imports) in [
+                # no module declarations
+                ('', [], []),
+                ('#include <cstdio>\nint main() { return 0; }\n', [], []),
+                # module interface
+                ('export module foo;\n', ['foo'], []),
+                # importer
+                ('import foo;\nint main() { return 0; }\n', [], ['foo']),
+                # interface importing another module
+                ('export module foo;\nimport bar;\nimport baz;\n', ['foo'], ['bar', 'baz']),
+                # dotted names
+                ('export module foo.bar;\nimport baz.qux.quux;\n', ['foo.bar'], ['baz.qux.quux']),
+                # whitespace anywhere
+                ('  export   module\tfoo.bar ;\n\timport  baz ;\n', ['foo.bar'], ['baz']),
+                # re-exported imports are still imports
+                ('export module foo;\nexport import bar;\n  export\timport baz.qux;\n', ['foo'], ['bar', 'baz.qux']),
+                # header units are not named modules
+                ('import <vector>;\nimport "foo.h";\nexport import <string>;\n', [], []),
+                # identifiers that merely start with the keywords
+                ('important;\nimport_foo;\nexported module foo;\nexport modules foo;\n', [], []),
+                # interface partition
+                ('export module foo.bar:baz;\n', ['foo.bar:baz'], []),
+                # internal partition
+                ('module foo.bar : baz;\n', ['foo.bar:baz'], []),
+                # partition imports resolve against the current module
+                ('export module foo.bar;\nexport import :baz;\nimport : qux;\n', ['foo.bar'], ['foo.bar:baz', 'foo.bar:qux']),
+                ('export module foo:baz;\nimport :qux;\n', ['foo:baz'], ['foo:qux']),
+                # a partition import outside of a module unit is ignored
+                ('import :baz;\n', [], []),
+                # implementation units import their primary module interface
+                ('module foo.bar;\nimport :baz;\n', [], ['foo.bar', 'foo.bar:baz']),
+                # the global module fragment is not a module declaration
+                ('module;\n#include <cstdio>\nmodule foo;\n', [], ['foo']),
+                ('module;\n#include <cstdio>\nexport module foo;\n', ['foo'], []),
+                # comments
+                ('// import foo;\nimport bar; // import baz;\n', [], ['bar']),
+                ('/* export module foo; */ export module bar;\n', ['bar'], []),
+                ('/*\nimport foo;\n*/\nimport bar;\n', [], ['bar']),
+                ('/* // */ import foo;\n', [], ['foo']),
+                # string and character literals
+                ('const char *s = "/*";\nimport foo;\nconst char *t = "*/";\n', [], ['foo']),
+                ('auto s = R"x(\nimport foo;\n)x";\nimport bar;\n', [], ['bar']),
+                ("char c = '\"';\nimport foo;\nconst char *s = \"\";\n", [], ['foo']),
+                ("int i = 1'000;\nimport foo;\nint j = 2'000;\n", [], ['foo']),
+                # `#if 0` blocks, which may be nested
+                ('#if 0\nimport foo;\n#endif\nimport bar;\n', [], ['bar']),
+                ('#if 0\n#ifdef X\nimport foo;\n#endif\nimport baz;\n#endif\nimport bar;\n', [], ['bar']),
+                ('#if 0\nimport foo;\n#else\nimport bar;\n#endif\n', [], ['bar']),
+                ('#if 0\nimport foo;\n#elif X\nimport bar;\n#endif\n', [], ['bar']),
+                ('#if 0\n#if 1\n#else\nimport foo;\n#endif\n#endif\nimport bar;\n', [], ['bar']),
+                # other conditions are not evaluated
+                ('#if 1\nimport foo;\n#endif\n#ifdef X\nimport bar;\n#endif\n', [], ['foo', 'bar']),
+                # Windows line endings
+                ('// import foo;\r\n#if 0\r\nimport bar;\r\n#endif\r\nimport baz;\r\n', [], ['baz']),
+        ]:
+            with self.subTest(text=text):
+                self.assertEqual(parse(text)[:2], (exports, imports))
+
+    def test_depscan_cpp_module_unit_name(self):
+        parse = mesonbuild.scripts.depscan.parse_cpp_module_declarations
+        for (text, module_name) in [
+                ('import foo;\n', None),
+                ('module;\n#include <cstdio>\nimport foo;\n', None),
+                ('export module foo.bar;\n', 'foo.bar'),
+                ('export module foo.bar:baz;\n', 'foo.bar'),
+                ('module foo.bar:baz;\n', 'foo.bar'),
+                ('module;\nmodule foo.bar;\n', 'foo.bar'),
+                ('// module foo;\n', None),
+        ]:
+            with self.subTest(text=text):
+                self.assertEqual(parse(text)[2], module_name)
+
+    DEPSCAN_PARTITION_SOURCES = {
+        'foo.ixx': 'export module foo.bar;\nexport import :baz;\n',
+        'foo-baz.ixx': 'export module foo.bar:baz;\nimport :qux;\n',
+        'foo-qux.cpp': 'module foo.bar:qux;\n',
+    }
+
+    def _run_depscan(self, sources: T.Dict[str, str], cpp_compiler_id: str,
+                     unity: T.Optional[T.Dict[str, T.List[str]]] = None) -> T.Dict[str, T.Any]:
+        """Scan sources, where unity maps unity file names to the sources they include."""
+        from mesonbuild.backend.ninjabackend import TargetDependencyScannerInfo
+        unity = unity or {}
+        with tempfile.TemporaryDirectory() as tmpdir:
+            for name, text in sources.items():
+                with open(os.path.join(tmpdir, name), 'w', encoding='utf-8') as f:
+                    f.write(text)
+            in_unity = {s for included in unity.values() for s in included}
+            unity_sources: T.Dict[str, T.List[str]] = {}
+            for name, included in unity.items():
+                unity_sources[os.path.join(tmpdir, name)] = [os.path.join(tmpdir, s) for s in included]
+                with open(os.path.join(tmpdir, name), 'w', encoding='utf-8') as f:
+                    f.writelines(f'#include<{s}>\n' for s in unity_sources[os.path.join(tmpdir, name)])
+            srcs = [os.path.join(tmpdir, s) for s in [*sources, *unity] if s not in in_unity]
+            info = TargetDependencyScannerInfo(tmpdir, {s: s + '.obj' for s in srcs}, [(s, 'cpp') for s in srcs],
+                                               cpp_compiler_id, unity_sources)
+            pickle_file = os.path.join(tmpdir, 'scan.dat')
+            with open(pickle_file, 'wb') as f:
+                pickle.dump(info, f)
+            json_file = os.path.join(tmpdir, 'depscan.json')
+            self.assertEqual(mesonbuild.scripts.depscan.run([json_file, pickle_file]), 0)
+            with open(json_file, encoding='utf-8') as f:
+                return {os.path.basename(r['primary-output']): r for r in json.load(f)['rules']}
+
+    def test_depscan_cpp_partitions(self):
+        rules = self._run_depscan(self.DEPSCAN_PARTITION_SOURCES, 'msvc')
+        self.assertEqual(rules['foo.ixx.obj']['provides'][0]['compiled-module-path'], 'foo.bar.ifc')
+        self.assertEqual(rules['foo-baz.ixx.obj']['outputs'], ['foo.bar-baz.ifc'])
+        self.assertEqual(rules['foo-qux.cpp.obj']['outputs'], ['foo.bar-qux.ifc'])
+        self.assertEqual([(r['logical-name'], r['compiled-module-path']) for r in rules['foo.ixx.obj']['requires']],
+                         [('foo.bar:baz', 'foo.bar-baz.ifc')])
+        self.assertEqual([(r['logical-name'], r['compiled-module-path']) for r in rules['foo-baz.ixx.obj']['requires']],
+                         [('foo.bar:qux', 'foo.bar-qux.ifc')])
+        self.assertEqual(rules['foo-qux.cpp.obj']['requires'], [])
+
+    def test_depscan_cpp_gcc_module_paths(self):
+        rules = self._run_depscan(self.DEPSCAN_PARTITION_SOURCES, 'gcc')
+        gcm = lambda name: os.path.join('gcm.cache', name)
+        self.assertEqual(rules['foo.ixx.obj']['outputs'], [gcm('foo.bar.gcm')])
+        self.assertEqual(rules['foo-baz.ixx.obj']['outputs'], [gcm('foo.bar-baz.gcm')])
+        self.assertEqual(rules['foo-qux.cpp.obj']['outputs'], [gcm('foo.bar-qux.gcm')])
+        self.assertEqual([r['compiled-module-path'] for r in rules['foo.ixx.obj']['requires']],
+                         [gcm('foo.bar-baz.gcm')])
+
+    def test_depscan_cpp_unity(self):
+        sources = {
+            'foo.ixx': 'export module foo;\n',
+            'a.cpp': '#include <cstdio>\nimport foo;\n',
+            'b.cpp': 'import bar;\n',
+            'c.cpp': 'int c() { return 0; }\n',
+        }
+        rules = self._run_depscan(sources, 'msvc', {'t-unity0.cpp': ['a.cpp', 'b.cpp', 'c.cpp']})
+        self.assertEqual(sorted(rules), ['foo.ixx.obj', 't-unity0.cpp.obj'])
+        # The unity object needs what its included sources import
+        self.assertEqual([(r['logical-name'], r.get('compiled-module-path')) for r in rules['t-unity0.cpp.obj']['requires']],
+                         [('foo', 'foo.ifc'), ('bar', None)])
+        self.assertNotIn('outputs', rules['t-unity0.cpp.obj'])
+
+    def test_depscan_cpp_duplicate_imports(self):
+        sources = {
+            'foo.ixx': 'export module foo;\n',
+            'a.cpp': 'import foo;\nimport bar;\n',
+            'b.cpp': 'import bar;\nimport foo;\n',
+            'c.cpp': '#ifdef X\nimport foo;\n#else\nimport foo;\n#endif\n',
+        }
+        rules = self._run_depscan(sources, 'msvc', {'t-unity0.cpp': ['a.cpp', 'b.cpp']})
+        self.assertEqual([r['logical-name'] for r in rules['t-unity0.cpp.obj']['requires']], ['foo', 'bar'])
+        self.assertEqual([r['logical-name'] for r in rules['c.cpp.obj']['requires']], ['foo'])
+
+    def test_depscan_cpp_unity_module_unit(self):
+        for text in ['module foo;\n', 'export module foo;\n', 'module foo:bar;\n']:
+            with self.subTest(text=text):
+                sources = {'foo.ixx': 'export module foo;\n', 'a.cpp': 'int a() { return 0; }\n', 'impl.cpp': text}
+                with self.assertRaisesRegex(MesonException, r'impl\.cpp is a unit of the C\+\+ module foo'):
+                    self._run_depscan(sources, 'msvc', {'t-unity0.cpp': ['a.cpp', 'impl.cpp']})
 
     def test_log_once(self):
         f = io.StringIO()
