@@ -47,7 +47,7 @@ jobs:
 
       - run: git config --global core.autocrlf input
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: cygwin/cygwin-install-action@v6
         with:
@@ -81,7 +81,7 @@ jobs:
           echo "dir=$(cygpath -wa $(python3 -m pip cache dir))" >> "$GITHUB_OUTPUT"
         shell: bash --noprofile --norc -o igncr -eo pipefail '{0}'
 
-      - uses: actions/cache/restore@v4
+      - uses: actions/cache/restore@v5
         id: restore-cache
         with:
           path: ${{ steps.pip-cache.outputs.dir }}
@@ -94,7 +94,7 @@ jobs:
           python3 -m pip --disable-pip-version-check install pytest pytest-subtests pytest-xdist
         shell: bash --noprofile --norc -o igncr -eo pipefail '{0}'
 
-      - uses: actions/cache/save@v4
+      - uses: actions/cache/save@v5
         with:
           path: ${{ steps.pip-cache.outputs.dir }}
           key: cygwin-pip-${{ github.run_number }}
@@ -109,7 +109,7 @@ jobs:
           SKIP_STATIC_BOOST: 1
         shell: bash --noprofile --norc -o igncr -eo pipefail '{0}'
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.NAME }}
           path: meson-test-run.*
