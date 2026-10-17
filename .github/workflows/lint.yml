@@ -6,19 +6,14 @@ concurrency:
 
 on:
   push:
-    paths:
+    paths: &shared_paths
     - "**.py"
     - ".github/workflows/lint.yml"
     - ".pylintrc"
     - ".flake8"
     - ".mypy.ini"
   pull_request:
-    paths:
-    - "**.py"
-    - ".github/workflows/lint.yml"
-    - ".pylintrc"
-    - ".flake8"
-    - ".mypy.ini"
+    paths: *shared_paths
 
 permissions:
   contents: read
