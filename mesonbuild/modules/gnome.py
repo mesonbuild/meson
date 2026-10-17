@@ -952,16 +952,29 @@ class GnomeModule(ExtensionModule):
                 sanitize = state.environment.coredata.optstore.get_value_for('b_sanitize')
                 assert isinstance(sanitize, list)
                 cflags += compiler.sanitizer_compile_args(None, sanitize)
-                # These must be first in ldflags
-                if 'address' in sanitize:
-                    internal_ldflags += ['-lasan']
-                if 'thread' in sanitize:
-                    internal_ldflags += ['-ltsan']
-                if 'undefined' in sanitize:
-                    internal_ldflags += ['-lubsan']
-                # FIXME: Linking directly to lib*san is not recommended but g-ir-scanner
-                # does not understand -f LDFLAGS. https://bugzilla.gnome.org/show_bug.cgi?id=783892
-                # ldflags += compiler.sanitizer_link_args(None, state.environment, sanitize)
+
+                env_ldflags = set(T.cast('T.List[str]', state.get_option('c_link_args', state.subproject)))
+                # shared-libasan is an alias for shared-libsan
+                clang_shared_runtime_ldflags = {'-shared-libasan', '-shared-libsan'}
+
+                # Clang supports dynamically-linked (shared) and statically-linked sanitizer runtimes.
+                # Combining both types can cause applications to hang:
+                # https://github.com/llvm/llvm-project/issues/187330
+                # https://github.com/mesonbuild/meson/issues/15639
+                #
+                # Check to see if a user has specified a shared runtime before automatically adding
+                # flags like '-lasan', which link static runtimes.
+                if compiler.id != 'clang' or env_ldflags.isdisjoint(clang_shared_runtime_ldflags):
+                    # These must be first in ldflags
+                    if 'address' in sanitize:
+                        internal_ldflags += ['-lasan']
+                    if 'thread' in sanitize:
+                        internal_ldflags += ['-ltsan']
+                    if 'undefined' in sanitize:
+                        internal_ldflags += ['-lubsan']
+                    # FIXME: Linking directly to lib*san is not recommended but g-ir-scanner
+                    # does not understand -f LDFLAGS. https://bugzilla.gnome.org/show_bug.cgi?id=783892
+                    # ldflags += compiler.sanitizer_link_args(None, state.environment, sanitize)
 
         return cflags, internal_ldflags, external_ldflags
 
