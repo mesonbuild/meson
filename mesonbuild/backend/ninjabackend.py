@@ -3346,6 +3346,8 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         # C++ import std is complicated enough to get its own method.
         istd_args, istd_dep = self.handle_cpp_import_std(target, compiler)
         commands.extend(istd_args)
+        if compiler.language == 'cpp' and self.should_use_dyndeps_for_target(target):
+            commands.extend(compiler.get_cpp_modules_depfile_args())
         header_deps += istd_dep
         if extra_args is not None:
             commands.extend(extra_args)
