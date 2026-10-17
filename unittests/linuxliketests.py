@@ -831,6 +831,19 @@ class LinuxlikeTests(BasePlatformTests):
                              msg=('Expected file %s to have mode %s but found %s instead.' %
                                   (datafile, want_mode, found_mode)))
 
+    def test_cpp_modules_gcc(self):
+        if self.backend is not Backend.ninja:
+            raise SkipTest(f'C++ modules only work with the Ninja backend (not {self.backend.name}).')
+        testdir = os.path.join(self.unit_test_dir, '141 cpp modules gcc')
+        env = get_fake_env(testdir, self.builddir, self.prefix)
+        cpp = detect_cpp_compiler(env, MachineChoice.HOST)
+        if cpp.get_id() != 'gcc':
+            raise SkipTest('C++ modules test is only for GCC.')
+        if version_compare(cpp.version, '<11'):
+            raise SkipTest('GCC supports C++ modules since version 11.')
+        self.init(testdir)
+        self.build()
+
     def test_cpp_std_override(self):
         testdir = os.path.join(self.unit_test_dir, '6 std override')
         self.init(testdir)

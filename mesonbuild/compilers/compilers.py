@@ -1586,6 +1586,13 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
     def get_cpp_modules_args(self) -> T.List[str]:
         return []
 
+    def get_cpp_modules_depfile_args(self) -> T.List[str]:
+        """Arguments to keep module dependencies out of the dependency file.
+
+        Module dependencies are handled by the dependency scanner instead.
+        """
+        return []
+
     @abc.abstractmethod
     def get_optimization_args(self, optimization_level: str) -> T.List[str]:
         pass
