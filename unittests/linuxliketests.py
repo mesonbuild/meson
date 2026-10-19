@@ -839,8 +839,8 @@ class LinuxlikeTests(BasePlatformTests):
         cpp = detect_cpp_compiler(env, MachineChoice.HOST)
         if cpp.get_id() != 'gcc':
             raise SkipTest('C++ modules test is only for GCC.')
-        if version_compare(cpp.version, '<11'):
-            raise SkipTest('GCC supports C++ modules since version 11.')
+        if version_compare(cpp.version, '<14'):
+            raise SkipTest('Scanning the dependencies of C++ modules requires GCC 14.')
         self.init(testdir)
         self.build()
 

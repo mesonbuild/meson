@@ -585,6 +585,8 @@ class NinjaBackend(backends.Backend):
         self.rust_crates: T.Dict[str, RustCrate] = {}
         self.implicit_meson_outs: T.List[str] = []
         self._uses_dyndeps = False
+        # The files describing the modules of each target (by id), written by the scanners
+        self.module_description_files: T.Dict[str, T.List[str]] = {}
         self._generated_header_cache: T.Dict[str, T.List[FileOrString]] = {}
         # nvcc chokes on thin archives:
         #   nvlink fatal   : Could not open input file 'libfoo.a.p'
@@ -1221,6 +1223,16 @@ class NinjaBackend(backends.Backend):
             return False
         if 'fortran' in target.compilers:
             return True
+        if not self.target_uses_cpp_modules(target):
+            return False
+        cpp = target.compilers['cpp']
+        if cpp.get_cpp_modules_scan_command() is None:
+            raise MesonException(
+                f'Target {target.name} uses C++ modules, but {cpp.get_id()} {cpp.version} cannot scan '
+                'the dependencies of modules. A more recent version of the compiler is required.')
+        return True
+
+    def target_uses_cpp_modules(self, target: build.BuildTarget) -> bool:
         if 'cpp' not in target.compilers:
             return False
         for arg in target.compilers['cpp'].get_cpp_modules_args():
@@ -1249,44 +1261,88 @@ class NinjaBackend(backends.Backend):
             return
         self._uses_dyndeps = True
         json_file, depscan_file = self.get_dep_scan_file_for(target)
-        pickle_base = target.name + '.dat'
-        pickle_file = os.path.join(self.get_target_private_dir(target), pickle_base).replace('\\', '/')
-        pickle_abs = os.path.join(self.get_target_private_dir_abs(target), pickle_base).replace('\\', '/')
-        rule_name = 'depscan'
-        scan_sources = list(self.select_sources_to_scan(compiled_sources))
+        # C++ sources are scanned by the compiler, see generate_cpp_module_scan_edge()
+        description_files = list(self.module_description_files.get(target.get_id(), []))
+        scan_sources = [s for s in self.select_sources_to_scan(compiled_sources) if s[1] == 'fortran']
 
-        scaninfo = TargetDependencyScannerInfo(
-            self.get_target_private_dir(target), source2object, scan_sources)
+        if scan_sources or not description_files:
+            pickle_base = target.name + '.dat'
+            pickle_file = os.path.join(self.get_target_private_dir(target), pickle_base).replace('\\', '/')
+            pickle_abs = os.path.join(self.get_target_private_dir_abs(target), pickle_base).replace('\\', '/')
+            rule_name = 'depscan'
 
-        write = True
-        if os.path.exists(pickle_abs):
-            with open(pickle_abs, 'rb') as p:
-                old = pickle.load(p)
-            write = old != scaninfo
+            scaninfo = TargetDependencyScannerInfo(
+                self.get_target_private_dir(target), source2object, scan_sources)
 
-        if write:
-            with open(pickle_abs, 'wb') as p:
-                pickle.dump(scaninfo, p)
+            write = True
+            if os.path.exists(pickle_abs):
+                with open(pickle_abs, 'rb') as p:
+                    old = pickle.load(p)
+                write = old != scaninfo
 
-        elem = NinjaBuildElement(self.all_outputs, json_file, rule_name, pickle_file)
-        # A full dependency is required on all scanned sources, if any of them
-        # are updated we need to rescan, as they may have changed the modules
-        # they use or export.
-        for s in scan_sources:
-            elem.deps.add(s[0])
-        elem.add_orderdep(self.order_deps_to_strings(target, object_deps))
-        elem.add_item('name', target.name)
-        self.add_build(elem)
+            if write:
+                with open(pickle_abs, 'wb') as p:
+                    pickle.dump(scaninfo, p)
+
+            elem = NinjaBuildElement(self.all_outputs, json_file, rule_name, pickle_file)
+            # A full dependency is required on all scanned sources, if any of them
+            # are updated we need to rescan, as they may have changed the modules
+            # they use or export.
+            for s in scan_sources:
+                elem.deps.add(s[0])
+            elem.add_orderdep(self.order_deps_to_strings(target, object_deps))
+            elem.add_item('name', target.name)
+            self.add_build(elem)
+            description_files.insert(0, json_file)
+        self.module_description_files[target.get_id()] = description_files
 
         infiles: T.Set[str] = set()
         for t in self.get_all_linked_targets(target):
             if self.should_use_dyndeps_for_target(t):
                 assert isinstance(t, build.BuildTarget)
-                infiles.add(self.get_dep_scan_file_for(t)[0])
+                infiles.update(self.module_description_files.get(t.get_id(), []))
 
-        elem = NinjaBuildElement(self.all_outputs, depscan_file, 'depaccumulate', [json_file] + sorted(infiles))
+        cpp = target.compilers.get('cpp')
+        bmi_pattern = cpp.get_cpp_modules_bmi_pattern() if cpp and self.target_uses_cpp_modules(target) else None
+
+        elem = NinjaBuildElement(self.all_outputs, depscan_file, 'depaccumulate',
+                                 description_files + sorted(infiles - set(description_files)))
         elem.add_item('name', target.name)
+        elem.add_item('own', str(len(description_files)))
+        elem.add_item('bmi_pattern', bmi_pattern or '')
         self.add_build(elem)
+
+    def generate_cpp_module_scan_edge(self, target: build.BuildTarget, compiler: Compiler,
+                                      rel_src: str, rel_obj: str, args: CompilerArgs,
+                                      deps: T.List[str], header_deps: T.List[FileOrString],
+                                      order_deps: T.List[File] | T.List[FileOrString]) -> None:
+        """Make the compiler scan a C++ source for the modules it provides and requires."""
+        if compiler.get_language() != 'cpp' or isinstance(target, build.CompileTarget):
+            return
+        if not self.should_use_dyndeps_for_target(target) or not self.target_uses_cpp_modules(target):
+            return
+        rule = self.get_compiler_rule_name('cpp', compiler.for_machine, 'SCAN')
+        if not self.ninja.has_rule(rule):
+            scan_command = compiler.get_cpp_modules_scan_command()
+            assert scan_command is not None
+            # The arguments with Ninja variables must not be quoted
+            command = [NinjaCommandArg(c, Quoting.none) if '$' in c else c for c in scan_command]
+            gcc_depfile = compiler.get_depfile_format() == 'gcc'
+            self.add_rule(NinjaRule(rule, command, [], 'Scanning $in for modules',
+                                    deps='gcc' if gcc_depfile else 'msvc',
+                                    depfile='$DEPFILE' if gcc_depfile else None))
+        json_file = rel_obj + '.scan.json'
+        elem = NinjaBuildElement(self.all_outputs, json_file, rule, rel_src)
+        self.add_header_deps(target, elem, header_deps)
+        for d in deps:
+            elem.add_dep(d)
+        elem.add_orderdep(self.order_deps_to_strings(target, order_deps))
+        if compiler.get_depfile_format() == 'gcc':
+            elem.add_item('DEPFILE', json_file + '.d')
+        elem.add_item('ARGS', args)
+        elem.add_item('OBJ', rel_obj)
+        self.add_build(elem)
+        self.module_description_files.setdefault(target.get_id(), []).append(json_file)
 
     def select_sources_to_scan(self, compiled_sources: T.List[str],
                                ) -> T.Iterable[T.Tuple[str, Literal['cpp', 'fortran']]]:
@@ -2857,7 +2913,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         rulename = 'depaccumulate'
         command = self.environment.get_build_command() + \
             ['--internal', 'depaccumulate']
-        args = ['$out', '$in']
+        args = ['--own', '$own', '--bmi-pattern', '$bmi_pattern', '$out', '$in']
         description = 'Generating dynamic dependency information for target $name'
         rule = NinjaRule(rulename, command, args, description)
         self.add_rule(rule)
@@ -3422,6 +3478,8 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                 return result
             element.add_item('CUDA_ESCAPED_TARGET', quote_make_target(rel_obj))
         element.add_item('ARGS', commands)
+        self.generate_cpp_module_scan_edge(target, compiler, rel_src, rel_obj, commands,
+                                           extra_deps, header_deps, order_deps)
 
         # NinjaRule.should_use_rspfile counts element.elems too, which will
         # exceed the RSP threshold only after added
