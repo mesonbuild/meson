@@ -439,6 +439,45 @@ InstalledDir: /usr/bin'''), '14.0.0-1ubuntu1.1')
                 self.assertEqual(comp.get_option_compile_args(None),
                                  ref.get_option_compile_args(None))
 
+    def test_msvc_import_std_id(self):
+        env = get_fake_env()
+        linker = linkers.MSVCDynamicLinker(env, MachineChoice.HOST, [])
+        cc = VisualStudioCPPCompiler([], ['cl'], '19.44.35219', MachineChoice.HOST, env, 'x64', linker=linker)
+        std_id = cc.get_import_std_id
+        base = ['/MD', '/nologo', '/utf-8', '/EHsc', '/std:c++latest', '/permissive-']
+
+        # What does not matter to the standard library module
+        for irrelevant in (['-Isome/dir', '/I.'], ['/W4', '/wd4251', '/WX'], ['/Od'], ['/O2'], ['/Z7'],
+                           ['/Fdtarget.pdb', '/Fofile.obj'], ['/showIncludes'], ['/GL', '/Gy'],
+                           ['/DNOMINMAX', '-DFOO=1'], ['file.cpp']):
+            with self.subTest(irrelevant=irrelevant):
+                self.assertEqual(std_id(base + irrelevant), std_id(base))
+
+        # The same arguments in another form
+        self.assertEqual(std_id(reversed(base)), std_id(base))
+        self.assertEqual(std_id(base + base), std_id(base))
+        self.assertEqual(std_id(['-MD', '-nologo', '-utf-8', '-EHsc', '-std:c++latest', '-permissive-']), std_id(base))
+        self.assertEqual(std_id(['/MDd', '/MT'] + base), std_id(base))  # the last C runtime wins
+        self.assertEqual(std_id(base + ['/D_HAS_EXCEPTIONS']), std_id(base + ['/D_HAS_EXCEPTIONS=1']))
+
+        # What matters, as reported by MSVC with the warning C5050
+        for relevant in (['/MDd'], ['/MT'], ['/MTd'], ['/GR-'], ['/fp:fast'], ['/J'], ['/sdl'],
+                         ['/guard:cf'], ['/std:c++20'], ['/openmp'], ['/D_ITERATOR_DEBUG_LEVEL=0'],
+                         ['/D_HAS_EXCEPTIONS=0'], ['/Zc:wchar_t-'], ['/Zp4'], ['/arch:AVX2'], ['/Gz']):
+            with self.subTest(relevant=relevant):
+                self.assertNotEqual(std_id(base + relevant), std_id(base))
+        self.assertNotEqual(std_id([a for a in base if a != '/utf-8']), std_id(base))
+
+        # A module is only valid for the compiler which built it
+        other_version = VisualStudioCPPCompiler([], ['cl'], '19.50.0', MachineChoice.HOST, env, 'x64', linker=linker)
+        self.assertNotEqual(other_version.get_import_std_id(base), std_id(base))
+        other_arch = VisualStudioCPPCompiler([], ['cl'], '19.44.35219', MachineChoice.HOST, env, 'x86', linker=linker)
+        self.assertNotEqual(other_arch.get_import_std_id(base), std_id(base))
+
+        # The arguments are the ones to compile the module with
+        self.assertEqual(cc.get_import_std_args(base + ['/Isome', '/Od', '/D_HAS_EXCEPTIONS']),
+                         ['/D_HAS_EXCEPTIONS=1', '/EHsc', '/MD', '/permissive-', '/std:c++latest', '/utf-8'])
+
     def test_compiler_args_class_visualstudio(self):
         env = get_fake_env()
         linker = linkers.MSVCDynamicLinker(env, MachineChoice.HOST, [])
