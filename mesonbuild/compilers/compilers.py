@@ -1593,6 +1593,21 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
         """
         return []
 
+    def get_cpp_modules_scan_command(self) -> T.Optional[T.List[str]]:
+        """Command used to scan a C++ source for the modules it provides and requires.
+
+        The command writes a P1689 description and is meant to be run by Ninja,
+        it therefore uses the following Ninja variables:
+
+        - ``$ARGS``: the compile arguments of the source
+        - ``$in``: the source to scan
+        - ``$out``: the P1689 file to write
+        - ``$OBJ``: the object file the source is compiled to
+
+        :return: the command, or None if the compiler cannot scan modules
+        """
+        return None
+
     @abc.abstractmethod
     def get_optimization_args(self, optimization_level: str) -> T.List[str]:
         pass
