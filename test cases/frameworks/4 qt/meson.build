@@ -165,8 +165,9 @@ foreach qt : ['qt4', 'qt5', 'qt6']
 
     # building Qt plugins implies to give include path to moc
     plugin_includes = include_directories('pluginInterface', 'plugin')
-    pluginpreprocess = qtmodule.preprocess(
-      moc_headers : 'plugin/plugin.h',
+    # compile_moc with only `headers` (no `sources`)
+    pluginpreprocess = qtmodule.compile_moc(
+      headers : 'plugin/plugin.h',
       include_directories : plugin_includes
     )
     plugin = library(qt + 'plugin', 'plugin/plugin.cpp', pluginpreprocess,
@@ -174,8 +175,9 @@ foreach qt : ['qt4', 'qt5', 'qt6']
           dependencies : qtcore)
 
     # implementing Qt interfaces requires passing Qt include paths to moc
-    qtinterfacepreprocess = qtmodule.preprocess(
-      moc_sources : 'qtinterface.cpp',
+    # compile_moc with only `sources` (no `headers`)
+    qtinterfacepreprocess = qtmodule.compile_moc(
+      sources : 'qtinterface.cpp',
       dependencies : qtdep
     )
     qtinterface = library(qt + 'qtinterface',

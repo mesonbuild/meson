@@ -203,7 +203,7 @@ _MODULE_NAME_RE = f'[^{_MODULE_NAME_PUNCT}0-9][^{_MODULE_NAME_PUNCT}]*(\\.[^{_MO
 
 _SOURCES_EMPTY_KWS: KwargInfo[list[str | File | build.GeneratedTypes]] = KwargInfo(
     'sources',
-    ContainerTypeInfo(list, (File, str, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList), allow_empty=False),
+    ContainerTypeInfo(list, (File, str, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList)),
     listify=True,
     default=[],
     since_values={
