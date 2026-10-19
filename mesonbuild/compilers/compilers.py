@@ -1618,6 +1618,21 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
         """
         return []
 
+    def get_cpp_modules_mapper(self, private_dir: str) -> T.Optional[str]:
+        """The file telling the compiler where the compiled modules are
+
+        It is written after the scan, by the dependency accumulator, because it
+        depends on which modules the sources provide.
+
+        :param private_dir: the private directory of the target
+        :return: the file, or None if the compiler does not use one
+        """
+        return None
+
+    def filter_cpp_modules_scan_args(self, args: T.Sequence[str]) -> T.List[str]:
+        """The compile arguments to scan a source with, without the ones which depend on the scan"""
+        return list(args)
+
     def get_cpp_modules_bmi_pattern(self) -> T.Optional[str]:
         """Where the compiler writes the compiled form of a C++ module.
 

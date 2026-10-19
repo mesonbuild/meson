@@ -858,6 +858,23 @@ class LinuxlikeTests(BasePlatformTests):
         self.build()
         self.run_tests()
 
+    def test_cpp_modules_gcc_same_name(self):
+        if self.backend is not Backend.ninja:
+            raise SkipTest(f'C++ modules only work with the Ninja backend (not {self.backend.name}).')
+        testdir = os.path.join(self.unit_test_dir, '144 cpp modules same name')
+        env = get_fake_env(testdir, self.builddir, self.prefix)
+        cpp = detect_cpp_compiler(env, MachineChoice.HOST)
+        if cpp.get_id() != 'gcc':
+            raise SkipTest('C++ modules test is only for GCC.')
+        if version_compare(cpp.version, '<14'):
+            raise SkipTest('Scanning the dependencies of C++ modules requires GCC 14.')
+        self.init(testdir)
+        self.build()
+        self.run_tests()
+        # Each target has the compiled module in its own directory
+        compiled = glob(os.path.join(self.builddir, '*', 'm.gcm'))
+        self.assertEqual(len(compiled), 2, compiled)
+
     def test_cpp_std_override(self):
         testdir = os.path.join(self.unit_test_dir, '6 std override')
         self.init(testdir)
