@@ -62,6 +62,9 @@ if T.TYPE_CHECKING:
         rspfile_quote_style: RSPFileSyntax
 
 
+# Sources with these extensions are module interface units, without any argument for the compiler
+CPP_MODULE_INTERFACE_SUFFIXES = {'ixx', 'cppm'}
+
 FORTRAN_INCLUDE_PAT = r"^\s*#?include\s*['\"](\w+\.\w+)['\"]"
 FORTRAN_MODULE_PAT = r"^\s*\bmodule\b\s+(\w+)\s*(?:!+.*)*$"
 FORTRAN_SUBMOD_PAT = r"^\s*\bsubmodule\b\s*\((\w+:?\w+)\)\s*(\w+)"
@@ -587,6 +590,9 @@ class NinjaBackend(backends.Backend):
         self._uses_dyndeps = False
         # The files describing the modules of each target (by id), written by the scanners
         self.module_description_files: T.Dict[str, T.List[str]] = {}
+        # Evaluated for every source of a target, the answer only depends on the target
+        self._uses_dyndeps_cache: T.Dict[str, bool] = {}
+        self._uses_cpp_modules_cache: T.Dict[str, bool] = {}
         self._generated_header_cache: T.Dict[str, T.List[FileOrString]] = {}
         # nvcc chokes on thin archives:
         #   nvlink fatal   : Could not open input file 'libfoo.a.p'
@@ -1221,6 +1227,13 @@ class NinjaBackend(backends.Backend):
             return False
         if not isinstance(target, build.BuildTarget):
             return False
+        key = target.get_id()
+        result = self._uses_dyndeps_cache.get(key)
+        if result is None:
+            result = self._uses_dyndeps_cache[key] = self._should_use_dyndeps_for_target(target)
+        return result
+
+    def _should_use_dyndeps_for_target(self, target: build.BuildTarget) -> bool:
         if 'fortran' in target.compilers:
             return True
         if not self.target_uses_cpp_modules(target):
@@ -1233,25 +1246,33 @@ class NinjaBackend(backends.Backend):
         return True
 
     def target_uses_cpp_modules(self, target: build.BuildTarget) -> bool:
+        """Whether the C++ sources of a target must be scanned for modules.
+
+        This is the case if the target, or a target it is linked with, shows
+        that it uses modules. Linked targets matter because the sources which
+        only import a module do not show anything.
+        """
+        key = target.get_id()
+        result = self._uses_cpp_modules_cache.get(key)
+        if result is None:
+            result = self._uses_cpp_modules_cache[key] = 'cpp' in target.compilers and (
+                self._target_has_cpp_modules(target) or
+                any(isinstance(t, build.BuildTarget) and self._target_has_cpp_modules(t)
+                    for t in self.get_all_linked_targets(target)))
+        return result
+
+    def _target_has_cpp_modules(self, target: build.BuildTarget) -> bool:
         if 'cpp' not in target.compilers:
             return False
+        # An argument which enables modules
         for arg in target.compilers['cpp'].get_cpp_modules_args():
             if arg in target.extra_args['cpp']:
                 return True
-        # Currently only the preview version of Visual Studio is supported.
-        cpp = target.compilers['cpp']
-        if cpp.get_id() != 'msvc':
-            return False
-        cppversion = self.get_target_option(target, OptionKey('cpp_std',
-                                                              machine=target.for_machine,
-                                                              subproject=target.subproject))
-        if cppversion not in ('latest', 'c++latest', 'vc++latest'):
-            return False
-        if not mesonlib.current_vs_supports_modules():
-            return False
-        if mesonlib.version_compare(cpp.version, '<19.28.28617'):
-            return False
-        return True
+        # A source which is a module interface by its extension
+        for src in target.sources:
+            if os.path.splitext(src.fname)[1][1:].lower() in CPP_MODULE_INTERFACE_SUFFIXES:
+                return True
+        return self.target_uses_import_std(target)
 
     def generate_dependency_scan_target(self, target: build.BuildTarget,
                                         compiled_sources: T.List[str],
@@ -3577,7 +3598,12 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         extension = os.path.splitext(src.fname)[1][1:]
         if extension != 'C':
             extension = extension.lower()
-        if not (extension in compilers.lang_suffixes['fortran'] or extension in compilers.lang_suffixes['cpp']):
+        if extension in compilers.lang_suffixes['cpp']:
+            # C++ sources are only scanned if the target uses modules, the
+            # dyndep file does not mention them otherwise
+            if not self.target_uses_cpp_modules(target):
+                return
+        elif extension not in compilers.lang_suffixes['fortran']:
             return
         dep_scan_file = self.get_dep_scan_file_for(target)[1]
         element.add_item('dyndep', dep_scan_file)

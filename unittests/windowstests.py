@@ -457,6 +457,17 @@ class WindowsTests(BasePlatformTests):
         self.build()
         self.run_tests()
 
+    def test_modules_propagation(self):
+        if self.backend is not Backend.ninja:
+            raise SkipTest(f'C++ modules only work with the Ninja backend (not {self.backend.name}).')
+        if 'VSCMD_VER' not in os.environ:
+            raise SkipTest('C++ modules is only supported with Visual Studio.')
+        if version_compare(os.environ['VSCMD_VER'], '<17.2.0'):
+            raise SkipTest('Scanning the dependencies of C++ modules requires Visual Studio 2022 17.2 or newer.')
+        self.init(os.path.join(self.unit_test_dir, '143 cpp modules propagation'))
+        self.build()
+        self.run_tests()
+
     def test_import_std_arguments(self):
         if self.backend is not Backend.ninja:
             raise SkipTest(f'import std only works with the Ninja backend (not {self.backend.name}).')
