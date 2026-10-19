@@ -575,6 +575,10 @@ class GnuCPPCompiler(_StdCPPLibMixin, GnuCPPStds, GnuCompiler, CPPCompiler):
             return ['-Mno-modules']
         return []
 
+    def get_cpp_modules_bmi_pattern(self) -> T.Optional[str]:
+        # The default module mapper of GCC puts the files in gcm.cache
+        return 'gcm.cache/{module}.gcm'
+
     def get_cpp_modules_scan_command(self) -> T.Optional[T.List[str]]:
         # -fdeps-format was added in GCC 14
         if version_compare(self.version, '<14'):
@@ -981,6 +985,10 @@ class VisualStudioCPPCompiler(CPP11AsCPP14Mixin, VisualStudioLikeCPPCompilerMixi
 
     def get_cpp_modules_args(self) -> T.List[str]:
         return ['/interface']
+
+    def get_cpp_modules_bmi_pattern(self) -> T.Optional[str]:
+        # Written to the current directory by default
+        return '{module}.ifc'
 
     def get_cpp_modules_scan_command(self) -> T.Optional[T.List[str]]:
         # /scanDependencies was added in Visual Studio 2022 17.2

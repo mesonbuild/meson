@@ -481,6 +481,20 @@ Thread model: posix'''), '21.9.0')
         cc.scan_deps = ['clang-scan-deps']
         self.assertIsNone(cc.get_cpp_modules_scan_command())
 
+    def test_cpp_modules_bmi_pattern(self):
+        env = get_fake_env()
+        linker = linkers.MSVCDynamicLinker(env, MachineChoice.HOST, [])
+
+        gcc = GnuCPPCompiler([], ['g++'], '14.1', MachineChoice.HOST, env)
+        self.assertEqual(gcc.get_cpp_modules_bmi_pattern().format(module='a-b'), 'gcm.cache/a-b.gcm')
+
+        msvc = VisualStudioCPPCompiler([], ['cl'], '19.32', MachineChoice.HOST, env, 'x64', linker=linker)
+        self.assertEqual(msvc.get_cpp_modules_bmi_pattern().format(module='a.b'), 'a.b.ifc')
+
+        # Clang names the file after the object file, it needs to be told where to write it
+        clang = ClangCPPCompiler([], ['clang++'], '19.1.0', MachineChoice.HOST, env)
+        self.assertIsNone(clang.get_cpp_modules_bmi_pattern())
+
     def test_cpp_modules_scan_command_visualstudio(self):
         env = get_fake_env()
         linker = linkers.MSVCDynamicLinker(env, MachineChoice.HOST, [])
