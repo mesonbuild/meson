@@ -45,6 +45,7 @@ if T.TYPE_CHECKING:
     from ..compilers.compilers import Language
     from ..compilers.cs import CsCompiler
     from ..compilers.fortran import FortranCompiler
+    from ..compilers.mixins.visualstudio import MSVCCompiler
     from ..compilers.rust import RustCompiler
     from ..compilers.swift import SwiftCompiler
     from ..mesonlib import FileOrString
@@ -586,7 +587,8 @@ class NinjaBackend(backends.Backend):
         # - https://github.com/mesonbuild/meson/pull/9453
         # - https://github.com/mesonbuild/meson/issues/9479#issuecomment-953485040
         self.allow_thin_archives = PerMachine[bool](True, True)
-        self.import_std: T.Optional[ImportStdInfo] = None
+        # The compiled standard library modules, by file name
+        self.import_std: T.Dict[str, ImportStdInfo] = {}
 
     def create_phony_target(self, dummy_outfile: str, rulename: str, phony_infilenames: ListifiedStr) -> NinjaBuildElement:
         '''
@@ -3433,9 +3435,9 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         # At the time of writing, all three major compilers work
         # wildly differently. Keep this isolated here until things
         # consolidate.
+        mod_file = self.get_import_std_module_file(target, compiler)
         if compiler.id == 'gcc':
-            if self.import_std is None:
-                mod_file = 'gcm.cache/std.gcm'
+            if mod_file not in self.import_std:
                 mod_obj_file = 'std.o'
                 elem = NinjaBuildElement(self.all_outputs, [mod_file, mod_obj_file], 'CUSTOM_COMMAND', [])
                 compile_args = compiler.get_option_compile_args(target, target.subproject)
@@ -3443,29 +3445,38 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                 compile_args += ['-c', '-fmodules', '-fsearch-include-path', 'bits/std.cc']
                 elem.add_item('COMMAND', compiler.exelist + compile_args)
                 self.add_build(elem)
-                self.import_std = ImportStdInfo(elem, mod_file, [mod_obj_file])
+                self.import_std[mod_file] = ImportStdInfo(elem, mod_file, [mod_obj_file])
             istd_args = ['-fmodules']
-            istd_dep = [File(True, '', self.import_std.gen_module_file)]
+            istd_dep = [File.from_built_file('', self.import_std[mod_file].gen_module_file)]
             return istd_args, istd_dep
         elif compiler.id == 'msvc':
-            if self.import_std is None:
-                mod_file = 'std.ifc'
-                mod_obj_file = 'std.obj'
+            msvc = T.cast('MSVCCompiler', compiler)
+            # There is a module for each set of arguments which matter to the importers.
+            mod_obj_file = os.path.splitext(mod_file)[0] + '.obj'
+            if mod_file not in self.import_std:
                 in_file = Path(os.environ['VCToolsInstallDir']) / 'modules/std.ixx'
                 if not in_file.is_file():
-                    raise SystemExit('VS std import header could not be located.')
+                    raise MesonException('VS std import header could not be located.')
                 in_file_str = str(in_file)
                 elem = NinjaBuildElement(self.all_outputs, [mod_file, mod_obj_file], 'CUSTOM_COMMAND', [in_file_str])
-                compile_args = compiler.get_option_compile_args(target, target.subproject)
-                compile_args += compiler.get_option_std_args(target, target.subproject)
-                compile_args += ['/nologo', '/c', '/O2', in_file_str]
-                elem.add_item('COMMAND', compiler.exelist + compile_args)
+                compile_args = msvc.get_import_std_args(self._generate_single_compile(target, compiler).to_native())
+                # There is nothing to gain from a compiler cache, it can not restore the module
+                elem.add_item('COMMAND', [*msvc.get_exelist(ccache=False), *compile_args, '/nologo', '/c',
+                                          '/ifcOutput', mod_file, f'/Fo{mod_obj_file}', in_file_str])
                 self.add_build(elem)
-                self.import_std = ImportStdInfo(elem, mod_file, [mod_obj_file])
-            istd_dep = [File(True, '', self.import_std.gen_module_file)]
+                self.import_std[mod_file] = ImportStdInfo(elem, mod_file, [mod_obj_file])
+            istd_args = ['/reference', f'std={mod_file}']
+            istd_dep = [File.from_built_file('', self.import_std[mod_file].gen_module_file)]
             return istd_args, istd_dep
         else:
             raise MesonException(f'Import std not supported on compiler {compiler.id} yet.')
+
+    def get_import_std_module_file(self, target: build.BuildTarget, compiler: Compiler) -> str:
+        """The compiled standard library module a target imports"""
+        if compiler.id == 'msvc':
+            args = self._generate_single_compile(target, compiler).to_native()
+            return f'std.{T.cast("MSVCCompiler", compiler).get_import_std_id(args)}.ifc'
+        return 'gcm.cache/std.gcm'
 
     def add_dependency_scanner_entries_to_element(self, target: build.BuildTarget, compiler: Compiler, element: NinjaBuildElement, src: File) -> None:
         if not self.should_use_dyndeps_for_target(target):
@@ -3990,7 +4001,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
     def get_import_std_object(self, target: build.BuildTarget) -> T.List[str]:
         if not self.target_uses_import_std(target):
             return []
-        return self.import_std.gen_objects
+        return self.import_std[self.get_import_std_module_file(target, target.compilers['cpp'])].gen_objects
 
     def get_dependency_filename(self, t: T.Union[File, build.BuildTargetProto]) -> str:
         if isinstance(t, build.SharedLibrary):
