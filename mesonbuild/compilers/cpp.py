@@ -955,6 +955,14 @@ class VisualStudioCPPCompiler(CPP11AsCPP14Mixin, VisualStudioLikeCPPCompilerMixi
     def get_cpp_modules_args(self) -> T.List[str]:
         return ['/interface']
 
+    def get_cpp_modules_scan_command(self) -> T.Optional[T.List[str]]:
+        # /scanDependencies was added in Visual Studio 2022 17.2
+        if version_compare(self.version, '<19.32'):
+            return None
+        # A scan does not produce an object file, there is no point in a compiler cache.
+        return [*self.get_exelist(ccache=False), '$ARGS', '/scanDependencies', '$out',
+                *self.get_output_args('$OBJ'), '$in']
+
 class ClangClCPPCompiler(VisualStudioLikeCPPCompilerMixin, ClangClCompiler, CPPCompiler):
 
     id = 'clang-cl'

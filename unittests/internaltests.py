@@ -434,6 +434,17 @@ Thread model: posix'''), '21.9.0')
                 self.assertEqual(comp.get_option_compile_args(None),
                                  ref.get_option_compile_args(None))
 
+    def test_cpp_modules_scan_command_visualstudio(self):
+        env = get_fake_env()
+        linker = linkers.MSVCDynamicLinker(env, MachineChoice.HOST, [])
+
+        cc = VisualStudioCPPCompiler(['ccache'], ['cl'], '19.32', MachineChoice.HOST, env, 'x64', linker=linker)
+        self.assertEqual(cc.get_cpp_modules_scan_command(),
+                         ['cl', '$ARGS', '/scanDependencies', '$out', '/Fo$OBJ', '$in'])
+
+        cc = VisualStudioCPPCompiler([], ['cl'], '19.31', MachineChoice.HOST, env, 'x64', linker=linker)
+        self.assertIsNone(cc.get_cpp_modules_scan_command())
+
     def test_compiler_args_class_visualstudio(self):
         env = get_fake_env()
         linker = linkers.MSVCDynamicLinker(env, MachineChoice.HOST, [])
