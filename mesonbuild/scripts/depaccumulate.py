@@ -8,6 +8,7 @@ See: https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2022/p1689r5.html
 
 from __future__ import annotations
 import json
+import os
 import re
 import textwrap
 import typing as T
@@ -66,9 +67,29 @@ def get_provider(rules: T.List[Rule], name: str) -> T.Optional[str]:
     return None
 
 
-def bmi_path(pattern: str, module: str) -> str:
-    """The compiled module file for a module, a partition a:b is stored as a-b"""
-    return pattern.format(module=module.replace(':', '-'))
+def bmi_path(pattern: str, module: str, rule: Rule) -> str:
+    """The compiled module file of a module provided by a rule
+
+    ``{module}`` is the name of the module, a partition a:b is stored as a-b,
+    and ``{dir}`` is the directory of the object file of the rule, which is the
+    private directory of its target.
+    """
+    return pattern.format(dir=os.path.dirname(rule['primary-output']) or '.',
+                          module=module.replace(':', '-'))
+
+
+def find_providers(rules: T.List[Rule]) -> T.Dict[str, T.Dict[str, Rule]]:
+    """The rules which provide each module, by the object file of the rule"""
+    providers: T.Dict[str, T.Dict[str, Rule]] = {}
+    for rule in rules:
+        for p in rule.get('provides', []):
+            providers.setdefault(p['logical-name'], {})[rule['primary-output']] = rule
+    return providers
+
+
+def first_provider(providers: T.Dict[str, Rule]) -> Rule:
+    """The rule which provides a module, the same one every time if there are several"""
+    return providers[min(providers)]
 
 
 def process_rules(rules: T.List[Rule],
@@ -80,9 +101,15 @@ def process_rules(rules: T.List[Rule],
     :param rules: the rules for this target
     :param extra_rules: the rules for all of the targets this one links with, to use their provides
     :param bmi_pattern: where compiled modules are written, for the scanners which do not tell
+    :raises RuntimeError: If a module has several providers, when there is a pattern
     :yield: A tuple of the output, the exported modules, and the consumed modules
     """
-    provided = {p['logical-name'] for rule in rules for p in rule.get('provides', [])}
+    provided = find_providers(rules)
+    reachable = find_providers(extra_rules) if bmi_pattern else {}
+    if bmi_pattern:
+        for name, rules_providing in provided.items():
+            if len(rules_providing) > 1:
+                raise RuntimeError(f'Module {name} is provided by several sources: {", ".join(sorted(rules_providing))}.')
     for rule in rules:
         prov: T.Optional[T.List[str]] = None
         req: T.List[str] = []
@@ -91,14 +118,19 @@ def process_rules(rules: T.List[Rule],
             for p in rule['provides']:
                 modfile = p.get('compiled-module-path')
                 if modfile is None and bmi_pattern:
-                    modfile = bmi_path(bmi_pattern, p['logical-name'])
+                    modfile = bmi_path(bmi_pattern, p['logical-name'], rule)
                 if modfile is not None:
                     prov.append(modfile)
         if 'requires' in rule:
             for r in rule['requires']:
+                name = r['logical-name']
+                if len(reachable.get(name, {})) > 1:
+                    # Which one would be imported depends on the compiler
+                    raise RuntimeError(f'Module {name}, required by {rule["primary-output"]}, is provided by '
+                                       f'several targets: {", ".join(sorted(reachable[name]))}.')
                 modfile = r.get('compiled-module-path')
-                if modfile is None and bmi_pattern and r['logical-name'] in provided:
-                    modfile = bmi_path(bmi_pattern, r['logical-name'])
+                if modfile is None and bmi_pattern and name in provided:
+                    modfile = bmi_path(bmi_pattern, name, first_provider(provided[name]))
                 if modfile is not None:
                     req.append(modfile)
                 else:
