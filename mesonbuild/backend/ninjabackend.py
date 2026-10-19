@@ -1337,11 +1337,22 @@ class NinjaBackend(backends.Backend):
         cpp = target.compilers.get('cpp')
         bmi_pattern = cpp.get_cpp_modules_bmi_pattern() if cpp and self.target_uses_cpp_modules(target) else None
 
+        # The compilers which have to be told where the compiled modules are
+        mapper = None
+        mapper_extra = ''
+        if cpp and bmi_pattern:
+            mapper = cpp.get_cpp_modules_mapper(self.get_target_private_dir(target))
+            if mapper and self.target_uses_import_std(target):
+                mapper_extra = f'std={self.import_std[self.get_import_std_module_file(target, cpp)].gen_module_file}'
+
         elem = NinjaBuildElement(self.all_outputs, depscan_file, 'depaccumulate',
-                                 description_files + sorted(infiles - set(description_files)))
+                                 description_files + sorted(infiles - set(description_files)),
+                                 implicit_outs=[mapper] if mapper else None)
         elem.add_item('name', target.name)
         elem.add_item('own', str(len(description_files)))
         elem.add_item('bmi_pattern', bmi_pattern or '')
+        elem.add_item('module_map', mapper or '')
+        elem.add_item('module_map_extra', mapper_extra)
         self.add_build(elem)
 
     def generate_cpp_module_scan_edge(self, target: build.BuildTarget, compiler: Compiler,
@@ -1371,7 +1382,7 @@ class NinjaBackend(backends.Backend):
         elem.add_orderdep(self.order_deps_to_strings(target, order_deps))
         if compiler.get_depfile_format() == 'gcc':
             elem.add_item('DEPFILE', json_file + '.d')
-        elem.add_item('ARGS', args)
+        elem.add_item('ARGS', compiler.filter_cpp_modules_scan_args(args.to_native()))
         elem.add_item('OBJ', rel_obj)
         self.add_build(elem)
         self.module_description_files.setdefault(target.get_id(), []).append(json_file)
@@ -2942,7 +2953,8 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         rulename = 'depaccumulate'
         command = self.environment.get_build_command() + \
             ['--internal', 'depaccumulate']
-        args = ['--own', '$own', '--bmi-pattern', '$bmi_pattern', '$out', '$in']
+        args = ['--own', '$own', '--bmi-pattern', '$bmi_pattern',
+                '--module-map', '$module_map', '--module-map-extra', '$module_map_extra', '$out', '$in']
         description = 'Generating dynamic dependency information for target $name'
         rule = NinjaRule(rulename, command, args, description)
         self.add_rule(rule)

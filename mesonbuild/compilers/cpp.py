@@ -575,9 +575,20 @@ class GnuCPPCompiler(_StdCPPLibMixin, GnuCPPStds, GnuCompiler, CPPCompiler):
             return ['-Mno-modules']
         return []
 
+    def get_cpp_modules_mapper(self, private_dir: str) -> T.Optional[str]:
+        return f'{private_dir}/depscan.map'
+
+    def get_cpp_modules_bmi_args(self, private_dir: str, search_dirs: T.Sequence[str]) -> T.List[str]:
+        # The mapper lists the modules of the target and the ones of the targets it links with
+        return [f'-fmodule-mapper={self.get_cpp_modules_mapper(private_dir)}']
+
+    def filter_cpp_modules_scan_args(self, args: T.Sequence[str]) -> T.List[str]:
+        # The mapper is written after the scan, which does not need it
+        return [a for a in args if not a.startswith('-fmodule-mapper=')]
+
     def get_cpp_modules_bmi_pattern(self) -> T.Optional[str]:
-        # The default module mapper of GCC puts the files in gcm.cache
-        return 'gcm.cache/{module}.gcm'
+        # Written to the directory of the target, see get_cpp_modules_bmi_args()
+        return '{dir}/{module}.gcm'
 
     def get_cpp_modules_scan_command(self) -> T.Optional[T.List[str]]:
         # -fdeps-format was added in GCC 14

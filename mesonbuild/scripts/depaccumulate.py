@@ -162,21 +162,45 @@ def gen(outfile: str, rules: T.List[Rule], extra_rules: T.List[Rule],
     return 0
 
 
+def write_module_map(outfile: str, rules: T.List[Rule], bmi_pattern: str, extra: T.Optional[str]) -> None:
+    """Write where the compiled modules are, for the compilers which have to be told
+
+    There is a line for each module, with its name and the file of the module.
+    """
+    lines = []
+    for name, providers in sorted(find_providers(rules).items()):
+        # With several providers, which is an error if any is imported, the first one is as good as another
+        lines.append(f'{name} {bmi_path(bmi_pattern, name, first_provider(providers))}')
+    if extra:
+        lines.append(extra.replace('=', ' ', 1))
+    with open(outfile, 'w', encoding='utf-8') as f:
+        f.write(''.join(f'{line}\n' for line in lines))
+
+
 def run(args: T.List[str]) -> int:
-    """Arguments: [--own N] [--bmi-pattern PATTERN] OUTFILE JSONFILE...
+    """Arguments: [--own N] [--bmi-pattern PATTERN] [--module-map FILE] [--module-map-extra NAME=FILE]
+                  OUTFILE JSONFILE...
 
     The first N (default 1) description files are the ones of this target, the
-    others are the ones of the targets it links with.
+    others are the ones of the targets it links with. With a module map, the
+    file where the compiled modules are is written for the compiler, after the
+    ones of all the targets, and the extra module if there is one.
     """
     own = 1
     bmi_pattern: T.Optional[str] = None
-    while args and args[0] in {'--own', '--bmi-pattern'}:
+    module_map: T.Optional[str] = None
+    module_map_extra: T.Optional[str] = None
+    while args and args[0] in {'--own', '--bmi-pattern', '--module-map', '--module-map-extra'}:
         if len(args) < 2:
             raise RuntimeError(f'{args[0]} needs a value')
         if args[0] == '--own':
             own = int(args[1])
-        else:
+        elif args[0] == '--bmi-pattern':
             bmi_pattern = args[1] or None
+        elif args[0] == '--module-map':
+            module_map = args[1] or None
+        else:
+            module_map_extra = args[1] or None
         args = args[2:]
     assert len(args) >= 2, 'got wrong number of arguments!'
     outfile, *jsonfiles = args
@@ -191,4 +215,8 @@ def run(args: T.List[str]) -> int:
         if i < own:
             own_rules.extend(desc['rules'])
 
+    if module_map is not None:
+        if bmi_pattern is None:
+            raise RuntimeError('--module-map needs --bmi-pattern')
+        write_module_map(module_map, rules, bmi_pattern, module_map_extra)
     return gen(outfile, own_rules, rules, bmi_pattern)

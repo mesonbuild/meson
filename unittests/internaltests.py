@@ -564,16 +564,52 @@ InstalledDir: /usr/bin'''), '14.0.0-1ubuntu1.1')
                          ['/ifcOutput', 'app.p/', '/ifcSearchDir', 'app.p',
                           '/ifcSearchDir', 'liba.p', '/ifcSearchDir', 'libb.p'])
 
-        # The other compilers have nothing to add for now
+        self.assertIsNone(msvc.get_cpp_modules_mapper('app.p'))
+
+        # GCC is told where the modules are by a file, written after the scan, with all of them
         gcc = GnuCPPCompiler([], ['g++'], '14.1', MachineChoice.HOST, env)
-        self.assertEqual(gcc.get_cpp_modules_bmi_args('app.p', ['liba.p']), [])
+        self.assertEqual(gcc.get_cpp_modules_mapper('app.p'), 'app.p/depscan.map')
+        self.assertEqual(gcc.get_cpp_modules_bmi_args('app.p', ['liba.p']), ['-fmodule-mapper=app.p/depscan.map'])
+        # ... which does not exist yet when the sources are scanned
+        self.assertEqual(gcc.filter_cpp_modules_scan_args(['-O2', '-fmodule-mapper=app.p/depscan.map', '-Ia']),
+                         ['-O2', '-Ia'])
+        self.assertEqual(msvc.filter_cpp_modules_scan_args(['/O2', '/ifcOutput', 'app.p/']),
+                         ['/O2', '/ifcOutput', 'app.p/'])
+
+    def test_depaccumulate_module_map(self):
+        from mesonbuild.scripts import depaccumulate
+        with tempfile.TemporaryDirectory() as tmpdir:
+            def write(name, *rules):
+                path = os.path.join(tmpdir, name)
+                with open(path, 'w', encoding='utf-8') as f:
+                    json.dump({'version': 1, 'revision': 0, 'rules': list(rules)}, f)
+                return path
+
+            app = write('app.json', {'primary-output': 'app.p/main.o', 'requires': [{'logical-name': 'a:part'}]})
+            liba = write('liba.json', {'primary-output': 'liba.p/a.o', 'provides': [{'logical-name': 'a'}]})
+            part = write('part.json', {'primary-output': 'liba.p/part.o', 'provides': [{'logical-name': 'a:part'}]})
+            out = os.path.join(tmpdir, 'out.dd')
+            mapper = os.path.join(tmpdir, 'out.map')
+
+            # The modules of the target and of the targets it links with, and the extra one
+            args = ['--own', '1', '--bmi-pattern', '{dir}/{module}.gcm', '--module-map', mapper,
+                    '--module-map-extra', 'std=gcm.cache/std.gcm', out, app, liba, part]
+            self.assertEqual(depaccumulate.run(args), 0)
+            with open(mapper, encoding='utf-8') as f:
+                self.assertEqual(f.read(), 'a liba.p/a.gcm\na:part liba.p/a-part.gcm\nstd gcm.cache/std.gcm\n')
+
+            # Nothing is written without a file
+            os.remove(mapper)
+            self.assertEqual(depaccumulate.run(['--own', '1', '--bmi-pattern', '{dir}/{module}.gcm',
+                                                '--module-map', '', '--module-map-extra', '', out, app, liba, part]), 0)
+            self.assertFalse(os.path.exists(mapper))
 
     def test_cpp_modules_bmi_pattern(self):
         env = get_fake_env()
         linker = linkers.MSVCDynamicLinker(env, MachineChoice.HOST, [])
 
         gcc = GnuCPPCompiler([], ['g++'], '14.1', MachineChoice.HOST, env)
-        self.assertEqual(gcc.get_cpp_modules_bmi_pattern().format(module='a-b'), 'gcm.cache/a-b.gcm')
+        self.assertEqual(gcc.get_cpp_modules_bmi_pattern().format(dir='app.p', module='a-b'), 'app.p/a-b.gcm')
 
         msvc = VisualStudioCPPCompiler([], ['cl'], '19.32', MachineChoice.HOST, env, 'x64', linker=linker)
         self.assertEqual(msvc.get_cpp_modules_bmi_pattern().format(dir='app.p', module='a.b'), 'app.p/a.b.ifc')
