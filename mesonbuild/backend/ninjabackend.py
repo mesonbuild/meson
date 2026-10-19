@@ -136,13 +136,13 @@ class TargetDependencyScannerInfo:
     :param private_dir: The private scratch directory for the target.
     :param source2object: A mapping of source file names to the objects that
         will be created from them.
-    :param sources: a list of sources mapping them to the language rules to use
-        to scan them.
+    :param sources: a list of the sources to scan, which are Fortran sources.
+        C++ sources are scanned by the compiler.
     """
 
     private_dir: str
     source2object: T.Dict[str, str]
-    sources: T.List[T.Tuple[str, Literal['cpp', 'fortran']]]
+    sources: T.List[str]
 
 
 @unique
@@ -1255,7 +1255,7 @@ class NinjaBackend(backends.Backend):
         json_file, depscan_file = self.get_dep_scan_file_for(target)
         # C++ sources are scanned by the compiler, see generate_cpp_module_scan_edge()
         description_files = list(self.module_description_files.get(target.get_id(), []))
-        scan_sources = [s for s in self.select_sources_to_scan(compiled_sources) if s[1] == 'fortran']
+        scan_sources = list(self.select_sources_to_scan(compiled_sources))
 
         if scan_sources or not description_files:
             pickle_base = target.name + '.dat'
@@ -1281,7 +1281,7 @@ class NinjaBackend(backends.Backend):
             # are updated we need to rescan, as they may have changed the modules
             # they use or export.
             for s in scan_sources:
-                elem.deps.add(s[0])
+                elem.deps.add(s)
             elem.add_orderdep(self.order_deps_to_strings(target, object_deps))
             elem.add_item('name', target.name)
             self.add_build(elem)
@@ -1336,19 +1336,16 @@ class NinjaBackend(backends.Backend):
         self.add_build(elem)
         self.module_description_files.setdefault(target.get_id(), []).append(json_file)
 
-    def select_sources_to_scan(self, compiled_sources: T.List[str],
-                               ) -> T.Iterable[T.Tuple[str, Literal['cpp', 'fortran']]]:
-        # in practice pick up C++ and Fortran files. If some other language
-        # requires scanning (possibly Java to deal with inner class files)
-        # then add them here.
+    def select_sources_to_scan(self, compiled_sources: T.List[str]) -> T.Iterable[str]:
+        # in practice pick up Fortran files, C++ files are scanned by the compiler.
+        # If some other language requires scanning (possibly Java to deal with
+        # inner class files) then add them here.
         for source in compiled_sources:
             if isinstance(source, mesonlib.File):
                 source = source.rel_to_builddir(self.build_to_src)
             ext = os.path.splitext(source)[1][1:]
-            if ext.lower() in compilers.lang_suffixes['cpp'] or ext == 'C':
-                yield source, 'cpp'
-            elif ext.lower() in compilers.lang_suffixes['fortran']:
-                yield source, 'fortran'
+            if ext.lower() in compilers.lang_suffixes['fortran']:
+                yield source
 
     def process_target_dependencies(self, target: build.BuildTarget) -> None:
         for t in target.get_dependencies():
