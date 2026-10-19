@@ -144,7 +144,7 @@ def run(args: T.List[str]) -> int:
         if args[0] == '--own':
             own = int(args[1])
         else:
-            bmi_pattern = args[1]
+            bmi_pattern = args[1] or None
         args = args[2:]
     assert len(args) >= 2, 'got wrong number of arguments!'
     outfile, *jsonfiles = args
