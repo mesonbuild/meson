@@ -481,6 +481,34 @@ Thread model: posix'''), '21.9.0')
         cc.scan_deps = ['clang-scan-deps']
         self.assertIsNone(cc.get_cpp_modules_scan_command())
 
+    def test_depaccumulate(self):
+        from mesonbuild.scripts import depaccumulate
+        with tempfile.TemporaryDirectory() as tmpdir:
+            def write(name, *rules):
+                path = os.path.join(tmpdir, name)
+                with open(path, 'w', encoding='utf-8') as f:
+                    json.dump({'version': 1, 'revision': 0, 'rules': list(rules)}, f)
+                return path
+
+            # Descriptions as written by the compilers, without the path of the compiled modules
+            a = write('a.json', {'primary-output': 'a.o', 'provides': [{'logical-name': 'a'}],
+                                 'requires': [{'logical-name': 'a:part'}, {'logical-name': 'lib'}]})
+            part = write('part.json', {'primary-output': 'part.o', 'provides': [{'logical-name': 'a:part'}],
+                                       'requires': []})
+            main = write('main.json', {'primary-output': 'main.o', 'requires': [{'logical-name': 'a'}]})
+            lib = write('lib.json', {'primary-output': 'lib.o', 'provides': [{'logical-name': 'lib'}]})
+            out = os.path.join(tmpdir, 'out.dd')
+
+            self.assertEqual(depaccumulate.run(['--own', '3', '--bmi-pattern', '{module}.ifc', out,
+                                                a, part, main, lib]), 0)
+            with open(out, encoding='utf-8') as f:
+                lines = [line for line in f.read().splitlines() if line]
+            self.assertEqual(lines, ['ninja_dyndep_version = 1',
+                                     # Modules of the target use the compiled module, others use the object
+                                     'build a.o | a.ifc: dyndep | a-part.ifc lib.o',
+                                     'build part.o | a-part.ifc: dyndep ',
+                                     'build main.o : dyndep | a.ifc'])
+
     def test_cpp_modules_bmi_pattern(self):
         env = get_fake_env()
         linker = linkers.MSVCDynamicLinker(env, MachineChoice.HOST, [])
