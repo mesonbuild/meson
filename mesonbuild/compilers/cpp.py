@@ -559,6 +559,17 @@ class GnuCPPCompiler(_StdCPPLibMixin, GnuCPPStds, GnuCompiler, CPPCompiler):
             return ['-Mno-modules']
         return []
 
+    def get_cpp_modules_scan_command(self) -> T.Optional[T.List[str]]:
+        # -fdeps-format was added in GCC 14
+        if version_compare(self.version, '<14'):
+            return None
+        # Module dependencies are only found when preprocessing, -MD is required for that.
+        # A scan does not produce an object file, there is no point in a compiler cache.
+        return [*self.get_exelist(ccache=False), '$ARGS', '-E',
+                *self.get_dependency_gen_args('$out', '$DEPFILE'),
+                '-fdeps-format=p1689r5', '-fdeps-file=$out', '-fdeps-target=$OBJ',
+                '-o', os.devnull, '$in']
+
     def get_embed_args(self, path: str) -> list[str]:
         # Requires C23 or C++26 standard and GCC 15
         return [f'--embed-dir={path}']

@@ -450,6 +450,18 @@ InstalledDir: /usr/bin'''), '14.0.0-1ubuntu1.1')
         cc = VisualStudioCPPCompiler([], ['cl'], '19.31', MachineChoice.HOST, env, 'x64', linker=linker)
         self.assertIsNone(cc.get_cpp_modules_scan_command())
 
+    def test_cpp_modules_scan_command_gcc(self):
+        env = get_fake_env()
+
+        cc = GnuCPPCompiler(['ccache'], ['g++'], '14.1', MachineChoice.HOST, env)
+        self.assertEqual(cc.get_cpp_modules_scan_command(),
+                         ['g++', '$ARGS', '-E', '-MD', '-MQ', '$out', '-MF', '$DEPFILE',
+                          '-fdeps-format=p1689r5', '-fdeps-file=$out', '-fdeps-target=$OBJ',
+                          '-o', os.devnull, '$in'])
+
+        cc = GnuCPPCompiler([], ['g++'], '13.3', MachineChoice.HOST, env)
+        self.assertIsNone(cc.get_cpp_modules_scan_command())
+
     def test_msvc_import_std_id(self):
         env = get_fake_env()
         linker = linkers.MSVCDynamicLinker(env, MachineChoice.HOST, [])
