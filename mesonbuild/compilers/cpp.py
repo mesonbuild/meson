@@ -993,8 +993,8 @@ class VisualStudioCPPCompiler(CPP11AsCPP14Mixin, VisualStudioLikeCPPCompilerMixi
         return args
 
     def get_cpp_modules_bmi_pattern(self) -> T.Optional[str]:
-        # Written to the current directory by default
-        return '{module}.ifc'
+        # Written to the directory of the target, see get_cpp_modules_bmi_args()
+        return '{dir}/{module}.ifc'
 
     def get_cpp_modules_scan_command(self) -> T.Optional[T.List[str]]:
         # /scanDependencies was added in Visual Studio 2022 17.2
