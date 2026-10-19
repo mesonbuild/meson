@@ -42,14 +42,14 @@ jobs:
             COMPILER: gcc
             TOOLCHAIN: toolchain
           - NAME: gccx64ninja
-            MSYSTEM: MINGW64
-            MSYS2_ARCH: x86_64
+            MSYSTEM: UCRT64
+            MSYS2_ARCH: ucrt-x86_64
             MSYS2_CURSES: pdcurses
             COMPILER: gcc
             TOOLCHAIN: toolchain
           - NAME: clangx64ninja
-            MSYSTEM: MINGW64
-            MSYS2_ARCH: x86_64
+            MSYSTEM: UCRT64
+            MSYS2_ARCH: ucrt-x86_64
             MSYS2_CURSES:
             COMPILER: clang
             TOOLCHAIN: clang
@@ -99,11 +99,11 @@ jobs:
           unzip pypy3.8-v7.3.9-win64.zip
           mv pypy3.8-v7.3.9-win64/* ./
           popd
-        if: ${{ matrix.MSYS2_ARCH == 'x86_64' }}
+        if: ${{ matrix.MSYS2_ARCH == 'ucrt-x86_64' }}
 
       - name: Run Tests
         run: |
-          if [[ "${{ matrix.MSYS2_ARCH }}" == "x86_64" ]]; then
+          if [[ "${{ matrix.MSYS2_ARCH }}" == "ucrt-x86_64" ]]; then
             # There apparently is no clean way to add to the PATH in the
             # previous step?
             # See for instance https://github.com/msys2/setup-msys2/issues/171
