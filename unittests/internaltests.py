@@ -434,6 +434,53 @@ Thread model: posix'''), '21.9.0')
                 self.assertEqual(comp.get_option_compile_args(None),
                                  ref.get_option_compile_args(None))
 
+    def test_detect_clang_scan_deps(self):
+        from mesonbuild.compilers.detect import _detect_clang_scan_deps
+        env = get_fake_env()
+        installed = {'clang++-19': '/llvm/bin/clang++-19',
+                     'clang-scan-deps-19': '/llvm/bin/clang-scan-deps-19',
+                     'clang-scan-deps': '/usr/bin/clang-scan-deps'}
+
+        def which(cmd, path=None):
+            found = installed.get(os.path.basename(cmd))
+            if found is None or (path is not None and os.path.dirname(found) != path):
+                return None
+            return found
+
+        def detect(compiler):
+            with mock.patch('shutil.which', which), mock.patch('os.path.realpath', lambda p: p):
+                return _detect_clang_scan_deps(env, MachineChoice.HOST, [compiler])
+
+        # Next to the compiler, with the same version
+        self.assertEqual(detect('clang++-19'), ['/llvm/bin/clang-scan-deps-19'])
+        # Not found next to the compiler, search in PATH
+        installed['clang++-18'] = '/llvm18/bin/clang++-18'
+        self.assertEqual(detect('clang++-18'), ['/usr/bin/clang-scan-deps'])
+        # Nothing found
+        del installed['clang-scan-deps']
+        del installed['clang-scan-deps-19']
+        self.assertIsNone(detect('clang++-18'))
+        installed['clang-scan-deps-19'] = '/llvm/bin/clang-scan-deps-19'
+        # The machine file has the last word
+        env.binaries[MachineChoice.HOST].binaries['clang-scan-deps'] = ['/custom/scan-deps']
+        self.assertEqual(detect('clang++-19'), ['/custom/scan-deps'])
+
+    def test_cpp_modules_scan_command_clang(self):
+        env = get_fake_env()
+
+        cc = ClangCPPCompiler(['ccache'], ['clang++'], '19.1.0', MachineChoice.HOST, env)
+        # Without clang-scan-deps
+        self.assertIsNone(cc.get_cpp_modules_scan_command())
+        cc.scan_deps = ['clang-scan-deps']
+        self.assertEqual(cc.get_cpp_modules_scan_command(),
+                         ['clang-scan-deps', '-format=p1689', '-o', '$out', '--',
+                          'clang++', '$ARGS', '-MD', '-MQ', '$out', '-MF', '$DEPFILE',
+                          '-c', '-o', '$OBJ', '$in'])
+
+        cc = ClangCPPCompiler([], ['clang++'], '18.1.3', MachineChoice.HOST, env)
+        cc.scan_deps = ['clang-scan-deps']
+        self.assertIsNone(cc.get_cpp_modules_scan_command())
+
     def test_cpp_modules_scan_command_visualstudio(self):
         env = get_fake_env()
         linker = linkers.MSVCDynamicLinker(env, MachineChoice.HOST, [])

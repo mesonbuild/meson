@@ -227,6 +227,8 @@ class ClangCPPCompiler(_StdCPPLibMixin, ClangCPPStds, ClangCompiler, CPPCompiler
         CPPCompiler.__init__(self, ccache, exelist, version, for_machine,
                              env, linker=linker, full_version=full_version)
         ClangCompiler.__init__(self, defines)
+        # The clang-scan-deps matching the compiler, found when the compiler is detected
+        self.scan_deps: T.Optional[T.List[str]] = None
         default_warn_args = ['-Wall', '-Winvalid-pch']
         self.warn_args = {'0': [],
                           '1': default_warn_args,
@@ -335,6 +337,17 @@ class ClangCPPCompiler(_StdCPPLibMixin, ClangCPPStds, ClangCompiler, CPPCompiler
         # Although -fmodules-ts is removed in LLVM 17, we keep this in for compatibility with old compilers.
         return ['-fmodules', '-fmodules-ts']
 
+    def get_cpp_modules_scan_command(self) -> T.Optional[T.List[str]]:
+        # clang-scan-deps writes its output and dependency file to the right place from LLVM 19
+        if self.scan_deps is None or version_compare(self.version, '<19'):
+            return None
+        # A scan does not produce an object file, there is no point in a compiler cache.
+        # The command after -- is the compile command, clang-scan-deps does not run it.
+        return [*self.scan_deps, '-format=p1689', '-o', '$out', '--',
+                *self.get_exelist(ccache=False), '$ARGS',
+                *self.get_dependency_gen_args('$out', '$DEPFILE'),
+                *self.get_compile_only_args(), *self.get_output_args('$OBJ'), '$in']
+
 
 class ArmLtdClangCPPCompiler(ClangCPPCompiler):
 
@@ -342,7 +355,10 @@ class ArmLtdClangCPPCompiler(ClangCPPCompiler):
 
 
 class AppleClangCPPCompiler(AppleCompilerMixin, AppleCPPStdsMixin, ClangCPPCompiler):
-    pass
+
+    def get_cpp_modules_scan_command(self) -> T.Optional[T.List[str]]:
+        # Apple Clang does not use the LLVM version numbers
+        return None
 
 
 class EmscriptenCPPCompiler(EmscriptenMixin, ClangCPPCompiler):
