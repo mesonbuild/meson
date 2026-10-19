@@ -1609,6 +1609,17 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
         """
         return None
 
+    def get_cpp_modules_bmi_pattern(self) -> T.Optional[str]:
+        """Where the compiler writes the compiled form of a C++ module.
+
+        ``{module}`` stands for the name of the module, in which the ``:`` of
+        a partition is replaced with ``-``. The location is relative to the
+        build directory.
+
+        :return: the pattern, or None if the location is not known
+        """
+        return None
+
     @abc.abstractmethod
     def get_optimization_args(self, optimization_level: str) -> T.List[str]:
         pass
