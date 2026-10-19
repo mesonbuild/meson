@@ -1599,6 +1599,7 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
         - ``$in``: the source to scan
         - ``$out``: the P1689 file to write
         - ``$OBJ``: the object file the source is compiled to
+        - ``$DEPFILE``: the dependency file, to rescan when an included file changes
 
         :return: the command, or None if the compiler cannot scan modules
         """
