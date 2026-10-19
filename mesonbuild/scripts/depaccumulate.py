@@ -66,29 +66,45 @@ def get_provider(rules: T.List[Rule], name: str) -> T.Optional[str]:
     return None
 
 
+def bmi_path(pattern: str, module: str) -> str:
+    """The compiled module file for a module, a partition a:b is stored as a-b"""
+    return pattern.format(module=module.replace(':', '-'))
+
+
 def process_rules(rules: T.List[Rule],
                   extra_rules: T.List[Rule],
+                  bmi_pattern: T.Optional[str] = None,
                   ) -> T.Iterable[T.Tuple[str, T.Optional[T.List[str]], T.List[str]]]:
     """Process the rules for this Target
 
     :param rules: the rules for this target
     :param extra_rules: the rules for all of the targets this one links with, to use their provides
+    :param bmi_pattern: where compiled modules are written, for the scanners which do not tell
     :yield: A tuple of the output, the exported modules, and the consumed modules
     """
+    provided = {p['logical-name'] for rule in rules for p in rule.get('provides', [])}
     for rule in rules:
         prov: T.Optional[T.List[str]] = None
         req: T.List[str] = []
         if 'provides' in rule:
-            prov = [p['compiled-module-path'] for p in rule['provides']]
-        if 'requires' in rule:
-            for p in rule['requires']:
+            prov = []
+            for p in rule['provides']:
                 modfile = p.get('compiled-module-path')
+                if modfile is None and bmi_pattern:
+                    modfile = bmi_path(bmi_pattern, p['logical-name'])
+                if modfile is not None:
+                    prov.append(modfile)
+        if 'requires' in rule:
+            for r in rule['requires']:
+                modfile = r.get('compiled-module-path')
+                if modfile is None and bmi_pattern and r['logical-name'] in provided:
+                    modfile = bmi_path(bmi_pattern, r['logical-name'])
                 if modfile is not None:
                     req.append(modfile)
                 else:
                     # We can't error if this is not found because of compiler
                     # provided modules
-                    found = get_provider(extra_rules, p['logical-name'])
+                    found = get_provider(extra_rules, r['logical-name'])
                     if found:
                         req.append(found)
         yield rule['primary-output'], prov, req
@@ -101,11 +117,12 @@ def formatter(files: T.Optional[T.List[str]]) -> str:
     return ''
 
 
-def gen(outfile: str, desc: Description, extra_rules: T.List[Rule]) -> int:
+def gen(outfile: str, rules: T.List[Rule], extra_rules: T.List[Rule],
+        bmi_pattern: T.Optional[str] = None) -> int:
     with open(outfile, 'w', encoding='utf-8') as f:
         f.write('ninja_dyndep_version = 1\n\n')
 
-        for obj, provides, requires in process_rules(desc['rules'], extra_rules):
+        for obj, provides, requires in process_rules(rules, extra_rules, bmi_pattern):
             ins = formatter(requires)
             out = formatter(provides)
             f.write(f'build {quote(obj)} {out}: dyndep {ins}\n\n')
@@ -114,16 +131,32 @@ def gen(outfile: str, desc: Description, extra_rules: T.List[Rule]) -> int:
 
 
 def run(args: T.List[str]) -> int:
+    """Arguments: [--own N] [--bmi-pattern PATTERN] OUTFILE JSONFILE...
+
+    The first N (default 1) description files are the ones of this target, the
+    others are the ones of the targets it links with.
+    """
+    own = 1
+    bmi_pattern: T.Optional[str] = None
+    while args and args[0] in {'--own', '--bmi-pattern'}:
+        if len(args) < 2:
+            raise RuntimeError(f'{args[0]} needs a value')
+        if args[0] == '--own':
+            own = int(args[1])
+        else:
+            bmi_pattern = args[1]
+        args = args[2:]
     assert len(args) >= 2, 'got wrong number of arguments!'
-    outfile, jsonfile, *jsondeps = args
-    with open(jsonfile, 'r', encoding='utf-8') as f:
-        desc: Description = json.load(f)
+    outfile, *jsonfiles = args
 
     # All rules, necessary for fulfilling across TU and target boundaries
-    rules = desc['rules'].copy()
-    for dep in jsondeps:
-        with open(dep, encoding='utf-8') as f:
-            d: Description = json.load(f)
-            rules.extend(d['rules'])
+    rules: T.List[Rule] = []
+    own_rules: T.List[Rule] = []
+    for i, jsonfile in enumerate(jsonfiles):
+        with open(jsonfile, 'r', encoding='utf-8') as f:
+            desc: Description = json.load(f)
+        rules.extend(desc['rules'])
+        if i < own:
+            own_rules.extend(desc['rules'])
 
-    return gen(outfile, desc, rules)
+    return gen(outfile, own_rules, rules, bmi_pattern)
