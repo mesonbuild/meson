@@ -586,6 +586,7 @@ class NinjaBackend(backends.Backend):
         # Evaluated for every source of a target, the answer only depends on the target
         self._uses_dyndeps_cache: T.Dict[str, bool] = {}
         self._uses_cpp_modules_cache: T.Dict[str, bool] = {}
+        self._cpp_modules_search_dirs: T.Dict[str, T.List[str]] = {}
         self._generated_header_cache: T.Dict[str, T.List[FileOrString]] = {}
         # nvcc chokes on thin archives:
         #   nvlink fatal   : Could not open input file 'libfoo.a.p'
@@ -1251,6 +1252,16 @@ class NinjaBackend(backends.Backend):
                 self._target_has_cpp_modules(target) or
                 any(isinstance(t, build.BuildTarget) and self._target_has_cpp_modules(t)
                     for t in self.get_all_linked_targets(target)))
+        return result
+
+    def get_cpp_modules_search_dirs(self, target: build.BuildTarget) -> T.List[str]:
+        """The private directories of the targets linked with a target, which may provide modules"""
+        key = target.get_id()
+        result = self._cpp_modules_search_dirs.get(key)
+        if result is None:
+            result = self._cpp_modules_search_dirs[key] = [
+                self.get_target_private_dir(t) for t in self.get_all_linked_targets(target)
+                if isinstance(t, build.BuildTarget) and self.target_uses_cpp_modules(t)]
         return result
 
     def _target_has_cpp_modules(self, target: build.BuildTarget) -> bool:
@@ -3422,6 +3433,9 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         commands.extend(istd_args)
         if compiler.language == 'cpp' and self.should_use_dyndeps_for_target(target):
             commands.extend(compiler.get_cpp_modules_depfile_args())
+            if self.target_uses_cpp_modules(target) and not isinstance(target, build.CompileTarget):
+                commands.extend(compiler.get_cpp_modules_bmi_args(self.get_target_private_dir(target),
+                                                                  self.get_cpp_modules_search_dirs(target)))
         header_deps += istd_dep
         if extra_args is not None:
             commands.extend(extra_args)
