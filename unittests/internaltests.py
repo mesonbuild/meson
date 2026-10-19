@@ -552,6 +552,22 @@ InstalledDir: /usr/bin'''), '14.0.0-1ubuntu1.1')
             with self.assertRaisesRegex(RuntimeError, 'Module a is provided by several sources'):
                 run(liba, other, own=2)
 
+    def test_cpp_modules_bmi_args(self):
+        env = get_fake_env()
+        linker = linkers.MSVCDynamicLinker(env, MachineChoice.HOST, [])
+
+        # MSVC writes the modules of a target to its directory, and searches the ones of its dependencies
+        msvc = VisualStudioCPPCompiler([], ['cl'], '19.32', MachineChoice.HOST, env, 'x64', linker=linker)
+        self.assertEqual(msvc.get_cpp_modules_bmi_args('app.p', []),
+                         ['/ifcOutput', 'app.p/', '/ifcSearchDir', 'app.p'])
+        self.assertEqual(msvc.get_cpp_modules_bmi_args('app.p', ['liba.p', 'libb.p', 'liba.p']),
+                         ['/ifcOutput', 'app.p/', '/ifcSearchDir', 'app.p',
+                          '/ifcSearchDir', 'liba.p', '/ifcSearchDir', 'libb.p'])
+
+        # The other compilers have nothing to add for now
+        gcc = GnuCPPCompiler([], ['g++'], '14.1', MachineChoice.HOST, env)
+        self.assertEqual(gcc.get_cpp_modules_bmi_args('app.p', ['liba.p']), [])
+
     def test_cpp_modules_bmi_pattern(self):
         env = get_fake_env()
         linker = linkers.MSVCDynamicLinker(env, MachineChoice.HOST, [])

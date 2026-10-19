@@ -1609,6 +1609,19 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
         """
         return None
 
+    def get_cpp_modules_bmi_args(self, private_dir: str, search_dirs: T.Sequence[str]) -> T.List[str]:
+        """Arguments to compile the sources of a target which use modules.
+
+        They tell the compiler to write the compiled modules in the private
+        directory of the target, and where to look for the ones imported by
+        the sources, which are in the private directories of other targets.
+
+        :param private_dir: the private directory of the target
+        :param search_dirs: the private directories of the targets it links with
+        :return: the arguments, none if the compiler does not need any
+        """
+        return []
+
     def get_cpp_modules_bmi_pattern(self) -> T.Optional[str]:
         """Where the compiler writes the compiled form of a C++ module.
 

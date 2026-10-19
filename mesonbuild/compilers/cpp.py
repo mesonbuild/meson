@@ -986,6 +986,12 @@ class VisualStudioCPPCompiler(CPP11AsCPP14Mixin, VisualStudioLikeCPPCompilerMixi
     def get_cpp_modules_args(self) -> T.List[str]:
         return ['/interface']
 
+    def get_cpp_modules_bmi_args(self, private_dir: str, search_dirs: T.Sequence[str]) -> T.List[str]:
+        args = ['/ifcOutput', f'{private_dir}/']
+        for d in dict.fromkeys([private_dir, *search_dirs]):
+            args += ['/ifcSearchDir', d]
+        return args
+
     def get_cpp_modules_bmi_pattern(self) -> T.Optional[str]:
         # Written to the current directory by default
         return '{module}.ifc'
