@@ -514,6 +514,44 @@ InstalledDir: /usr/bin'''), '14.0.0-1ubuntu1.1')
                                      'build part.o | a-part.ifc: dyndep ',
                                      'build main.o : dyndep | a.ifc'])
 
+    def test_depaccumulate_directories(self):
+        from mesonbuild.scripts import depaccumulate
+        with tempfile.TemporaryDirectory() as tmpdir:
+            def write(name, *rules):
+                path = os.path.join(tmpdir, name)
+                with open(path, 'w', encoding='utf-8') as f:
+                    json.dump({'version': 1, 'revision': 0, 'rules': list(rules)}, f)
+                return path
+
+            def run(*files, own):
+                out = os.path.join(tmpdir, 'out.dd')
+                args = ['--own', str(own), '--bmi-pattern', '{dir}/{module}.ifc', out, *files]
+                self.assertEqual(depaccumulate.run(args), 0)
+                with open(out, encoding='utf-8') as f:
+                    return [line for line in f.read().splitlines() if line][1:]
+
+            # Two targets provide a module named m, in their own directory
+            app = write('app.json', {'primary-output': 'app.p/main.o', 'requires': [{'logical-name': 'a'}]})
+            liba = write('liba.json', {'primary-output': 'liba.p/a.o', 'provides': [{'logical-name': 'a'}],
+                                       'requires': [{'logical-name': 'a:part'}]})
+            part = write('part.json', {'primary-output': 'liba.p/part.o', 'provides': [{'logical-name': 'a:part'}]})
+            libb = write('libb.json', {'primary-output': 'libb.p/b.o', 'provides': [{'logical-name': 'b'}]})
+            self.assertEqual(run(liba, part, libb, own=2),
+                             ['build liba.p/a.o | liba.p/a.ifc: dyndep | liba.p/a-part.ifc',
+                              'build liba.p/part.o | liba.p/a-part.ifc: dyndep '])
+            # The module of another target is not known by the file, its object file is used
+            self.assertEqual(run(app, liba, part, own=1), ['build app.p/main.o : dyndep | liba.p/a.o'])
+
+            # The same module provided by two targets
+            other = write('other.json', {'primary-output': 'libb.p/a.o', 'provides': [{'logical-name': 'a'}]})
+            with self.assertRaisesRegex(RuntimeError, 'Module a, required by app.p/main.o, is provided by several targets'):
+                run(app, liba, other, own=1)
+            # ... which does not matter if it is not required
+            self.assertEqual(run(libb, liba, other, own=1), ['build libb.p/b.o | libb.p/b.ifc: dyndep '])
+            # The same module provided by two sources of a target
+            with self.assertRaisesRegex(RuntimeError, 'Module a is provided by several sources'):
+                run(liba, other, own=2)
+
     def test_cpp_modules_bmi_pattern(self):
         env = get_fake_env()
         linker = linkers.MSVCDynamicLinker(env, MachineChoice.HOST, [])
