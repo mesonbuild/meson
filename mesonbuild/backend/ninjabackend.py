@@ -21,7 +21,7 @@ import typing as T
 
 from . import backends
 from .backends import CleanTrees
-from .rspfile import RSPFileSyntax, gcc_rsp_quote, rsp_file_flag
+from .rspfile import RSPFileSyntax, rsp_file_flag, rsp_quote_func
 from .. import modules
 from .. import mesonlib
 from .. import build
@@ -33,7 +33,7 @@ from ..compilers import Compiler, is_library
 from ..linkers import ArLikeLinker, StaticLinker, VisualStudioLikeLinkerMixin
 from ..mesonlib import (
     File, LibType, MachineChoice, MesonBugException, MesonException, OrderedSet, PerMachine,
-    ProgressBar, quote_arg, unique_list
+    ProgressBar, quote_arg, unique_list, cmd_quote
 )
 from ..mesonlib import as_posix, get_compiler_for_source, has_path_sep, is_parent_path, lookbehind, path_has_root
 from ..options import OptionKey
@@ -66,19 +66,6 @@ FORTRAN_INCLUDE_PAT = r"^\s*#?include\s*['\"](\w+\.\w+)['\"]"
 FORTRAN_MODULE_PAT = r"^\s*\bmodule\b\s+(\w+)\s*(?:!+.*)*$"
 FORTRAN_SUBMOD_PAT = r"^\s*\bsubmodule\b\s*\((\w+:?\w+)\)\s*(\w+)"
 FORTRAN_USE_PAT = r"^\s*use,?\s*(?:non_intrinsic)?\s*(?:::)?\s*(\w+)"
-
-def cmd_quote(arg: str) -> str:
-    # see: https://docs.microsoft.com/en-us/windows/desktop/api/shellapi/nf-shellapi-commandlinetoargvw#remarks
-
-    # backslash escape any existing double quotes
-    # any existing backslashes preceding a quote are doubled
-    arg = re.sub(r'(\\*)"', lambda m: '\\' * (len(m.group(1)) * 2 + 1) + '"', arg)
-    # any terminal backslashes likewise need doubling
-    arg = re.sub(r'(\\*)$', lambda m: '\\' * (len(m.group(1)) * 2), arg)
-    # and double quote
-    arg = f'"{arg}"'
-
-    return arg
 
 # How ninja executes command lines differs between Unix and Windows
 # (see https://ninja-build.org/manual.html#ref_rule_command)
@@ -227,12 +214,9 @@ class NinjaRule:
 
     def write(self, outfile: T.TextIO) -> None:
         rspfile_args = self.args
-        rspfile_quote_func: T.Callable[[str], str]
+        rspfile_quote_func = rsp_quote_func(self.rspfile_quote_style)
         if self.rspfile_quote_style in {RSPFileSyntax.MSVC, RSPFileSyntax.TASKING}:
-            rspfile_quote_func = cmd_quote
             rspfile_args = [NinjaCommandArg('$in_newline', arg.quoting) if arg.s == '$in' else arg for arg in rspfile_args]
-        else:
-            rspfile_quote_func = gcc_rsp_quote
 
         def rule_iter() -> T.Iterable[str]:
             if self.refcount:
@@ -407,10 +391,7 @@ class NinjaBuildElement:
         outfile.write(line)
 
         if use_rspfile:
-            if self.rule.rspfile_quote_style in {RSPFileSyntax.MSVC, RSPFileSyntax.TASKING}:
-                qf = cmd_quote
-            else:
-                qf = gcc_rsp_quote
+            qf = rsp_quote_func(self.rule.rspfile_quote_style)
         else:
             qf = quote_func
 
