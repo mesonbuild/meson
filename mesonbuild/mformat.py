@@ -249,6 +249,16 @@ class FormatterConfig:
         metadata={'getter': DefaultConfigParser.getboolean,
                   'default': False,
                   })
+    sticky_parens: T.Optional[bool] = field(
+        default=None,
+        metadata={'getter': DefaultConfigParser.getboolean,
+                  'default': False,
+                  })
+
+    @property
+    def paren_levels(self) -> int:
+        """Number of indentation levels for continuation lines in multiline parentheses"""
+        return 2 if self.sticky_parens else 1
 
     @classmethod
     def default(cls) -> FormatterConfig:
@@ -341,6 +351,21 @@ class MultilineParenthesesDetector(FullAstVisitor):
     def exit_node(self, node: mparser.BaseNode) -> None:
         if node.whitespaces and node.whitespaces.value:
             self.last_whitespaces = node.whitespaces
+
+    @classmethod
+    def ends_with_newline(cls, node: mparser.BaseNode) -> bool:
+        detector = cls()
+        node.accept(detector)
+        return detector.last_whitespaces is not None and '\n' in detector.last_whitespaces.value
+
+    @classmethod
+    def has_newline_in_operators(cls, node: mparser.BaseNode) -> bool:
+        """Detect newlines between operands of a chain of and / or operators"""
+        if isinstance(node, (mparser.OrNode, mparser.AndNode)):
+            return (cls.has_newline_in_operators(node.left)
+                    or '\n' in node.operator.whitespaces.value
+                    or cls.has_newline_in_operators(node.right))
+        return cls.ends_with_newline(node)
 
 
 class TrimWhitespaces(FullAstVisitor):
@@ -636,22 +661,29 @@ class TrimWhitespaces(FullAstVisitor):
             node.is_multiline = True
 
         elif not node.is_multiline:
-            ml_detector = MultilineParenthesesDetector()
-            node.inner.accept(ml_detector)
-            if ml_detector.last_whitespaces and '\n' in ml_detector.last_whitespaces.value:
+            if MultilineParenthesesDetector.ends_with_newline(node.inner):
                 # We keep it multiline if last parenthesis is on a separate line
+                node.is_multiline = True
+            elif self.config.sticky_parens and MultilineParenthesesDetector.has_newline_in_operators(node.inner):
+                # Closing parenthesis is never on a separate line with sticky parens
                 node.is_multiline = True
 
         if node.is_multiline:
-            self.indent_comments += self.config.indent_by
+            self.indent_comments += self.config.indent_by * self.config.paren_levels
 
         node.lpar.accept(self)
+        if node.is_multiline and self.config.sticky_parens and '#' not in node.lpar.whitespaces.value:
+            node.lpar.whitespaces.value = ''
         node.inner.accept(self)
 
         if node.is_multiline:
-            node.inner.whitespaces.value = self.dedent(node.inner.whitespaces.value)
-            self.indent_comments = self.dedent(self.indent_comments)
-            self.add_nl_after(node.inner)
+            for _ in range(self.config.paren_levels):
+                node.inner.whitespaces.value = self.dedent(node.inner.whitespaces.value)
+                self.indent_comments = self.dedent(self.indent_comments)
+            if not self.config.sticky_parens:
+                self.add_nl_after(node.inner)
+            elif '#' not in node.inner.whitespaces.value:
+                node.inner.whitespaces.value = ''
         else:
             node.inner.whitespaces = None
 
@@ -667,6 +699,7 @@ class ArgumentFormatter(FullAstVisitor):
         self.indent_after = False
         self.is_function_arguments = False
         self.par_level = 0
+        self.split_operators = False
 
     def add_space_after(self, node: mparser.BaseNode) -> None:
         if not node.whitespaces.value:
@@ -804,24 +837,30 @@ class ArgumentFormatter(FullAstVisitor):
 
     def visit_ParenthesizedNode(self, node: mparser.ParenthesizedNode) -> None:
         self.enter_node(node)
+        current_split_operators = self.split_operators
         if node.is_multiline:
-            self.par_level += 1
+            self.par_level += self.config.paren_levels
             current_indent_after = self.indent_after
             self.indent_after = True
+            self.split_operators = True
+        elif self.config.sticky_parens:
+            # Only split operators of the multiline parentheses, not those of nested parentheses
+            self.split_operators = False
         node.lpar.accept(self)
-        if node.is_multiline:
+        if node.is_multiline and (not self.config.sticky_parens or '#' in node.lpar.whitespaces.value):
             self.add_nl_after(node.lpar, indent=self.level + self.par_level)
         node.inner.accept(self)
         if node.is_multiline:
-            self.par_level -= 1
+            self.par_level -= self.config.paren_levels
             self.indent_after = current_indent_after
+        self.split_operators = current_split_operators
         node.rpar.accept(self)
         self.exit_node(node)
 
     def visit_OrNode(self, node: mparser.OrNode) -> None:
         self.enter_node(node)
         node.left.accept(self)
-        if self.par_level:
+        if self.split_operators:
             self.add_nl_after(node.left, indent=self.level + self.par_level)
         node.operator.accept(self)
         node.right.accept(self)
@@ -830,7 +869,7 @@ class ArgumentFormatter(FullAstVisitor):
     def visit_AndNode(self, node: mparser.AndNode) -> None:
         self.enter_node(node)
         node.left.accept(self)
-        if self.par_level:
+        if self.split_operators:
             self.add_nl_after(node.left, indent=self.level + self.par_level)
         node.operator.accept(self)
         node.right.accept(self)
@@ -940,7 +979,9 @@ class ComputeLineLengths(FullAstVisitor):
         node.lpar.accept(self)
         node.inner.accept(self)
         node.rpar.accept(self)
-        if not node.is_multiline and self.length > self.config.max_line_length:
+        # Sticky parentheses can only be split on and / or operators
+        can_split = not self.config.sticky_parens or isinstance(node.inner, (mparser.OrNode, mparser.AndNode))
+        if can_split and not node.is_multiline and self.length > self.config.max_line_length:
             node.is_multiline = True
             self.need_regenerate = True
         self.exit_node(node)
@@ -1233,3 +1274,4 @@ def run(options: argparse.Namespace) -> int:
 # - Option to group '--arg', 'value' on same line in multiline arguments
 # - '# meson-format off|on' directives, in addition to muon's '# fmt: off|on';
 #   they must be on their own line and enclose whole statements
+# - Option to keep parentheses on the same line as the expression (sticky_parens)
