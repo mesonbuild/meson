@@ -358,8 +358,6 @@ An incomplete list of options is:
 
 ### [host_machine]
 
-*Since 0.56.0*
-
 The `[host_machine]` section is used in cross-compilation to describe
 the machine on which the compiled binary will run. It is not needed
 for native builds, where Meson auto-detects this information.
