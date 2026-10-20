@@ -10,7 +10,8 @@ import enum
 import re
 import typing as T
 
-from ..mesonlib import cmd_quote
+from ..mesonlib import cmd_quote, MesonException
+
 
 @enum.unique
 class RSPFileSyntax(enum.Enum):
@@ -50,3 +51,15 @@ def rsp_quote_func(syntax: RSPFileSyntax) -> T.Callable[[str], str]:
     if syntax in {RSPFileSyntax.MSVC, RSPFileSyntax.TASKING}:
         return cmd_quote
     return gcc_rsp_quote
+
+def rsp_file_contents(syntax: RSPFileSyntax, args: T.Sequence[str]) -> str:
+    if syntax is RSPFileSyntax.NASM:
+        # NASM reads one argument per line, without any quoting, and strips
+        # leading and trailing whitespace.
+        for arg in args:
+            if '\n' in arg or arg != arg.strip():
+                raise MesonException('NASM response files cannot contain arguments with newlines '
+                                     f'or leading/trailing whitespace: {arg!r}')
+        return '\n'.join(args)
+    quote = rsp_quote_func(syntax)
+    return ' '.join(quote(arg) for arg in args)

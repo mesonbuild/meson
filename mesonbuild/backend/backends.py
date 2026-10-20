@@ -33,6 +33,7 @@ from ..mesonlib import (
     get_rsp_threshold, unique_list
 )
 from ..options import OptionKey
+from .rspfile import RSPFileSyntax, rsp_file_contents, rsp_file_flag
 
 
 if T.TYPE_CHECKING:
@@ -677,9 +678,7 @@ class Backend:
             capture: T.Optional[str] = None,
             feed: T.Optional[str] = None,
             env: T.Optional[mesonlib.EnvironmentVariables] = None,
-            can_use_rsp_file: bool = False,
-            separator: str = ' ',
-            rsp_file_flag: str = '@',
+            rsp_syntax: T.Optional[RSPFileSyntax] = None,
             tag: T.Optional[str] = None,
             verbose: bool = False,
             installdir_map: T.Optional[T.Dict[str, str]] = None) -> 'ExecutableSerialisation':
@@ -744,18 +743,18 @@ class Backend:
         workdir = workdir or self.environment.get_build_dir()
 
         # Must include separators as well
-        needs_rsp_file = can_use_rsp_file and sum(len(i) + 1 for i in cmd_args) >= get_rsp_threshold()
+        needs_rsp_file = rsp_syntax is not None and sum(len(i) + 1 for i in cmd_args) >= get_rsp_threshold()
 
         if needs_rsp_file:
             hasher = hashlib.sha1()
-            args = separator.join(mesonlib.quote_arg(arg) for arg in cmd_args)
+            args = rsp_file_contents(rsp_syntax, cmd_args)
             hasher.update(args.encode(encoding='utf-8', errors='ignore'))
             digest = hasher.hexdigest()
             scratch_file = f'meson_rsp_{digest}.rsp'
             rsp_file = os.path.join(self.environment.get_scratch_dir(), scratch_file)
             with open(rsp_file, 'w', encoding='utf-8', newline='\n') as f:
                 f.write(args)
-                cmd_args = [f'{rsp_file_flag}{rsp_file}']
+                cmd_args = [f'{rsp_file_flag(rsp_syntax)}{rsp_file}']
 
         return ExecutableSerialisation(exe_cmd + cmd_args, env,
                                        exe_wrapper, workdir,
@@ -769,9 +768,7 @@ class Backend:
                              feed: T.Optional[str] = None,
                              force_serialize: bool = False,
                              env: T.Optional[mesonlib.EnvironmentVariables] = None,
-                             can_use_rsp_file: bool = False,
-                             separator: str = ' ',
-                             rsp_file_flag: str = '@',
+                             rsp_syntax: T.Optional[RSPFileSyntax] = None,
                              verbose: bool = False) -> T.Tuple[T.List[str], str]:
         '''
         Serialize an executable for running with a generator or a custom target
@@ -779,7 +776,7 @@ class Backend:
         cmd: T.List[build.CommandTypes] = []
         cmd.append(exe)
         cmd.extend(cmd_args)
-        es = self.get_executable_serialisation(cmd, workdir, extra_bdeps, capture, feed, env, can_use_rsp_file, separator=separator, rsp_file_flag=rsp_file_flag, verbose=verbose)
+        es = self.get_executable_serialisation(cmd, workdir, extra_bdeps, capture, feed, env, rsp_syntax=rsp_syntax, verbose=verbose)
         reasons: T.List[str] = []
         if es.extra_paths:
             reasons.append('to set PATH')
@@ -796,8 +793,8 @@ class Backend:
         if env and env.varnames:
             reasons.append('to set env')
 
-        if separator != ' ':
-            reasons.append('to use a custom argument separator')
+        if rsp_syntax is RSPFileSyntax.NASM:
+            reasons.append('to use a response file')
 
         # force_serialize passed to this function means that the VS backend has
         # decided it absolutely cannot use real commands. This is "always",
@@ -822,7 +819,7 @@ class Backend:
                 envlist.append(f'{k}={v}')
             return ['env'] + envlist + es.cmd_args, ', '.join(reasons)
 
-        if can_use_rsp_file and any(a.startswith(rsp_file_flag) for a in es.cmd_args):
+        if rsp_syntax is not None and any(a.startswith(rsp_file_flag(rsp_syntax)) for a in es.cmd_args):
             reasons.append('because command is too long')
 
         if not force_serialize:
