@@ -877,6 +877,40 @@ class FeatureNew(FeatureCheckBase):
             args.append(self.extra_message)
         mlog.warning(*args, location=location)
 
+class FeatureFixed(FeatureNew):
+    """Checks for new features"""
+
+    # Class variable, shared across all instances
+    #
+    # Format: {subproject: {feature_version_for_msg: set(feature_names)}}
+    feature_registry = {}
+
+    @staticmethod
+    def get_warning_str_prefix(tv: MesonVersionTarget) -> str:
+        if isinstance(tv, mesonlib.Range) and tv.min is not None:
+            return f'Project specifies a minimum meson_version \'{tv}\' but uses features which were broken in that version:'
+        else:
+            return 'Project specifies no minimum version but uses features which were broken in some releases:'
+
+    @staticmethod
+    def get_notice_str_prefix(tv: MesonVersionTarget) -> str:
+        return ''
+
+    def log_usage_warning(self, tv: MesonVersionTarget, location: T.Optional['mparser.BaseNode']) -> None:
+        if isinstance(tv, mesonlib.Range) and tv.min is not None:
+            prefix = f"Project targets '{tv}'"
+        else:
+            prefix = 'Project does not target a minimum version'
+        args = [
+            prefix,
+            'but uses feature that was broken until',
+            f"'{self.feature_version_for_msg}':",
+            f'{self.feature_name}.',
+        ]
+        if self.extra_message:
+            args.append(self.extra_message)
+        mlog.warning(*args, location=location)
+
 class FeatureDeprecated(FeatureCheckBase):
     """Checks for deprecated features"""
 
