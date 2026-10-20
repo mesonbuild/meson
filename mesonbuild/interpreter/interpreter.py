@@ -32,7 +32,7 @@ from ..interpreterbase import noArgsFlattening, unholder_return
 from .decorators import apply_machine_map
 from ..interpreterbase import InterpreterException, InvalidArguments, InvalidCode, SubdirDoneRequest
 from ..interpreterbase import Disabler, disablerIfNotFound
-from ..interpreterbase import FeatureNew, FeatureDeprecated, FeatureBroken
+from ..interpreterbase import FeatureFixed, FeatureNew, FeatureDeprecated, FeatureBroken
 from ..interpreterbase import ObjectHolder, ContextManagerObject, DefaultObject
 from ..interpreterbase import stringifyUserArguments, Feature, FeatureValue
 from ..modules import ExtensionModule, ModuleObject, MutableModuleObject, NewExtensionModule, NotFoundExtensionModule, __path__ as modules_path
@@ -3403,6 +3403,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         if not self.is_subproject() and self.n_targets != len(self.build.targets):
             mlog.log('Total number of targets:', mlog.bold(str(len(self.build.targets))))
         FeatureNew.report(self.subproject)
+        FeatureFixed.report(self.subproject)
         FeatureDeprecated.report(self.subproject)
         FeatureBroken.report(self.subproject)
         if not self.is_subproject():

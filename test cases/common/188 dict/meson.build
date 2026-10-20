@@ -92,3 +92,15 @@ d = {
 assert(d['sanity'] == 1)
 assert(not is_disabler(d['meson']))
 assert(not is_disabler(d['host']))
+
+# A 'kwargs' key in a dictionary literal is not expanded.
+d = {'kwargs': {'required': false}}
+assert(d.keys() == ['kwargs'])
+assert(d['kwargs'] == {'required': false})
+
+# The nested dictionary can still be passed to function and method calls.
+testcase expect_error('Kwargs argument must not contain a "kwargs" entry. Points for thinking meta, though. :P')
+  p = find_program('nonexistent-program', kwargs: d)
+endtestcase
+p = find_program('nonexistent-program', kwargs: d['kwargs'])
+assert(not p.found())
