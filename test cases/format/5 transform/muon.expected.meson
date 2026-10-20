@@ -120,10 +120,10 @@ if (
     not cc.compiles('int main(void) { return 0; }')
     or cc.has_header('foo.h')
     or cc.has_header(
-    'bar.h',
+        'bar.h',
     )
     or cc.has_header(
-    'baz.h',
+        'baz.h',
     )
 )
     message('long condition')
@@ -149,5 +149,32 @@ endif
 if (a or b)
     message('newline after operator in source')
 endif
+
+# multiline arguments in multiline parentheses
+foreach i : [1, 2]
+    y = (
+        aaaaaaaaaaaaaaaaaaaaaaaa
+        or files(
+            'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+            'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+            'c',
+        )
+    )
+    z = (
+        aaaaaaaaaaaaaaaaaaaaaaaa
+        or [
+            'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+            'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+            'c',
+        ]
+    )
+    w = (
+        aaaaaaaaaaaaaaaaaaaaaaaa
+        or {
+            'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa': 1,
+            'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb': 2,
+        }
+    )
+endforeach
 
 # no final endline
