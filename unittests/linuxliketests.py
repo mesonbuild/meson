@@ -1385,6 +1385,8 @@ class LinuxlikeTests(BasePlatformTests):
         '''
         if is_cygwin():
             raise SkipTest('rpath are not used on Cygwin')
+        if 'MESON_RSP_THRESHOLD' in os.environ:
+            raise SkipTest('MESON_RSP_THRESHOLD affects contents of build.ninja')
         testdir = os.path.join(self.unit_test_dir, '41 rpath order')
         self.init(testdir)
         if is_osx():
@@ -1950,6 +1952,8 @@ class LinuxlikeTests(BasePlatformTests):
 
     @skipUnless(is_linux(), "Ninja file differs on different platforms")
     def test_complex_link_cases(self):
+        if 'MESON_RSP_THRESHOLD' in os.environ:
+            raise SkipTest('MESON_RSP_THRESHOLD affects contents of build.ninja')
         testdir = os.path.join(self.unit_test_dir, '114 complex link cases')
         self.init(testdir)
         self.build()
