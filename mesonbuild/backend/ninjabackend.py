@@ -1299,7 +1299,7 @@ class NinjaBackend(backends.Backend):
                                                 capture=ofilenames[0] if target.capture else None,
                                                 feed=srcs[0] if target.feed else None,
                                                 env=target.env,
-                                                can_use_rsp_file=target.rsp_syntax is not None,
+                                                rsp_syntax=target.rsp_syntax,
                                                 verbose=target.console)
         if reason:
             cmd_type = f' (wrapped by meson {reason})'
@@ -3402,9 +3402,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             element.rulename = 'CUSTOM_COMMAND'
             meson_exe_cmd, reason = self.as_meson_exe_cmdline(exe[0],
                                                               exe[1:] + commands.to_native(),
-                                                              separator='\n',
-                                                              rsp_file_flag='-@',
-                                                              can_use_rsp_file=True,
+                                                              rsp_syntax=RSPFileSyntax.NASM,
                                                               verbose=True)
             cmd_type = f' (wrapped by meson {reason})' if reason else ''
             element.add_item('COMMAND', meson_exe_cmd)
