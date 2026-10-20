@@ -3,8 +3,8 @@
 
 from __future__ import annotations
 
-from .base import RSPFileSyntax
 from .. import mlog
+from ..backend.rspfile import RSPFileSyntax
 from ..mesonlib import (
     EnvironmentException,
     Popen_safe, Popen_safe_logged, join_args, search_version
