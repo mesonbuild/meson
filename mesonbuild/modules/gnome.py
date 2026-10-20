@@ -22,6 +22,7 @@ from .. import build
 from .. import interpreter
 from .. import mesonlib
 from .. import mlog
+from ..backend.rspfile import RSPFileSyntax
 from ..build import CustomTarget, CustomTargetIndex, Executable, GeneratedList, InvalidArguments, LocalProgram
 from ..dependencies import Dependency, InternalDependency
 from ..dependencies.pkgconfig import PkgConfigDependency, PkgConfigInterface
@@ -1044,7 +1045,7 @@ class GnomeModule(ExtensionModule):
         run_env.merge(kwargs['env'])
 
         # response file supported?
-        rspable = self._giscanner_version_compare(state, '>= 1.85.0')
+        rsp_syntax = RSPFileSyntax.GCC if self._giscanner_version_compare(state, '>= 1.85.0') else None
 
         return GirTarget(
             girfile,
@@ -1061,7 +1062,7 @@ class GnomeModule(ExtensionModule):
             install_dir=[install_dir],
             install_tag=['devel'],
             env=run_env,
-            rspable=rspable,
+            rsp_syntax=rsp_syntax,
         )
 
     @staticmethod
@@ -2147,7 +2148,7 @@ class GnomeModule(ExtensionModule):
             extra_depends=depends,
             # https://github.com/mesonbuild/meson/issues/973
             absolute_paths=True,
-            rspable=mesonlib.is_windows() or mesonlib.is_cygwin(),
+            rsp_syntax=RSPFileSyntax.GCC if mesonlib.is_windows() or mesonlib.is_cygwin() else None,
             description='Generating GObject enum file {}',
         )
 

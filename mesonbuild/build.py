@@ -45,6 +45,7 @@ if T.TYPE_CHECKING:
     from .environment import Environment
     from ._typing import ImmutableListProtocol
     from .backend.backends import Backend
+    from .backend.rspfile import RSPFileSyntax
     from .compilers.compilers import Compiler, CompilerDict, Language
     from .compilers.rust import RustCompiler
     from .interpreter.interpreter import CustomTargetSources, SourceOutputs, Interpreter
@@ -3117,7 +3118,7 @@ class CustomTarget(Target, CustomTargetBase, CommandTargetProto):
                  install_dir: T.Optional[T.List[T.Union[str, Literal[False]]]] = None,
                  install_mode: T.Optional[FileMode] = None,
                  install_tag: T.Optional[T.List[T.Optional[str]]] = None,
-                 rspable: bool = False,
+                 rsp_syntax: T.Optional[RSPFileSyntax] = None,
                  absolute_paths: bool = False,
                  backend: T.Optional['Backend'] = None,
                  description: str = 'Generating {} with a custom command',
@@ -3156,7 +3157,7 @@ class CustomTarget(Target, CustomTargetBase, CommandTargetProto):
         self.absolute_paths = absolute_paths
 
         # Whether to enable using response files for the underlying tool
-        self.rspable = rspable
+        self.rsp_syntax = rsp_syntax
 
         self.extra_depends: T.List[T.Union[GeneratedList, BuildTargetProto]] = []
         if extra_depends:
