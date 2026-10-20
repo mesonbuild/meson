@@ -8,7 +8,9 @@ from __future__ import annotations
 
 import enum
 import re
+import typing as T
 
+from ..mesonlib import cmd_quote
 
 @enum.unique
 class RSPFileSyntax(enum.Enum):
@@ -43,3 +45,8 @@ def rsp_file_flag(syntax: RSPFileSyntax) -> str:
     if syntax is RSPFileSyntax.TASKING:
         return '--option-file='
     return '@'
+
+def rsp_quote_func(syntax: RSPFileSyntax) -> T.Callable[[str], str]:
+    if syntax in {RSPFileSyntax.MSVC, RSPFileSyntax.TASKING}:
+        return cmd_quote
+    return gcc_rsp_quote

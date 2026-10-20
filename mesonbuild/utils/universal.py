@@ -102,6 +102,7 @@ __all__ = [
     'as_posix',
     'check_direntry_issues',
     'classify_unity_sources',
+    'cmd_quote',
     'current_vs_supports_modules',
     'darwin_get_object_archs',
     'default_libdir',
@@ -2734,6 +2735,20 @@ def get_rsp_threshold() -> int:
     # Be conservative
     limit = limit // 2
     return int(os.environ.get('MESON_RSP_THRESHOLD', limit))
+
+
+def cmd_quote(arg: str) -> str:
+    # see: https://docs.microsoft.com/en-us/windows/desktop/api/shellapi/nf-shellapi-commandlinetoargvw#remarks
+
+    # backslash escape any existing double quotes
+    # any existing backslashes preceding a quote are doubled
+    arg = re.sub(r'(\\*)"', lambda m: '\\' * (len(m.group(1)) * 2 + 1) + '"', arg)
+    # any terminal backslashes likewise need doubling
+    arg = re.sub(r'(\\*)$', lambda m: '\\' * (len(m.group(1)) * 2), arg)
+    # and double quote
+    arg = f'"{arg}"'
+
+    return arg
 
 
 class lazy_property(T.Generic[_T]):
