@@ -107,4 +107,47 @@ if get_option('client')
     dependencies += ['requests']
 endif
 
+# issue #13570: sticky parentheses
+if (cc.links(
+    '''
+    void do_func(int foo) { return INT_MAX - foo; }
+    ''',
+))
+    deps += dependency('foo')
+endif
+
+if (
+    not cc.compiles('int main(void) { return 0; }')
+    or cc.has_header('foo.h')
+    or cc.has_header(
+    'bar.h',
+    )
+    or cc.has_header(
+    'baz.h',
+    )
+)
+    message('long condition')
+endif
+
+# long condition without function arguments (documentation example)
+if (
+    host_machine.system() == 'windows'
+    or host_machine.system() == 'cygwin'
+    or host_machine.system() == 'darwin'
+    or host_machine.system() == 'linux'
+)
+    message('documentation example')
+endif
+
+if (
+    a
+    or b
+)
+    message('closing parenthesis on separate line in source')
+endif
+
+if (a or b)
+    message('newline after operator in source')
+endif
+
 # no final endline
