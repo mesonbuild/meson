@@ -90,15 +90,21 @@ else:
     execute_wrapper = []
     rmfile_prefix = ['rm', '-f', '{}', '&&']
 
+GCC_RSP_UNSAFE_PAT = re.compile(r'[^\w@%+=:,./-]', re.ASCII)
+
 def gcc_rsp_quote(s: str) -> str:
     # see: the function buildargv() in libiberty
     #
-    # this differs from sh-quoting in that a backslash *always* escapes the
-    # following character, even inside single quotes.
+    # Up to GCC 15 (and in clang), a backslash *always* escapes the following
+    # character, even inside single quotes.  Starting with GCC 16, backslashes
+    # inside single quotes are literal as in sh.  Avoid quotes and escape
+    # every special character with a backslash, which works the same way in
+    # both cases.  The exception is newlines, for which a backslash is a line
+    # continuation in sh; place them in single quotes instead.
 
-    s = s.replace('\\', '\\\\')
-
-    return quote_func(s)
+    if not s:
+        return "''"
+    return GCC_RSP_UNSAFE_PAT.sub(lambda m: "'\n'" if m.group() == '\n' else '\\' + m.group(), s)
 
 # a conservative estimate of the command-line length limit
 rsp_threshold = mesonlib.get_rsp_threshold()
