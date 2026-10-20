@@ -375,7 +375,6 @@ class TrimWhitespaces(FullAstVisitor):
 
         self.in_block_comments = False
         self.in_arguments = 0
-        self.indent_comments = ''
 
     def visit_default_func(self, node: mparser.BaseNode) -> None:
         self.enter_node(node)
@@ -410,11 +409,6 @@ class TrimWhitespaces(FullAstVisitor):
         elif force and not node.whitespaces.value.endswith('\n'):
             node.whitespaces.value += '\n'
 
-    def dedent(self, value: str) -> str:
-        if value.endswith(self.config.indent_by):
-            value = value[:-len(self.config.indent_by)]
-        return value
-
     def sort_arguments(self, node: mparser.ArgumentNode) -> None:
         def sort_key(arg: mparser.BaseNode) -> tuple[tuple[bool, tuple[int | str, ...]], ...]:
             if isinstance(arg, mparser.StringNode):
@@ -445,16 +439,12 @@ class TrimWhitespaces(FullAstVisitor):
             elif line.startswith('#'):
                 if not in_block_comments:
                     node.value += self.config.indent_before_comments
-                else:
-                    node.value += self.indent_comments
             node.value += line
             if has_nl and (line or with_comments[i+1] or not self.in_arguments):
                 node.value += '\n'
             in_block_comments = True
-        if node.value.endswith('\n'):
-            node.value += self.indent_comments
-            if node.is_continuation:
-                node.value += self.config.indent_by
+        if node.value.endswith('\n') and node.is_continuation:
+            node.value += self.config.indent_by
 
     def visit_SymbolNode(self, node: mparser.SymbolNode) -> None:
         super().visit_SymbolNode(node)
@@ -668,18 +658,12 @@ class TrimWhitespaces(FullAstVisitor):
                 # Closing parenthesis is never on a separate line with sticky parens
                 node.is_multiline = True
 
-        if node.is_multiline:
-            self.indent_comments += self.config.indent_by * self.config.paren_levels
-
         node.lpar.accept(self)
         if node.is_multiline and self.config.sticky_parens and '#' not in node.lpar.whitespaces.value:
             node.lpar.whitespaces.value = ''
         node.inner.accept(self)
 
         if node.is_multiline:
-            for _ in range(self.config.paren_levels):
-                node.inner.whitespaces.value = self.dedent(node.inner.whitespaces.value)
-                self.indent_comments = self.dedent(self.indent_comments)
             if not self.config.sticky_parens:
                 self.add_nl_after(node.inner)
             elif '#' not in node.inner.whitespaces.value:
@@ -698,7 +682,6 @@ class ArgumentFormatter(FullAstVisitor):
         self.level = 0
         self.indent_after = False
         self.is_function_arguments = False
-        self.par_level = 0
         self.split_operators = False
 
     def add_space_after(self, node: mparser.BaseNode) -> None:
@@ -711,6 +694,11 @@ class ArgumentFormatter(FullAstVisitor):
         indent_by = (node.condition_level + indent) * self.config.indent_by
         if indent_by:
             node.whitespaces.value = re.sub(rf'\n({self.config.indent_by})*', '\n' + indent_by, node.whitespaces.value)
+
+    def indent_last_line(self, node: mparser.BaseNode, indent: int) -> None:
+        """Indent the line following node, without changing indentation of comments"""
+        indent_by = (node.condition_level + indent) * self.config.indent_by
+        node.whitespaces.value = re.sub(rf'\n({self.config.indent_by})*$', '\n' + indent_by, node.whitespaces.value)
 
     def visit_ArrayNode(self, node: mparser.ArrayNode) -> None:
         self.enter_node(node)
@@ -777,7 +765,7 @@ class ArgumentFormatter(FullAstVisitor):
                 if '#' in line and not line.startswith(indent):
                     node.value += indent
                 node.value += line
-            if self.indent_after and node.value.endswith(('\n', self.config.indent_by)):
+            if self.indent_after and (node.value.endswith('\n') or node.is_continuation):
                 node.value += indent
 
     def visit_ArgumentNode(self, node: mparser.ArgumentNode) -> None:
@@ -818,11 +806,11 @@ class ArgumentFormatter(FullAstVisitor):
                         # keep '--arg', 'value' on same line
                         self.add_space_after(node.commas[arg_index])
                     elif arg_index < len(node.commas):
-                        self.add_nl_after(node.commas[arg_index], self.level + self.par_level)
+                        self.add_nl_after(node.commas[arg_index], self.level)
                     arg_index += 1
 
             for comma in node.commas[arg_index:-1]:
-                self.add_nl_after(comma, self.level + self.par_level)
+                self.add_nl_after(comma, self.level)
             if node.arguments or node.kwargs:
                 self.add_nl_after(node, self.level - 1)
 
@@ -839,7 +827,7 @@ class ArgumentFormatter(FullAstVisitor):
         self.enter_node(node)
         current_split_operators = self.split_operators
         if node.is_multiline:
-            self.par_level += self.config.paren_levels
+            self.level += self.config.paren_levels
             current_indent_after = self.indent_after
             self.indent_after = True
             self.split_operators = True
@@ -848,11 +836,12 @@ class ArgumentFormatter(FullAstVisitor):
             self.split_operators = False
         node.lpar.accept(self)
         if node.is_multiline and (not self.config.sticky_parens or '#' in node.lpar.whitespaces.value):
-            self.add_nl_after(node.lpar, indent=self.level + self.par_level)
+            self.add_nl_after(node.lpar, indent=self.level)
         node.inner.accept(self)
         if node.is_multiline:
-            self.par_level -= self.config.paren_levels
+            self.level -= self.config.paren_levels
             self.indent_after = current_indent_after
+            self.indent_last_line(node.inner, indent=self.level)
         self.split_operators = current_split_operators
         node.rpar.accept(self)
         self.exit_node(node)
@@ -861,7 +850,7 @@ class ArgumentFormatter(FullAstVisitor):
         self.enter_node(node)
         node.left.accept(self)
         if self.split_operators:
-            self.add_nl_after(node.left, indent=self.level + self.par_level)
+            self.add_nl_after(node.left, indent=self.level)
         node.operator.accept(self)
         node.right.accept(self)
         self.exit_node(node)
@@ -870,7 +859,7 @@ class ArgumentFormatter(FullAstVisitor):
         self.enter_node(node)
         node.left.accept(self)
         if self.split_operators:
-            self.add_nl_after(node.left, indent=self.level + self.par_level)
+            self.add_nl_after(node.left, indent=self.level)
         node.operator.accept(self)
         node.right.accept(self)
         self.exit_node(node)
