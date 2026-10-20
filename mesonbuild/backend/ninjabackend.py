@@ -1299,7 +1299,7 @@ class NinjaBackend(backends.Backend):
                                                 capture=ofilenames[0] if target.capture else None,
                                                 feed=srcs[0] if target.feed else None,
                                                 env=target.env,
-                                                can_use_rsp_file=target.rspable,
+                                                can_use_rsp_file=target.rsp_syntax is not None,
                                                 verbose=target.console)
         if reason:
             cmd_type = f' (wrapped by meson {reason})'
