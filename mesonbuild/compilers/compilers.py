@@ -1716,6 +1716,11 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
         """
         return self.linker.rsp_file_syntax()
 
+    def linker_rsp_file_syntax(self) -> 'RSPFileSyntax':
+        """The format of the RSP file used when this compiler is used as
+           the link_language."""
+        return self.rsp_file_syntax()
+
     def get_debug_args(self, is_debug: bool) -> T.List[str]:
         """Arguments required for a debug build."""
         return []
