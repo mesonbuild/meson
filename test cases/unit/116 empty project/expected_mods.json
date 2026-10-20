@@ -180,6 +180,7 @@
       "mesonbuild.backend",
       "mesonbuild.backend.backends",
       "mesonbuild.backend.ninjabackend",
+      "mesonbuild.backend.rspfile",
       "mesonbuild.build",
       "mesonbuild.cmdline",
       "mesonbuild.compilers",
@@ -242,6 +243,6 @@
       "mesonbuild.wrap",
       "mesonbuild.wrap.wrap"
     ],
-    "count": 73
+    "count": 74
   }
 }

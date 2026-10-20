@@ -4,22 +4,12 @@
 # Core public classes for linkers.
 from __future__ import annotations
 
-import enum
 import typing as T
+
+from ..backend.rspfile import RSPFileSyntax
 
 if T.TYPE_CHECKING:
     from ..environment import Environment
-
-
-@enum.unique
-class RSPFileSyntax(enum.Enum):
-
-    """Which RSP file syntax the compiler supports."""
-
-    MSVC = enum.auto()
-    GCC = enum.auto()
-    TASKING = enum.auto()
-    NASM = enum.auto()
 
 
 class ArLikeLinker:

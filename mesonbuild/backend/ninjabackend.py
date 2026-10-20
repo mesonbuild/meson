@@ -20,6 +20,8 @@ import subprocess
 import typing as T
 
 from . import backends
+from .backends import CleanTrees
+from .rspfile import RSPFileSyntax, gcc_rsp_quote, rsp_file_flag
 from .. import modules
 from .. import mesonlib
 from .. import build
@@ -28,14 +30,13 @@ from .. import compilers
 from .. import tooldetect
 from ..arglist import CompilerArgs
 from ..compilers import Compiler, is_library
-from ..linkers import ArLikeLinker, RSPFileSyntax, StaticLinker, VisualStudioLikeLinkerMixin
+from ..linkers import ArLikeLinker, StaticLinker, VisualStudioLikeLinkerMixin
 from ..mesonlib import (
     File, LibType, MachineChoice, MesonBugException, MesonException, OrderedSet, PerMachine,
     ProgressBar, quote_arg, unique_list
 )
 from ..mesonlib import as_posix, get_compiler_for_source, has_path_sep, is_parent_path, lookbehind, path_has_root
 from ..options import OptionKey
-from .backends import CleanTrees
 from ..build import GeneratedList, InvalidArguments
 
 if T.TYPE_CHECKING:
@@ -90,22 +91,6 @@ else:
     quote_func = quote_arg
     execute_wrapper = []
     rmfile_prefix = ['rm', '-f', '{}', '&&']
-
-GCC_RSP_UNSAFE_PAT = re.compile(r'[^\w@%+=:,./-]', re.ASCII)
-
-def gcc_rsp_quote(s: str) -> str:
-    # see: the function buildargv() in libiberty
-    #
-    # Up to GCC 15 (and in clang), a backslash *always* escapes the following
-    # character, even inside single quotes.  Starting with GCC 16, backslashes
-    # inside single quotes are literal as in sh.  Avoid quotes and escape
-    # every special character with a backslash, which works the same way in
-    # both cases.  The exception is newlines, for which a backslash is a line
-    # continuation in sh; place them in single quotes instead.
-
-    if not s:
-        return "''"
-    return GCC_RSP_UNSAFE_PAT.sub(lambda m: "'\n'" if m.group() == '\n' else '\\' + m.group(), s)
 
 # a conservative estimate of the command-line length limit
 rsp_threshold = mesonlib.get_rsp_threshold()
@@ -259,10 +244,8 @@ class NinjaRule:
         for rsp in rule_iter():
             outfile.write(f'rule {self.name}{rsp}\n')
             if rsp == '_RSP':
-                if self.rspfile_quote_style is RSPFileSyntax.TASKING:
-                    outfile.write(' command = {} --option-file=$out.rsp\n'.format(' '.join([self._quoter(x) for x in self.command])))
-                else:
-                    outfile.write(' command = {} @$out.rsp\n'.format(' '.join([self._quoter(x) for x in self.command])))
+                command = ' '.join([self._quoter(x) for x in self.command])
+                outfile.write(f' command = {command} {rsp_file_flag(self.rspfile_quote_style)}$out.rsp\n')
                 outfile.write(' rspfile = $out.rsp\n')
                 outfile.write(' rspfile_content = {}\n'.format(' '.join([self._quoter(x, rspfile_quote_func) for x in rspfile_args])))
             else:
