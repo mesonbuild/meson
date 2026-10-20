@@ -9,8 +9,9 @@ import os
 import typing as T
 import re
 
-from .base import ArLikeLinker, RSPFileSyntax
+from .base import ArLikeLinker
 from .. import mesonlib
+from ..backend.rspfile import RSPFileSyntax
 from ..mesonlib import EnvironmentException, MesonException, path_has_root
 from ..arglist import CompilerArgs
 

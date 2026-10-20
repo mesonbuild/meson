@@ -7,7 +7,7 @@ import os.path
 import textwrap
 import typing as T
 
-from ..linkers import RSPFileSyntax
+from ..backend.rspfile import RSPFileSyntax
 
 from .compilers import Compiler
 from .mixins.islinker import BasicLinkerIsCompilerMixin

@@ -32,7 +32,7 @@ if T.TYPE_CHECKING:
     from ..options import MutableKeyedOptionDictType
     from ..envconfig import MachineInfo
     from ..environment import Environment
-    from ..linkers import RSPFileSyntax
+    from ..backend.rspfile import RSPFileSyntax
     from ..linkers.linkers import DynamicLinker
     from ..mesonlib import MachineChoice
     from ..dependencies import Dependency
