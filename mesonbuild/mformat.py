@@ -547,15 +547,15 @@ class TrimWhitespaces(FullAstVisitor):
 
     def visit_FunctionNode(self, node: mparser.FunctionNode) -> None:
         if node.func_name.value == 'files':
-            if self.config.sort_files:
-                self.sort_arguments(node.args)
-
             if len(node.args.arguments) == 1 and not node.args.kwargs:
                 arg = node.args.arguments[0]
                 if isinstance(arg, mparser.ArrayNode):
                     if not arg.lbracket.whitespaces or not arg.lbracket.whitespaces.value.strip():
                         # files([...]) -> files(...)
                         node.args = arg.args
+
+            if self.config.sort_files:
+                self.sort_arguments(node.args)
 
         super().visit_FunctionNode(node)
         self.move_whitespaces(node.rpar, node)
