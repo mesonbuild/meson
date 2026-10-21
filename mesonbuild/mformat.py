@@ -695,6 +695,14 @@ class SetAttr:
         setattr(self.obj, self.name, self.old)
 
 
+@dataclass(frozen=True, slots=True)
+class FormatLayout:
+    """Layout of a whitespace, decided by ArgumentFormatter before the whitespace is visited"""
+
+    kind: Literal['space', 'newline', 'last_line']  # last_line: only indent the line following the whitespace
+    indent: int = 0
+
+
 @dataclass(slots=True)
 class FormatterState:
     """State of ArgumentFormatter, restored when rewinding"""
@@ -712,6 +720,10 @@ class ArgumentFormatter(FullAstVisitor):
         self.state = FormatterState()
         self.log: T.List[SetAttr] = []
 
+        indent = re.escape(config.indent_by)
+        self.indent_re = re.compile(rf'\n(?:{indent})*')  # every line break with its indentation
+        self.last_indent_re = re.compile(rf'\n(?:{indent})*$')  # last line break with its indentation
+
     def record(self, change: SetAttr) -> None:
         change.apply()
         self.log.append(change)
@@ -725,21 +737,30 @@ class ArgumentFormatter(FullAstVisitor):
     def set_whitespaces(self, node: mparser.BaseNode, value: str) -> None:
         self.set_attr(node.whitespaces, 'value', value)
 
+    # Layout decisions are recorded on the whitespace node before it is visited,
+    # and applied by visit_WhitespaceNode after the whitespace is formatted.
+
     def add_space_after(self, node: mparser.BaseNode) -> None:
-        if not node.whitespaces.value:
-            self.set_whitespaces(node, ' ')
+        self.set_attr(node.whitespaces, 'format_layout', FormatLayout('space'))
 
     def add_nl_after(self, node: mparser.BaseNode, indent: int) -> None:
-        if not node.whitespaces.value or node.whitespaces.value == ' ':
-            self.set_whitespaces(node, '\n')
-        indent_by = (node.condition_level + indent) * self.config.indent_by
-        if indent_by:
-            self.set_whitespaces(node, re.sub(rf'\n({self.config.indent_by})*', '\n' + indent_by, node.whitespaces.value))
+        self.set_attr(node.whitespaces, 'format_layout', FormatLayout('newline', indent))
 
     def indent_last_line(self, node: mparser.BaseNode, indent: int) -> None:
         """Indent the line following node, without changing indentation of comments"""
-        indent_by = (node.condition_level + indent) * self.config.indent_by
-        self.set_whitespaces(node, re.sub(rf'\n({self.config.indent_by})*$', '\n' + indent_by, node.whitespaces.value))
+        self.set_attr(node.whitespaces, 'format_layout', FormatLayout('last_line', indent))
+
+    def apply_layout(self, node: mparser.WhitespaceNode, layout: FormatLayout, value: str) -> str:
+        if layout.kind == 'space':
+            return value or ' '
+        indent_by = (node.condition_level + layout.indent) * self.config.indent_by
+        if layout.kind == 'newline':
+            if not value or value == ' ':
+                value = '\n'
+            if indent_by:
+                value = self.indent_re.sub('\n' + indent_by, value)
+            return value
+        return self.last_indent_re.sub('\n' + indent_by, value)
 
     def visit_ArrayNode(self, node: mparser.ArrayNode) -> None:
         self.enter_node(node)
@@ -775,26 +796,33 @@ class ArgumentFormatter(FullAstVisitor):
         is_cont = node.source_object.whitespaces and node.source_object.whitespaces.is_continuation
         if is_cont:
             self.state.level += 1
+        node.dot.accept(self)
+        node.name.accept(self)
         if node.args.is_multiline:
             self.state.level += 1
             self.add_nl_after(node.lpar, indent=self.state.level)
+        node.lpar.accept(self)
         self.state.is_function_arguments = True
         node.args.accept(self)
         if node.args.is_multiline:
             self.state.level -= 1
         if is_cont:
             self.state.level -= 1
+        node.rpar.accept(self)
         self.exit_node(node)
 
     def visit_FunctionNode(self, node: mparser.FunctionNode) -> None:
         self.enter_node(node)
+        node.func_name.accept(self)
         if node.args.is_multiline:
             self.state.level += 1
             self.add_nl_after(node.lpar, indent=self.state.level)
+        node.lpar.accept(self)
         self.state.is_function_arguments = True
         node.args.accept(self)
         if node.args.is_multiline:
             self.state.level -= 1
+        node.rpar.accept(self)
         self.exit_node(node)
 
     def visit_WhitespaceNode(self, node: mparser.WhitespaceNode) -> None:
@@ -808,11 +836,15 @@ class ArgumentFormatter(FullAstVisitor):
                 value += line
             if node.is_continuation or (self.state.indent_after and value.endswith('\n')):
                 value += indent
-            self.set_attr(node, 'value', value)
+        else:
+            value = node.value
+        if node.format_layout:
+            value = self.apply_layout(node, node.format_layout, value)
+            self.set_attr(node, 'format_layout', None)
+        self.set_attr(node, 'value', value)
 
     def visit_ArgumentNode(self, node: mparser.ArgumentNode) -> None:
-        is_function_arguments = self.state.is_function_arguments  # record it, because it may change when visiting children
-        super().visit_ArgumentNode(node)
+        is_function_arguments = self.state.is_function_arguments
 
         for colon in node.colons:
             self.add_space_after(colon)
@@ -863,7 +895,7 @@ class ArgumentFormatter(FullAstVisitor):
             for comma in node.commas:
                 self.add_space_after(comma)
 
-        self.exit_node(node)
+        super().visit_ArgumentNode(node)
 
     def visit_ParenthesizedNode(self, node: mparser.ParenthesizedNode) -> None:
         self.enter_node(node)
@@ -889,32 +921,34 @@ class ArgumentFormatter(FullAstVisitor):
             if '#' not in node.inner.whitespaces.value:
                 self.set_whitespaces(node.inner, '')
 
+        if node.is_multiline:
+            if not self.config.sticky_parens or '#' in node.lpar.whitespaces.value:
+                self.add_nl_after(node.lpar, indent=self.state.level)
+            self.indent_last_line(node.inner, indent=self.state.level - self.config.paren_levels)
+
         node.lpar.accept(self)
-        if node.is_multiline and (not self.config.sticky_parens or '#' in node.lpar.whitespaces.value):
-            self.add_nl_after(node.lpar, indent=self.state.level)
         node.inner.accept(self)
         if node.is_multiline:
             self.state.level -= self.config.paren_levels
             self.state.indent_after = current_indent_after
-            self.indent_last_line(node.inner, indent=self.state.level)
         self.state.split_operators = current_split_operators
         node.rpar.accept(self)
         self.exit_node(node)
 
     def visit_OrNode(self, node: mparser.OrNode) -> None:
         self.enter_node(node)
-        node.left.accept(self)
         if self.state.split_operators:
             self.add_nl_after(node.left, indent=self.state.level)
+        node.left.accept(self)
         node.operator.accept(self)
         node.right.accept(self)
         self.exit_node(node)
 
     def visit_AndNode(self, node: mparser.AndNode) -> None:
         self.enter_node(node)
-        node.left.accept(self)
         if self.state.split_operators:
             self.add_nl_after(node.left, indent=self.state.level)
+        node.left.accept(self)
         node.operator.accept(self)
         node.right.accept(self)
         self.exit_node(node)
