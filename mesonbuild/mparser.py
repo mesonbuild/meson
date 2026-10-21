@@ -15,6 +15,7 @@ if T.TYPE_CHECKING:
     from typing_extensions import Literal
 
     from .ast import AstVisitor
+    from .mformat import FormatLayout
 
     BaseNodeT = T.TypeVar('BaseNodeT', bound='BaseNode')
 
@@ -281,6 +282,7 @@ class WhitespaceNode(BaseNode):
         self.append(token)
         self.block_indent = False
         self.is_continuation = False
+        self.format_layout: T.Optional[FormatLayout] = None
 
     def append(self, token: Token[str]) -> None:
         self.value += token.value
