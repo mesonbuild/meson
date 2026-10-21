@@ -344,7 +344,7 @@ class DynamicLinker(metaclass=mesonlib.SimpleABC):
 
         def evaluate_rpath(p: str, build_dir: str, from_dir: str) -> str:
             if p == from_dir:
-                return '' # relpath errors out in this case
+                return '' # make it '$ORIGIN/', not '$ORIGIN/.'
             elif path_has_root(p):
                 return p # These can be outside of build dir.
             else:
