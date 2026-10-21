@@ -331,31 +331,25 @@ class DynamicLinker(metaclass=mesonlib.SimpleABC):
         return []
 
     def prepare_rpaths(self, raw_rpaths: T.Tuple[str, ...], build_dir: str, from_dir: str) -> T.List[str]:
-        def order_rpaths(rpath_list: T.List[str]) -> T.List[str]:
-            # We want rpaths that point inside our build dir to always override
-            # those pointing to other places in the file system. This is so built
-            # binaries prefer our libraries to the ones that may lie somewhere
-            # in the file system, such as /lib/x86_64-linux-gnu.
-            #
-            # The correct thing to do here would be C++'s std::stable_partition.
-            # Python standard library does not have it, so replicate it with
-            # sort, which is guaranteed to be stable.
-            return sorted(rpath_list, key=os.path.isabs)
-
-        def evaluate_rpath(p: str, build_dir: str, from_dir: str) -> str:
-            if p == from_dir:
-                return '' # make it '$ORIGIN/', not '$ORIGIN/.'
-            elif path_has_root(p):
-                return p # These can be outside of build dir.
-            else:
-                return os.path.relpath(os.path.join(build_dir, p), os.path.join(build_dir, from_dir))
-
         # The rpaths we write must be relative if they point to the build dir,
         # because otherwise they have different length depending on the build
         # directory. This breaks reproducible builds.
-        internal_format_rpaths = [evaluate_rpath(p, build_dir, from_dir) for p in raw_rpaths]
-        ordered_rpaths = order_rpaths(internal_format_rpaths)
-        return ordered_rpaths
+        rel_rpaths: T.List[str] = []
+        abs_rpaths: T.List[str] = []
+        for p in raw_rpaths:
+            if p == from_dir:
+                rel_rpaths.append('') # make it '$ORIGIN/', not '$ORIGIN/.'
+            elif path_has_root(p):
+                abs_rpaths.append(p) # These can be outside of build dir.
+            else:
+                rel_rpaths.append(
+                    os.path.relpath(os.path.join(build_dir, p), os.path.join(build_dir, from_dir)))
+
+        # We want rpaths that point inside our build dir to always override
+        # those pointing to other places in the file system. This is so built
+        # binaries prefer our libraries to the ones that may lie somewhere
+        # in the file system, such as /lib/x86_64-linux-gnu.
+        return rel_rpaths + abs_rpaths
 
 
 if T.TYPE_CHECKING:
