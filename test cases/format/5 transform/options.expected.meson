@@ -146,4 +146,17 @@ is_bar = ((true and false and true and false and true and false and true)
 is_baz = ((true and false and true and false and true and false and true and false and true and false and true)
     or false)
 
+# continuation lines in blocks and in arguments
+foreach i : [ 1, 2 ]
+  if i == 1
+    f = bbbbb \
+      .ccccc()
+  endif
+endforeach
+x = foo(
+  aaaaaaaaaaaaaaaaaaaaaaa \
+    .bbbbbbbbbbbbbbbbbbbbbbb(),
+  ccccccccccccccccccccccccccccccccccccc,
+)
+
 # no final endline

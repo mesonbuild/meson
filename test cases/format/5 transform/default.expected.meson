@@ -228,4 +228,17 @@ is_baz = (
     or false
 )
 
+# continuation lines in blocks and in arguments
+foreach i : [1, 2]
+    if i == 1
+        f = bbbbb \
+            .ccccc()
+    endif
+endforeach
+x = foo(
+    aaaaaaaaaaaaaaaaaaaaaaa \
+        .bbbbbbbbbbbbbbbbbbbbbbb(),
+    ccccccccccccccccccccccccccccccccccccc,
+)
+
 # no final endline

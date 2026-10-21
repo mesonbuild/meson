@@ -775,7 +775,7 @@ class ArgumentFormatter(FullAstVisitor):
                 if '#' in line and not line.startswith(indent):
                     node.value += indent
                 node.value += line
-            if self.indent_after and (node.value.endswith('\n') or node.is_continuation):
+            if node.is_continuation or (self.indent_after and node.value.endswith('\n')):
                 node.value += indent
 
     def visit_ArgumentNode(self, node: mparser.ArgumentNode) -> None:
