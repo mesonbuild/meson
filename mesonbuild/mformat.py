@@ -951,8 +951,28 @@ class ComputeLineLengths(FullAstVisitor):
         self.split_stack.append(node)
         super().visit_ArgumentNode(node)
         self.split_stack.pop(-1)
-        if len(node):
-            self.split_if_needed(node)
+
+    def visit_MethodNode(self, node: mparser.MethodNode) -> None:
+        self.enter_node(node)
+        node.source_object.accept(self)
+        node.dot.accept(self)
+        node.name.accept(self)
+        node.lpar.accept(self)
+        node.args.accept(self)
+        node.rpar.accept(self)
+        if len(node.args):
+            self.split_if_needed(node.args)  # split if closing parenthesis is too far
+        self.exit_node(node)
+
+    def visit_FunctionNode(self, node: mparser.FunctionNode) -> None:
+        self.enter_node(node)
+        node.func_name.accept(self)
+        node.lpar.accept(self)
+        node.args.accept(self)
+        node.rpar.accept(self)
+        if len(node.args):
+            self.split_if_needed(node.args)  # split if closing parenthesis is too far
+        self.exit_node(node)
 
     def visit_ArrayNode(self, node: mparser.ArrayNode) -> None:
         self.enter_node(node)
