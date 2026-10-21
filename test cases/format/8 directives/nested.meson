@@ -1,0 +1,29 @@
+project('nested')
+
+# disabled region inside a block
+if true
+    # meson-format off
+    x   =   [1,2,
+               3]
+    # meson-format on
+    y   =   [1,2]
+endif
+
+# disabled region inside nested blocks
+foreach i : [1,2]
+    if i == 1
+        # meson-format off
+        message(   'one'   )
+        # meson-format on
+    else
+        message(   'two'   )
+    endif
+endforeach
+
+# disabled region enclosing a whole block
+# meson-format off
+if false
+  z   =   {  'a'  :  1  }
+endif
+# meson-format on
+w   =   {  'a'  :  1  }

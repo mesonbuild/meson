@@ -414,6 +414,75 @@ class PlatformAgnosticTests(BasePlatformTests):
         formatted = formatter.format(code, Path())
         self.assertEqual(code, formatted)
 
+    def test_format_directives(self) -> None:
+        formatter = Formatter(None, use_editor_config=False, fetch_subdirs=False)
+        cases = [
+            # off/on pair
+            ('x=[1,2]\n# meson-format off\ny  =  [1,\n  2]\n# meson-format on\nz=[1,2]\n',
+             'x = [1, 2]\n# meson-format off\ny  =  [1,\n  2]\n# meson-format on\nz = [1, 2]\n'),
+            # lone off disables formatting until the end of file
+            ('x=[1,2]\n# meson-format off\ny  =  [1,\n  2]',
+             'x = [1, 2]\n# meson-format off\ny  =  [1,\n  2]'),
+            # lone on and duplicated off are no-ops
+            ('# meson-format on\nx=[1,2]\n',
+             '# meson-format on\nx = [1, 2]\n'),
+            ('# meson-format off\nx=[1,2]\n# meson-format off\ny=[1,2]\n# meson-format on\nz=[1,2]\n',
+             '# meson-format off\nx=[1,2]\n# meson-format off\ny=[1,2]\n# meson-format on\nz = [1, 2]\n'),
+            # indented and loosely spelled directives
+            ('if true\n#meson-format   off\n  y  =  [1,\n  2]\n    #  meson-format on\nz=1\nendif\n',
+             'if true\n    #meson-format   off\n  y  =  [1,\n  2]\n    #  meson-format on\n    z = 1\nendif\n'),
+            # muon compatible directives
+            ('# fmt: off\nx  =  [1,2]\n#fmt:on\ny=[1,2]\n',
+             '# fmt: off\nx  =  [1,2]\n#fmt:on\ny = [1, 2]\n'),
+            ('# fmt:off\nx  =  [1,2]\n# meson-format on\ny=[1,2]\n',
+             '# fmt:off\nx  =  [1,2]\n# meson-format on\ny = [1, 2]\n'),
+            # not a directive
+            ('# meson-format offset\nx=[1,2]\n',
+             '# meson-format offset\nx = [1, 2]\n'),
+            ('# fmt off\nx=[1,2]\n',
+             '# fmt off\nx = [1, 2]\n'),
+            # directives inside strings are ignored
+            ("s='''\n# meson-format off\n'''\ny=[1,2]\n",
+             "s = '''\n# meson-format off\n'''\ny = [1, 2]\n"),
+            ("s='# meson-format off'\ny=[1,2]\n",
+             "s = '# meson-format off'\ny = [1, 2]\n"),
+        ]
+        for code, expected in cases:
+            with self.subTest(code=code):
+                formatted = formatter.format(code, Path())
+                self.assertEqual(expected, formatted)
+                self.assertEqual(formatted, formatter.format(formatted, Path()))
+
+        errors = [
+            ('x = [1, 2]  # meson-format off\n', 1, 12, 'must be on its own line'),
+            ('if true\n    x = 1 # meson-format on\nendif\n', 2, 10, 'must be on its own line'),
+            ("x = files(\n    'b.c',\n    # meson-format off\n    'a.c',\n)\n", 3, 4, 'must enclose whole statements'),
+            ('x = [\n    # meson-format on\n]\n', 2, 4, 'must enclose whole statements'),
+            ('if (true and\n# meson-format off\nfalse)\nendif\n', 2, 0, 'must enclose whole statements'),
+            ('x = 1  # fmt: off\n', 1, 7, '"# fmt: off" directive must be on its own line'),
+            ('x = [\n    # fmt:on\n]\n', 2, 4, '"# fmt:on" directive must enclose whole statements'),
+        ]
+        for code, lineno, colno, message in errors:
+            with self.subTest(code=code):
+                with self.assertRaisesRegex(MesonException, message) as cm:
+                    formatter.format(code, Path())
+                self.assertEqual((cm.exception.lineno, cm.exception.colno), (lineno, colno))
+
+    def test_format_directives_recursive(self) -> None:
+        dirpath = tempfile.mkdtemp()
+        self.addCleanup(windows_proof_rmtree, dirpath)
+
+        root = Path(dirpath, 'meson.build')
+        root.write_text("project('a')\nsubdir('sub')\n# meson-format off\nx  =  [1,2]\n", encoding='utf-8')
+        sub = Path(dirpath, 'sub', 'meson.build')
+        sub.parent.mkdir()
+        sub.write_text('y  =  [1,2]\n', encoding='utf-8')
+
+        self._run(self.meson_command + ['format', '-r', '-i'], workdir=dirpath)
+        self.assertEqual("project('a')\nsubdir('sub')\n# meson-format off\nx  =  [1,2]\n",
+                         root.read_text(encoding='utf-8'))
+        self.assertEqual('y = [1, 2]\n', sub.read_text(encoding='utf-8'))
+
     def test_error_configuring_subdir(self):
         testdir = os.path.join(self.common_test_dir, '152 index customtarget')
         out = self.init(os.path.join(testdir, 'subdir'), allow_fail=True)
