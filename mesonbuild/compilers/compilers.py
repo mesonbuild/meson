@@ -1297,6 +1297,10 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
     def get_preprocess_to_file_args(self) -> T.List[str]:
         return self.get_preprocess_only_args()
 
+    def get_preprocess_override_args(self) -> T.List[str]:
+        """Arguments that must override CFLAGS and similar when preprocessing to a file."""
+        return []
+
     def get_default_include_dirs(self) -> T.List[str]:
         # TODO: This is a candidate for returning an immutable list
         return []

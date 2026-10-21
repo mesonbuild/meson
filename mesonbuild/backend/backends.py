@@ -1096,6 +1096,8 @@ class Backend:
         ext_args = self.environment.coredata.get_option_for_target(target, f'{compiler.get_language()}_args')
         assert isinstance(ext_args, list), 'for mypy'
         commands += ext_args
+        if compiler.mode == 'PREPROCESSOR':
+            commands += compiler.get_preprocess_override_args()
         # Using both /Z7 or /ZI and /Zi at the same times produces a compiler warning.
         # We do not add /Z7 or /ZI by default. If it is being used it is because the user has explicitly enabled it.
         # /Zi needs to be removed in that case to avoid cl's warning to that effect (D9025 : overriding '/Zi' with '/ZI')
