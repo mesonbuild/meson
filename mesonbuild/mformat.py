@@ -488,7 +488,8 @@ class TrimWhitespaces(FullAstVisitor):
 
         if node.lbracket.whitespaces.value:
             node.args.is_multiline = True
-        if node.args.arguments and not node.args.is_multiline and self.config.space_array:
+        if node.args.arguments and self.config.space_array:
+            # ArgumentFormatter replaces the spaces with newlines if node is multiline
             self.add_space_after(node.lbracket)
             self.add_space_after(node.args)
         if not node.args.arguments:
@@ -642,7 +643,8 @@ class TrimWhitespaces(FullAstVisitor):
 
         self.move_whitespaces(last_node, node)
 
-        if not node.is_multiline and '#' not in node.whitespaces.value:
+        if '#' not in node.whitespaces.value:
+            # ArgumentFormatter adds the newline if node is multiline
             node.whitespaces.value = ''
 
     def visit_ParenthesizedNode(self, node: mparser.ParenthesizedNode) -> None:
@@ -663,23 +665,15 @@ class TrimWhitespaces(FullAstVisitor):
                 node.is_multiline = True
 
         node.lpar.accept(self)
-        if node.is_multiline and self.config.sticky_parens and '#' not in node.lpar.whitespaces.value:
-            node.lpar.whitespaces.value = ''
         node.inner.accept(self)
 
-        if node.is_multiline:
-            inner_ws = node.inner.whitespaces.value
-            if not self.config.sticky_parens:
-                self.add_nl_after(node.inner)
-            elif '#' not in inner_ws:
-                node.inner.whitespaces.value = ''
-            elif inner_ws.count('\n') == 1 and node.rpar.whitespaces and node.rpar.whitespaces.value.lstrip(' \t') == '\n':
-                # Move the comment of last operand after the closing parenthesis,
-                # when nothing else follows it on the same line
-                node.rpar.whitespaces.value = inner_ws.strip() + node.rpar.whitespaces.value
-                node.inner.whitespaces.value = ''
-        else:
-            node.inner.whitespaces = None
+        inner_ws = node.inner.whitespaces.value
+        if (node.is_multiline and self.config.sticky_parens and '#' in inner_ws and inner_ws.count('\n') == 1
+                and node.rpar.whitespaces and node.rpar.whitespaces.value.lstrip(' \t') == '\n'):
+            # Move the comment of last operand after the closing parenthesis,
+            # when nothing else follows it on the same line
+            node.rpar.whitespaces.value = inner_ws.strip() + node.rpar.whitespaces.value
+            node.inner.whitespaces.value = ''
 
         node.rpar.accept(self)
         self.move_whitespaces(node.rpar, node)
@@ -844,6 +838,19 @@ class ArgumentFormatter(FullAstVisitor):
         else:
             # Only split operators of the multiline parentheses, not those of nested parentheses
             self.split_operators = False
+
+        if not node.is_multiline:
+            node.inner.whitespaces.value = ''
+        elif not self.config.sticky_parens:
+            if not node.inner.whitespaces.value:
+                node.inner.whitespaces.value = '\n'
+        else:
+            # Closing parenthesis is never on a separate line with sticky parens
+            if '#' not in node.lpar.whitespaces.value:
+                node.lpar.whitespaces.value = ''
+            if '#' not in node.inner.whitespaces.value:
+                node.inner.whitespaces.value = ''
+
         node.lpar.accept(self)
         if node.is_multiline and (not self.config.sticky_parens or '#' in node.lpar.whitespaces.value):
             self.add_nl_after(node.lpar, indent=self.level)
