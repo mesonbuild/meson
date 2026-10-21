@@ -340,7 +340,9 @@ class DynamicLinker(metaclass=mesonlib.SimpleABC):
             if p == from_dir:
                 rel_rpaths.append('') # make it '$ORIGIN/', not '$ORIGIN/.'
             elif path_has_root(p):
-                abs_rpaths.append(p) # These can be outside of build dir.
+                # Skip external library if the build machine can't run binaries
+                if self.environment.can_run_binaries(self.for_machine):
+                    abs_rpaths.append(p) # These can be outside of build dir.
             else:
                 rel_rpaths.append(
                     os.path.relpath(os.path.join(build_dir, p), os.path.join(build_dir, from_dir)))
@@ -775,11 +777,12 @@ class GnuLikeDynamicLinkerMixin(DynamicLinkerBase):
         rpath_dirs_to_remove: T.Set[bytes] = set()
         for p in all_paths:
             rpath_dirs_to_remove.add(p.encode('utf8'))
-        # Build_rpath is used as-is (it is usually absolute).
         if target.build_rpath != '':
-            all_paths.add(target.build_rpath)
-            for p in target.build_rpath.split(':'):
-                rpath_dirs_to_remove.add(p.encode('utf8'))
+            # Only include relative paths if the build machine can't run binaries
+            paths = [p for p in target.build_rpath.split(':')
+                     if self.environment.can_run_binaries(self.for_machine) or not path_has_root(p)]
+            all_paths.update(paths)
+            rpath_dirs_to_remove.update(p.encode('utf8') for p in paths)
         if extra_paths:
             all_paths.update(extra_paths)
 
@@ -953,7 +956,10 @@ class AppleDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
         processed_rpaths = self.prepare_rpaths(rpath_paths, build_dir, from_dir)
         all_paths = mesonlib.OrderedSet([os.path.join(origin_placeholder, p) for p in processed_rpaths])
         if target.build_rpath != '':
-            all_paths.update(target.build_rpath.split(':'))
+            # Only include relative paths if the build machine can't run binaries
+            paths = [p for p in target.build_rpath.split(':')
+                     if self.environment.can_run_binaries(self.for_machine) or not path_has_root(p)]
+            all_paths.update(paths)
         if extra_paths:
             all_paths.update(extra_paths)
         for rp in all_paths:
@@ -1403,7 +1409,10 @@ class NAGDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
         processed_rpaths = self.prepare_rpaths(rpath_paths, build_dir, from_dir)
         all_paths = mesonlib.OrderedSet([os.path.join(origin_placeholder, p) for p in processed_rpaths])
         if target.build_rpath != '':
-            all_paths.add(target.build_rpath)
+            # Only include relative paths if the build machine can't run binaries
+            paths = [p for p in target.build_rpath.split(':')
+                     if self.environment.can_run_binaries(self.for_machine) or not path_has_root(p)]
+            all_paths.update(paths)
         if extra_paths:
             all_paths.update(extra_paths)
         for rp in all_paths:
@@ -1682,9 +1691,11 @@ class SolarisDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
         for p in all_paths:
             rpath_dirs_to_remove.add(p.encode('utf8'))
         if target.build_rpath != '':
-            all_paths.add(target.build_rpath)
-            for p in target.build_rpath.split(':'):
-                rpath_dirs_to_remove.add(p.encode('utf8'))
+            # Only include relative paths if the build machine can't run binaries
+            paths = [p for p in target.build_rpath.split(':')
+                     if self.environment.can_run_binaries(self.for_machine) or not path_has_root(p)]
+            all_paths.update(paths)
+            rpath_dirs_to_remove.update(p.encode('utf8') for p in paths)
         if extra_paths:
             all_paths.update(extra_paths)
 
@@ -1758,9 +1769,11 @@ class AIXDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
         if install_rpath != '':
             all_paths.add(install_rpath)
         if build_rpath != '':
-            all_paths.add(build_rpath)
-            for p in build_rpath.split(':'):
-                rpath_dirs_to_remove.add(p.encode('utf8'))
+            # Only include relative paths if the build machine can't run binaries
+            paths = [p for p in build_rpath.split(':')
+                     if self.environment.can_run_binaries(self.for_machine) or not path_has_root(p)]
+            all_paths.update(paths)
+            rpath_dirs_to_remove.update(p.encode('utf8') for p in paths)
         for p in rpath_paths:
             path = os.path.join(build_dir, p)
             all_paths.add(path)
