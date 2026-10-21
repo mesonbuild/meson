@@ -330,6 +330,33 @@ class DynamicLinker(metaclass=mesonlib.SimpleABC):
         #Only used by AIX.
         return []
 
+    def prepare_rpaths(self, raw_rpaths: T.Tuple[str, ...], build_dir: str, from_dir: str) -> T.List[str]:
+        def order_rpaths(rpath_list: T.List[str]) -> T.List[str]:
+            # We want rpaths that point inside our build dir to always override
+            # those pointing to other places in the file system. This is so built
+            # binaries prefer our libraries to the ones that may lie somewhere
+            # in the file system, such as /lib/x86_64-linux-gnu.
+            #
+            # The correct thing to do here would be C++'s std::stable_partition.
+            # Python standard library does not have it, so replicate it with
+            # sort, which is guaranteed to be stable.
+            return sorted(rpath_list, key=os.path.isabs)
+
+        def evaluate_rpath(p: str, build_dir: str, from_dir: str) -> str:
+            if p == from_dir:
+                return '' # relpath errors out in this case
+            elif path_has_root(p):
+                return p # These can be outside of build dir.
+            else:
+                return os.path.relpath(os.path.join(build_dir, p), os.path.join(build_dir, from_dir))
+
+        # The rpaths we write must be relative if they point to the build dir,
+        # because otherwise they have different length depending on the build
+        # directory. This breaks reproducible builds.
+        internal_format_rpaths = [evaluate_rpath(p, build_dir, from_dir) for p in raw_rpaths]
+        ordered_rpaths = order_rpaths(internal_format_rpaths)
+        return ordered_rpaths
+
 
 if T.TYPE_CHECKING:
     StaticLinkerBase = StaticLinker
@@ -611,36 +638,6 @@ class EmxomfArLinker(ArLinker):
     def get_std_link_args(self, env: 'Environment', is_thin: bool) -> T.List[str]:
         return ['cr']
 
-def prepare_rpaths(raw_rpaths: T.Tuple[str, ...], build_dir: str, from_dir: str) -> T.List[str]:
-    # The rpaths we write must be relative if they point to the build dir,
-    # because otherwise they have different length depending on the build
-    # directory. This breaks reproducible builds.
-    internal_format_rpaths = [evaluate_rpath(p, build_dir, from_dir) for p in raw_rpaths]
-    ordered_rpaths = order_rpaths(internal_format_rpaths)
-    return ordered_rpaths
-
-
-def order_rpaths(rpath_list: T.List[str]) -> T.List[str]:
-    # We want rpaths that point inside our build dir to always override
-    # those pointing to other places in the file system. This is so built
-    # binaries prefer our libraries to the ones that may lie somewhere
-    # in the file system, such as /lib/x86_64-linux-gnu.
-    #
-    # The correct thing to do here would be C++'s std::stable_partition.
-    # Python standard library does not have it, so replicate it with
-    # sort, which is guaranteed to be stable.
-    return sorted(rpath_list, key=os.path.isabs)
-
-
-def evaluate_rpath(p: str, build_dir: str, from_dir: str) -> str:
-    if p == from_dir:
-        return '' # relpath errors out in this case
-    elif path_has_root(p):
-        return p # These can be outside of build dir.
-    else:
-        return os.path.relpath(os.path.join(build_dir, p), os.path.join(build_dir, from_dir))
-
-
 class PosixDynamicLinkerMixin(DynamicLinkerBase):
 
     """Mixin class for POSIX-ish linkers.
@@ -776,7 +773,7 @@ class GnuLikeDynamicLinkerMixin(DynamicLinkerBase):
             return ([], set())
         args: T.List[str] = []
         origin_placeholder = '$ORIGIN'
-        processed_rpaths = prepare_rpaths(rpath_paths, build_dir, from_dir)
+        processed_rpaths = self.prepare_rpaths(rpath_paths, build_dir, from_dir)
         # Need to deduplicate rpaths, as macOS's install_name_tool
         # is *very* allergic to duplicate -delete_rpath arguments
         # when calling depfixer on installation.
@@ -959,7 +956,7 @@ class AppleDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
         # @loader_path is the equivalent of $ORIGIN on macOS
         # https://stackoverflow.com/q/26280738
         origin_placeholder = '@loader_path'
-        processed_rpaths = prepare_rpaths(rpath_paths, build_dir, from_dir)
+        processed_rpaths = self.prepare_rpaths(rpath_paths, build_dir, from_dir)
         all_paths = mesonlib.OrderedSet([os.path.join(origin_placeholder, p) for p in processed_rpaths])
         if target.build_rpath != '':
             all_paths.update(target.build_rpath.split(':'))
@@ -1409,7 +1406,7 @@ class NAGDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
             return ([], set())
         args: T.List[str] = []
         origin_placeholder = '$ORIGIN'
-        processed_rpaths = prepare_rpaths(rpath_paths, build_dir, from_dir)
+        processed_rpaths = self.prepare_rpaths(rpath_paths, build_dir, from_dir)
         all_paths = mesonlib.OrderedSet([os.path.join(origin_placeholder, p) for p in processed_rpaths])
         if target.build_rpath != '':
             all_paths.add(target.build_rpath)
@@ -1685,7 +1682,7 @@ class SolarisDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
         rpath_paths = target.determine_rpath_dirs()
         if not rpath_paths and not target.install_rpath and not target.build_rpath and not extra_paths:
             return ([], set())
-        processed_rpaths = prepare_rpaths(rpath_paths, build_dir, from_dir)
+        processed_rpaths = self.prepare_rpaths(rpath_paths, build_dir, from_dir)
         all_paths = mesonlib.OrderedSet([os.path.join('$ORIGIN', p) for p in processed_rpaths])
         rpath_dirs_to_remove: T.Set[bytes] = set()
         for p in all_paths:
