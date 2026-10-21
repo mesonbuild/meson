@@ -506,6 +506,31 @@ or `--inline` arguments.
 *Since 1.10.0* When `--check-diff` is specified, instead of silently exiting
 with an error code, `meson format` will print a diff of the formatting changes.
 
+#### Disabling formatting
+
+*Since 1.13.0* Formatting can be disabled for part of a file using
+`# meson-format off` and `# meson-format on` comments. Lines between the two
+comments are left untouched by the formatter:
+
+```meson
+# meson-format off
+sources = files(
+  'a.c',      'b.c',
+  'c.c',      'd.c',
+)
+# meson-format on
+```
+
+Each directive must be alone on its own line, and must enclose complete
+statements: a directive following code on the same line, or inside
+parentheses, brackets or braces, is an error. When `# meson-format off` is not followed by `# meson-format on`,
+formatting stays disabled until the end of the file. Directives only apply to
+the file they appear in; with `--recursive`, files from `subdir` are formatted
+normally.
+
+For compatibility with `muon fmt`, `# fmt: off` and `# fmt: on` are also
+recognized as directives.
+
 
 #### Differences with `muon fmt`
 
@@ -520,3 +545,7 @@ However, it has more features, and some differences:
   `meson format` also recognizes `max_line_length`, `end_of_line`,
   `insert_final_newline` and `tab_width` options.
 - `meson format` has many additional format rules (see option list above).
+- In addition to `# fmt: off` and `# fmt: on`, `meson format` recognizes
+  `# meson-format off` and `# meson-format on` directives. Unlike `muon fmt`,
+  `meson format` requires those directives to be on their own line and to
+  enclose whole statements.

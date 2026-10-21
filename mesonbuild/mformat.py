@@ -44,6 +44,78 @@ class DefaultConfigParser(ConfigParser):
         return value
 
 
+# "# fmt: off|on" is accepted for compatibility with muon
+FORMAT_DIRECTIVE = re.compile(r'^\s*#\s*(?:meson-format\s+|fmt:\s*)(off|on)\s*$')
+
+
+class FormatDirectiveFinder(FullAstVisitor):
+    '''Collect "# meson-format off|on" and "# fmt: off|on" comments standing on their own line'''
+
+    def __init__(self) -> None:
+        self.depth = 0
+        self.directives: list[tuple[int, str]] = []
+
+    def visit_SymbolNode(self, node: mparser.SymbolNode) -> None:
+        if node.value in {')', ']', '}'}:
+            self.depth -= 1
+        elif node.value in {'(', '[', '{'}:
+            self.depth += 1
+        super().visit_SymbolNode(node)
+
+    def visit_WhitespaceNode(self, node: mparser.WhitespaceNode) -> None:
+        for i, line in enumerate(node.value.split('\n')):
+            m = FORMAT_DIRECTIVE.match(line)
+            if not m:
+                continue
+            lineno = node.lineno + i
+            colno = line.index('#') + (node.colno if i == 0 else 0)
+            if i == 0 and node.colno != 0:
+                raise MesonException(f'"{line.strip()}" directive must be on its own line',
+                                     file=node.filename, lineno=lineno, colno=colno)
+            if self.depth:
+                raise MesonException(f'"{line.strip()}" directive must enclose whole statements, '
+                                     'it cannot be inside parentheses, brackets or braces',
+                                     file=node.filename, lineno=lineno, colno=colno)
+            self.directives.append((lineno - 1, m.group(1)))
+
+
+def find_format_directives(ast: mparser.BaseNode) -> list[tuple[int, str]]:
+    finder = FormatDirectiveFinder()
+    ast.accept(finder)
+    return sorted(finder.directives)
+
+
+def restore_disabled_regions(code: str, orig_directives: list[tuple[int, str]],
+                             formatted: str, fmt_directives: list[tuple[int, str]]) -> str:
+    '''Replace regions between "# meson-format off" and "# meson-format on"
+    directives in the formatted code with the original code.'''
+    orig_lines = code.splitlines(keepends=True)
+    fmt_lines = formatted.splitlines(keepends=True)
+    if [k for _, k in orig_directives] != [k for _, k in fmt_directives]:
+        raise MesonException('format directives were moved by the formatter; '
+                             'they must be on their own line and enclose whole statements')
+
+    result: list[str] = []
+    enabled = True
+    fmt_pos = 0
+    off_pos = 0
+    for (orig_idx, kind), (fmt_idx, _) in zip(orig_directives, fmt_directives):
+        if kind == 'off' and enabled:
+            result += fmt_lines[fmt_pos:fmt_idx + 1]
+            off_pos = orig_idx + 1
+            enabled = False
+        elif kind == 'on' and not enabled:
+            result += orig_lines[off_pos:orig_idx]
+            fmt_pos = fmt_idx
+            enabled = True
+
+    if enabled:
+        result += fmt_lines[fmt_pos:]
+    else:
+        result += orig_lines[off_pos:]
+    return ''.join(result)
+
+
 def match_path(filename: str, pattern: str) -> bool:
     '''recursive glob match for editorconfig sections'''
     index = 0
@@ -981,6 +1053,7 @@ class Formatter:
         self.current_config = self.current_config.update(self.config)
 
         ast = mparser.Parser(code, source_file.as_posix()).parse()
+        directives = find_format_directives(ast)
         if self.fetch_subdirs:
             subdir_fetcher = SubdirFetcher(self.current_dir, self.fetch_subprojects)
             ast.accept(subdir_fetcher)
@@ -998,7 +1071,11 @@ class Formatter:
 
         printer = RawPrinter()
         ast.accept(printer)
-        return printer.result
+        if not directives:
+            return printer.result
+
+        formatted_ast = mparser.Parser(printer.result, source_file.as_posix()).parse()
+        return restore_disabled_regions(code, directives, printer.result, find_format_directives(formatted_ast))
 
 
 def add_arguments(parser: argparse.ArgumentParser) -> None:
@@ -1139,7 +1216,6 @@ def run(options: argparse.Namespace) -> int:
     return err
 
 # TODO: remove empty newlines when more than N (2...)
-# TODO: magic comment to prevent formatting
 # TODO: split long lines on binary operators
 # TODO: align series of assignments
 # TODO: align comments
@@ -1155,3 +1231,5 @@ def run(options: argparse.Namespace) -> int:
 # - Correctly compute line length when using tabs
 # - By default, arguments in files() are sorted naturally
 # - Option to group '--arg', 'value' on same line in multiline arguments
+# - '# meson-format off|on' directives, in addition to muon's '# fmt: off|on';
+#   they must be on their own line and enclose whole statements

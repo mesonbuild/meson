@@ -1,0 +1,11 @@
+# meson-format on
+# meson-format on
+a   =   [1,2]
+# meson-format off
+b   =   [1,2]
+# meson-format off
+c   =   [1,2]
+# meson-format on
+d   =   [1,2]
+# meson-format on
+e   =   [1,2]
