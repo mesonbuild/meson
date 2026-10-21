@@ -6,7 +6,6 @@ from __future__ import annotations
 import collections
 import enum
 import functools
-import os
 import itertools
 import typing as T
 
@@ -936,5 +935,4 @@ class CompilerHolder(ObjectHolder['Compiler']):
         self.interpreter.add_target(tg.name, tg)
         # Expose this target as list of its outputs, so user can pass them to
         # other targets, list outputs, etc.
-        private_dir = os.path.relpath(self.interpreter.backend.get_target_private_dir(tg), self.interpreter.subdir)
-        return [build.CustomTargetIndex(tg, os.path.join(private_dir, o)) for o in tg.outputs]
+        return [build.CustomTargetIndex(tg, o) for o in tg.outputs]

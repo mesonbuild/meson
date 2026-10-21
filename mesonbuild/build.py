@@ -3368,6 +3368,8 @@ class CompileTarget(BuildTarget):
         self.outputs = []
         self.sources_map: T.Dict[File, str] = {}
         self.depends = list(depends or [])
+        self.private_dir = os.path.relpath(backend.get_target_private_dir(self),
+                                           backend.get_target_dir(self))
         for f in self.sources:
             self._add_output(f)
         for gensrc in self.generated:
@@ -3382,7 +3384,7 @@ class CompileTarget(BuildTarget):
         plainname = os.path.basename(f.fname)
         basename = os.path.splitext(plainname)[0]
         o = self.output_templ.replace('@BASENAME@', basename).replace('@PLAINNAME@', plainname)
-        self.outputs.append(o)
+        self.outputs.append(os.path.join(self.private_dir, o))
         self.sources_map[f] = o
 
     def get_generated_headers(self) -> T.List[File]:
