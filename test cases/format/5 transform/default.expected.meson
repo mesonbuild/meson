@@ -119,12 +119,8 @@ endif
 if (
     not cc.compiles('int main(void) { return 0; }')
     or cc.has_header('foo.h')
-    or cc.has_header(
-        'bar.h',
-    )
-    or cc.has_header(
-        'baz.h',
-    )
+    or cc.has_header('bar.h')
+    or cc.has_header('baz.h')
 )
     message('long condition')
 endif

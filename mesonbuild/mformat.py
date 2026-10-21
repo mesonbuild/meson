@@ -867,12 +867,12 @@ class ArgumentFormatter(FullAstVisitor):
 
 class ComputeLineLengths(FullAstVisitor):
 
-    def __init__(self, config: FormatterConfig, level: int):
+    def __init__(self, config: FormatterConfig):
         self.config = config
         self.lengths: T.List[int] = []
         self.length = 0
-        self.argument_stack: T.List[mparser.ArgumentNode] = []
-        self.level = level
+        self.split_stack: T.List[T.Union[mparser.ArgumentNode, mparser.ParenthesizedNode]] = []
+        self.split_now: T.Set[int] = set()
         self.need_regenerate = False
 
     def visit_default_func(self, node: mparser.BaseNode) -> None:
@@ -935,24 +935,32 @@ class ComputeLineLengths(FullAstVisitor):
         self.length += len('break')
         self.exit_node(node)
 
-    def split_if_needed(self, node: mparser.ArgumentNode) -> None:
-        if len(node) and not node.is_multiline and self.length > self.config.max_line_length:
-            arg = self.argument_stack[self.level] if len(self.argument_stack) > self.level else node
-            arg.is_multiline = True
-            self.need_regenerate = True
+    def split_if_needed(self, node: T.Union[mparser.ArgumentNode, mparser.ParenthesizedNode]) -> None:
+        if not node.is_multiline and self.length > self.config.max_line_length:
+            # Split the outermost node that is not split yet; inner nodes are split on next pass if still needed
+            for outer in self.split_stack + [node]:
+                if id(outer) in self.split_now:
+                    return  # line will be measured again after this split
+                if not outer.is_multiline:
+                    outer.is_multiline = True
+                    self.split_now.add(id(outer))
+                    self.need_regenerate = True
+                    return
 
     def visit_ArgumentNode(self, node: mparser.ArgumentNode) -> None:
-        self.argument_stack.append(node)
+        self.split_stack.append(node)
         super().visit_ArgumentNode(node)
-        self.split_if_needed(node)
-        self.argument_stack.pop(-1)
+        self.split_stack.pop(-1)
+        if len(node):
+            self.split_if_needed(node)
 
     def visit_ArrayNode(self, node: mparser.ArrayNode) -> None:
         self.enter_node(node)
         node.lbracket.accept(self)
         node.args.accept(self)
         node.rbracket.accept(self)
-        self.split_if_needed(node.args)  # split if closing bracket is too far
+        if len(node.args):
+            self.split_if_needed(node.args)  # split if closing bracket is too far
         self.exit_node(node)
 
     def visit_DictNode(self, node: mparser.DictNode) -> None:
@@ -960,19 +968,22 @@ class ComputeLineLengths(FullAstVisitor):
         node.lcurl.accept(self)
         node.args.accept(self)
         node.rcurl.accept(self)
-        self.split_if_needed(node.args)  # split if closing bracket is too far
+        if len(node.args):
+            self.split_if_needed(node.args)  # split if closing bracket is too far
         self.exit_node(node)
 
     def visit_ParenthesizedNode(self, node: mparser.ParenthesizedNode) -> None:
         self.enter_node(node)
+        # Sticky parentheses can only be split on and / or operators
+        can_split = not self.config.sticky_parens or isinstance(node.inner, (mparser.OrNode, mparser.AndNode))
+        if can_split:
+            self.split_stack.append(node)
         node.lpar.accept(self)
         node.inner.accept(self)
         node.rpar.accept(self)
-        # Sticky parentheses can only be split on and / or operators
-        can_split = not self.config.sticky_parens or isinstance(node.inner, (mparser.OrNode, mparser.AndNode))
-        if can_split and not node.is_multiline and self.length > self.config.max_line_length:
-            node.is_multiline = True
-            self.need_regenerate = True
+        if can_split:
+            self.split_stack.pop(-1)
+            self.split_if_needed(node)
         self.exit_node(node)
 
 
@@ -1090,11 +1101,11 @@ class Formatter:
             self.subdirs = subdir_fetcher.subdirs
 
         ast.accept(AstConditionLevel())
-        for level in range(5):
+        for _ in range(10):
             ast.accept(TrimWhitespaces(self.current_config))
             ast.accept(ArgumentFormatter(self.current_config))
 
-            cll = ComputeLineLengths(self.current_config, level)
+            cll = ComputeLineLengths(self.current_config)
             ast.accept(cll)
             if not cll.need_regenerate:
                 break
