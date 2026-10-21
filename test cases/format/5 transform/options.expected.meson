@@ -138,4 +138,12 @@ if (a
   message('comment after last operand')
 endif
 
+# nested parentheses
+is_bar = ((true and false and true and false and true and false and true)
+    or (false and true and false and true)
+    or false
+    or true)
+is_baz = ((true and false and true and false and true and false and true and false and true and false and true)
+    or false)
+
 # no final endline

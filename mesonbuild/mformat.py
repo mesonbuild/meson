@@ -841,7 +841,7 @@ class ArgumentFormatter(FullAstVisitor):
             current_indent_after = self.indent_after
             self.indent_after = True
             self.split_operators = True
-        elif self.config.sticky_parens:
+        else:
             # Only split operators of the multiline parentheses, not those of nested parentheses
             self.split_operators = False
         node.lpar.accept(self)
