@@ -531,6 +531,10 @@ class GnuLikeCompiler(Compiler, metaclass=mesonlib.SimpleABC):
     def get_coverage_args(self) -> T.List[str]:
         return ['--coverage']
 
+    def get_preprocess_override_args(self) -> T.List[str]:
+        # -g3 makes GCC emit #define directives in the preprocessed output.
+        return ['-g0']
+
     def get_preprocess_to_file_args(self) -> T.List[str]:
         # We want to allow preprocessing files with any extension, such as
         # foo.c.in. In that case we need to tell GCC/CLANG to treat them as
