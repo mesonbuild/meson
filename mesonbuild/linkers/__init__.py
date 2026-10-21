@@ -7,7 +7,7 @@ from .detect import (
     guess_win_linker,
     guess_nix_linker,
 )
-from .linkers import StaticLinker
+from .linkers import VisualStudioLikeLinkerMixin, StaticLinker
 
 __all__ = [
     # base.py
@@ -21,4 +21,5 @@ __all__ = [
 
     # linkers.py
     'StaticLinker',
+    'VisualStudioLikeLinkerMixin',
 ]

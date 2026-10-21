@@ -28,7 +28,7 @@ from .. import compilers
 from .. import tooldetect
 from ..arglist import CompilerArgs
 from ..compilers import Compiler, is_library
-from ..linkers import ArLikeLinker, RSPFileSyntax, StaticLinker
+from ..linkers import ArLikeLinker, RSPFileSyntax, StaticLinker, VisualStudioLikeLinkerMixin
 from ..mesonlib import (
     File, LibType, MachineChoice, MesonBugException, MesonException, OrderedSet, PerMachine,
     ProgressBar, quote_arg, unique_list
@@ -2229,6 +2229,19 @@ class NinjaBackend(backends.Backend):
                     continue
                 elif a.startswith('-L'):
                     args.append(a)
+                    continue
+                elif a.startswith('-l') and isinstance(rustc.linker, VisualStudioLikeLinkerMixin):
+                    # The MSVC linker does not support -l, and rustc does not go
+                    # through a conversion path like unix_args_to_native(), so don't
+                    # use -Clink-arg= in that case; pass the option to rustc so that
+                    # it is looked up and converted.  Do not do it for POSIX linkers
+                    # because rustc reorders libraries, and this breaks GNU ld which
+                    # resolves symbols left to right.
+                    if a.startswith('-l:'):
+                        static = a.endswith(('.a', '.lib'))
+                        _link_library(a[3:], static)
+                    else:
+                        args.append(a)
                     continue
                 elif a.startswith('-F'):
                     path = a[2:]
