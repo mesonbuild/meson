@@ -18,11 +18,4 @@ else
   rustl = shared_library('stuff', 'stuff.rs', link_whole : s, install : true)
 endif
 e = executable('prog', 'prog.rs', link_with : [rustl, cl], install : true)
-
-if build_machine.system() == 'windows'
-  rustup = find_program('rustup')
-  test('linktest', rustup,
-       args: ['run', 'stable', e])
-else
-  test('linktest', e)
-endif
+test('linktest', e)
