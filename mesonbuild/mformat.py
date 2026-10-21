@@ -353,19 +353,20 @@ class MultilineParenthesesDetector(FullAstVisitor):
             self.last_whitespaces = node.whitespaces
 
     @classmethod
-    def ends_with_newline(cls, node: mparser.BaseNode) -> bool:
+    def ends_with(cls, node: mparser.BaseNode, text: str) -> bool:
         detector = cls()
         node.accept(detector)
-        return detector.last_whitespaces is not None and '\n' in detector.last_whitespaces.value
+        return detector.last_whitespaces is not None and text in detector.last_whitespaces.value
 
     @classmethod
-    def has_newline_in_operators(cls, node: mparser.BaseNode) -> bool:
-        """Detect newlines between operands of a chain of and / or operators"""
-        if isinstance(node, (mparser.OrNode, mparser.AndNode)):
-            return (cls.has_newline_in_operators(node.left)
-                    or '\n' in node.operator.whitespaces.value
-                    or cls.has_newline_in_operators(node.right))
-        return cls.ends_with_newline(node)
+    def operators_contain(cls, node: mparser.BaseNode, text: str,
+                          operators: T.Tuple[T.Type[mparser.BinaryOperatorNode], ...] = (mparser.OrNode, mparser.AndNode)) -> bool:
+        """Detect text in whitespaces between operands of a chain of operators"""
+        if isinstance(node, operators):
+            return (cls.operators_contain(node.left, text, operators)
+                    or (node.operator.whitespaces and text in node.operator.whitespaces.value)
+                    or cls.operators_contain(node.right, text, operators))
+        return cls.ends_with(node, text)
 
 
 class TrimWhitespaces(FullAstVisitor):
@@ -651,10 +652,13 @@ class TrimWhitespaces(FullAstVisitor):
             node.is_multiline = True
 
         elif not node.is_multiline:
-            if MultilineParenthesesDetector.ends_with_newline(node.inner):
+            if MultilineParenthesesDetector.ends_with(node.inner, '\n'):
                 # We keep it multiline if last parenthesis is on a separate line
                 node.is_multiline = True
-            elif self.config.sticky_parens and MultilineParenthesesDetector.has_newline_in_operators(node.inner):
+            elif MultilineParenthesesDetector.operators_contain(node.inner, '#', (mparser.BinaryOperatorNode,)):
+                # A comment between operands forces a newline
+                node.is_multiline = True
+            elif self.config.sticky_parens and MultilineParenthesesDetector.operators_contain(node.inner, '\n'):
                 # Closing parenthesis is never on a separate line with sticky parens
                 node.is_multiline = True
 
@@ -664,9 +668,15 @@ class TrimWhitespaces(FullAstVisitor):
         node.inner.accept(self)
 
         if node.is_multiline:
+            inner_ws = node.inner.whitespaces.value
             if not self.config.sticky_parens:
                 self.add_nl_after(node.inner)
-            elif '#' not in node.inner.whitespaces.value:
+            elif '#' not in inner_ws:
+                node.inner.whitespaces.value = ''
+            elif inner_ws.count('\n') == 1 and node.rpar.whitespaces and node.rpar.whitespaces.value.lstrip(' \t') == '\n':
+                # Move the comment of last operand after the closing parenthesis,
+                # when nothing else follows it on the same line
+                node.rpar.whitespaces.value = inner_ws.strip() + node.rpar.whitespaces.value
                 node.inner.whitespaces.value = ''
         else:
             node.inner.whitespaces = None
