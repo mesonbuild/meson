@@ -1238,7 +1238,11 @@ def search_version(text: str) -> str:
             \.\d+       # Period and one or more digits
         )+              # One or more occurrences
         (
-            -[a-zA-Z0-9]+   # Hyphen and one or more alphanumeric
+            -           # Hyphen
+            [0-9a-zA-Z-]+           # One or more alphanumeric/hyphen
+            (
+                \.[0-9a-zA-Z-]+     # Period and one or more alphanumeric/hyphen
+            )*          # Zero or more occurrences
         )?              # Zero or one occurrence
     )
     (?!\S)              # Must not be followed by non-space char

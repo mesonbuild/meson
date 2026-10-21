@@ -195,6 +195,7 @@ class InternalTests(unittest.TestCase):
 
     def test_version_number(self):
         self.assertEqual(search_version('foobar 1.2.3'), '1.2.3')
+        self.assertEqual(search_version('foobar 1.2.3-4and5.6-7-'), '1.2.3-4and5.6-7-')
         self.assertEqual(search_version('1.2.3'), '1.2.3')
         self.assertEqual(search_version('foobar 2016.10.28 1.2.3'), '1.2.3')
         self.assertEqual(search_version('2016.10.28 1.2.3'), '1.2.3')
@@ -210,6 +211,10 @@ class InternalTests(unittest.TestCase):
         self.assertEqual(search_version(r'''(FooBar LLVM-Linux 5.0.0) clang version 21.9.0
 Target: riscv64-unknown-linux-gnu
 Thread model: posix'''), '21.9.0')
+        self.assertEqual(search_version(r'''Ubuntu clang version 14.0.0-1ubuntu1.1
+Target: x86_64-pc-linux-gnu
+Thread model: posix
+InstalledDir: /usr/bin'''), '14.0.0-1ubuntu1.1')
 
         # Literal output of mvn
         self.assertEqual(search_version(r'''\
