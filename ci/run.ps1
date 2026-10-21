@@ -7,21 +7,28 @@ if ($LastExitCode -ne 0) {
 # remove PostgreSQL from path so we don't pickup a broken zlib from it
 $env:Path = ($env:Path.Split(';') | Where-Object { $_ -notmatch 'mingw|Strawberry|Chocolatey|PostgreSQL' }) -join ';'
 
-if ($env:arch -eq 'x64') {
-    # Rust puts its shared stdlib in a secret place, but it is needed to run tests.
-    $env:Path += ";$HOME/.rustup/toolchains/stable-x86_64-pc-windows-msvc/bin"
-} elseif ($env:arch -eq 'x86') {
+if ($env:arch -eq 'x86') {
     # Switch to the x86 Rust toolchain
     rustup default stable-i686-pc-windows-msvc
 
     # Also install clippy
     rustup component add clippy
 
-    # Rust puts its shared stdlib in a secret place, but it is needed to run tests.
-    $env:Path += ";$HOME/.rustup/toolchains/stable-i686-pc-windows-msvc/bin"
     # Need 32-bit Python for tests that need the Python dependency
     $env:Path = "C:\hostedtoolcache\windows\Python\3.10.19\x86;C:\hostedtoolcache\windows\Python\3.10.19\x86\Scripts;$env:Path"
 }
+
+echo "Rust toolchain: $(rustup default)"
+
+$rust_sysroot = rustc --print sysroot
+# Rust puts its shared stdlib in a secret place, but it is needed to run tests.
+$rust_libdir = rustc --print target-libdir
+$env:Path += ";$rust_sysroot\bin;$rust_libdir"
+
+echo "Rust sysroot bin DLLs ($rust_sysroot):"
+Get-ChildItem -Path "$rust_sysroot\bin" -Filter *.dll | ForEach-Object { echo $_.FullName }
+echo "Rust target-libdir DLLs ($rust_libdir):"
+Get-ChildItem -Path "$rust_libdir" -Filter *.dll | ForEach-Object { echo $_.FullName }
 
 # Set the CI env var for the meson test framework
 $env:CI = '1'
