@@ -465,6 +465,17 @@ class LinkerOptionStyle(metaclass=abc.ABCMeta):
 
 
 @dataclass
+class SeparateLinker(LinkerOptionStyle):
+    """
+    Represents a driver that uses a separate linker and therefore cannot
+    be used for linker arguments.  Examples include cl.exe and clang-cl.
+    """
+
+    def wrap(self, group: T.List[str]) -> T.List[str]:
+        raise MesonBugException('this compiler uses a separate linker')
+
+
+@dataclass
 class PrefixArgumentLinkerOptionStyle(LinkerOptionStyle):
     """
     Represents a linker option style where each linker argument is preceded by a separate argument representing
@@ -549,7 +560,7 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
     # manually searched.
     internal_libs: T.List[str] = []
 
-    LINKER_OPTION_STYLE: T.Optional[LinkerOptionStyle] = None
+    LINKER_OPTION_STYLE: LinkerOptionStyle = SeparateLinker()
 
     # If the compiler is used to fire a separate linking step, environment
     # variables like CFLAGS have to be passed to the linking step as well.
@@ -607,6 +618,10 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
 
     def get_id(self) -> str:
         return self.id
+
+    @classmethod
+    def has_separate_linker(cls) -> bool:
+        return isinstance(cls.LINKER_OPTION_STYLE, SeparateLinker)
 
     def get_modes(self) -> T.List[Compiler]:
         return self.modes
