@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from .base import ExternalDependency, DependencyException, DependencyTypeName
 from .pkgconfig import PkgConfigDependency
-from ..mesonlib import (Popen_safe, join_args, version_compare, version_compare_many)
+from ..mesonlib import (Popen_safe, join_args, unwrap, version_compare, version_compare_many)
 from ..options import OptionKey
 from ..programs import ExternalProgram
 from .. import mlog
@@ -543,7 +543,7 @@ class DubDependency(ExternalDependency):
             mlog.log('Found DUB:', mlog.red('NO'))
         else:
             (dubbin, dubver) = found
-            mlog.log('Found DUB:', mlog.bold(dubbin.get_path()),
+            mlog.log('Found DUB:', mlog.bold(unwrap(dubbin.get_path())),
                      '(version %s)' % dubver)
 
         return found
