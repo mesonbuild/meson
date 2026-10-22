@@ -450,7 +450,7 @@ class TrimWhitespaces(FullAstVisitor):
 
     def visit_SymbolNode(self, node: mparser.SymbolNode) -> None:
         super().visit_SymbolNode(node)
-        if node.value in "([{" and node.whitespaces.value == '\n':
+        if node.value in "([{" and not node.whitespaces.value.strip('\n'):
             node.whitespaces.value = ''
         node.whitespaces.accept(self)
 
