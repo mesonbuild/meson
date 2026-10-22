@@ -432,6 +432,15 @@ class PlatformAgnosticTests(BasePlatformTests):
         formatted = formatter.format(code, Path())
         self.assertEqual(code, formatted)
 
+    def test_format_blank_lines_after_opening_bracket(self) -> None:
+        """Ensure blank lines after an opening bracket are removed"""
+        formatter = Formatter(None, use_editor_config=False, fetch_subdirs=False)
+        for code, expected in [('u = (\n\n    a)\n', 'u = (a)\n'),
+                               ('x = [\n\n    1, 2]\n', 'x = [1, 2]\n'),
+                               ('foo(\n\n    1)\n', 'foo(1)\n')]:
+            formatted = formatter.format(code, Path())
+            self.assertEqual(expected, formatted)
+
     def test_format_sticky_parens(self) -> None:
         fd, fname = tempfile.mkstemp(suffix='.ini', text=True)
         self.addCleanup(os.unlink, fname)
