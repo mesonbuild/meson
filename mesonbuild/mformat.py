@@ -1036,7 +1036,13 @@ class ArgumentFormatter(FullAstVisitor):
             for comma in node.commas:
                 self.add_space_after(comma)
 
+        # Like in multiline parentheses, a line broken inside an argument (e.g. by a comment
+        # between operands) continues at the indentation of the argument
+        current_indent_after = self.state.indent_after
+        if node.is_multiline and (node.arguments or node.kwargs):
+            self.state.indent_after = True
         super().visit_ArgumentNode(node)
+        self.state.indent_after = current_indent_after
 
     def visit_ParenthesizedNode(self, node: mparser.ParenthesizedNode) -> None:
         # Sticky parentheses can only be split on and / or operators
