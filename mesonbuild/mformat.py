@@ -745,7 +745,8 @@ class ArgumentFormatter(FullAstVisitor):
         self.closed_count = 0
 
         indent = re.escape(config.indent_by)
-        self.indent_re = re.compile(rf'\n(?:{indent})*')  # every line break with its indentation
+        # every line break with its indentation, except before an empty line
+        self.indent_re = re.compile(rf'\n(?:{indent})*(?![ \t]*\n)')
         self.last_indent_re = re.compile(rf'\n(?:{indent})*$')  # last line break with its indentation
 
     def record(self, change: SetAttr) -> None:

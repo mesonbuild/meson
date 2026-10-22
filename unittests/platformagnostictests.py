@@ -437,7 +437,9 @@ class PlatformAgnosticTests(BasePlatformTests):
         formatter = Formatter(None, use_editor_config=False, fetch_subdirs=False)
         for code, expected in [('u = (\n\n    a)\n', 'u = (a)\n'),
                                ('x = [\n\n    1, 2]\n', 'x = [1, 2]\n'),
-                               ('foo(\n\n    1)\n', 'foo(1)\n')]:
+                               ('foo(\n\n    1)\n', 'foo(1)\n'),
+                               # blank line after a comment is kept, without trailing whitespace
+                               ('foo(  # comment\n\n    1)\n', 'foo(  # comment\n\n    1,\n)\n')]:
             formatted = formatter.format(code, Path())
             self.assertEqual(expected, formatted)
 
