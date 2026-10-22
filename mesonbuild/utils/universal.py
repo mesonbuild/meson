@@ -37,6 +37,10 @@ if T.TYPE_CHECKING:
     from ..cmdline import StrOrBytesPath
     from ..compilers.compilers import Compiler
 
+    class ConfigGetItemProtocol(Protocol):
+        def __contains__(self, key: str) -> bool: ...
+        def get(self, key: str) -> T.Tuple[str | int | bool, str | None]: ...
+
     class Comparable(Protocol):
         """Protocol for annotating comparable types."""
         def __eq__(self, other: object) -> bool: ...
@@ -108,7 +112,6 @@ __all__ = [
     'do_conf_str',
     'do_replacement',
     'expand_arguments',
-    'extract_as_list',
     'first',
     'generate_list',
     'get_compiler_for_source',
@@ -705,7 +708,7 @@ class PerThreeMachineDefaultable(PerMachineDefaultable[T.Optional[_T]], PerThree
 
     target: T.Optional[_T] = None
 
-    def default_missing(self) -> PerThreeMachine[_T]:
+    def default_missing(self) -> PerThreeMachine[_T]: # type: ignore[override]
         """Default host to build and target to host.
 
         This allows just specifying nothing in the native case, just host in the
@@ -813,7 +816,7 @@ def darwin_get_object_archs(objpath: str) -> 'ImmutableListProtocol[str]':
     _, stdo, stderr = Popen_safe(['lipo', '-info', objpath])
     if not stdo:
         mlog.debug(f'lipo {objpath}: {stderr}')
-        return None
+        return []
     stdo = stdo.rsplit(': ', 1)[1]
 
     # Convert from lipo-style archs to meson-style CPUs
@@ -1466,9 +1469,21 @@ def join_args(args: T.Iterable[str]) -> str:
     return ' '.join([quote_arg(x) for x in args])
 
 
+@T.overload
 def do_replacement(regex: T.Pattern[str], line: str,
                    variable_format: Literal['meson', 'cmake', 'cmake@'],
-                   confdata: T.Union[T.Dict[str, T.Tuple[str, T.Optional[str]]], 'ConfigurationData']) -> T.Tuple[str, T.Set[str]]:
+                   confdata: ConfigurationData) -> T.Tuple[str, T.Set[str]]:
+    ...
+
+@T.overload
+def do_replacement(regex: T.Pattern[str], line: str,
+                   variable_format: Literal['meson', 'cmake', 'cmake@'],
+                   confdata: dict[str, tuple[str, str | None]]) -> T.Tuple[str, T.Set[str]]:
+    ...
+
+def do_replacement(regex: T.Pattern[str], line: str, # type: ignore[misc]
+                   variable_format: Literal['meson', 'cmake', 'cmake@'],
+                   confdata: ConfigGetItemProtocol) -> T.Tuple[str, T.Set[str]]:
     if variable_format == 'meson':
         return do_replacement_meson(regex, line, confdata)
     elif variable_format in {'cmake', 'cmake@'}:
@@ -1477,7 +1492,7 @@ def do_replacement(regex: T.Pattern[str], line: str,
         raise MesonException('Invalid variable format')
 
 def do_replacement_meson(regex: T.Pattern[str], line: str,
-                         confdata: T.Union[T.Dict[str, T.Tuple[str, T.Optional[str]]], 'ConfigurationData']) -> T.Tuple[str, T.Set[str]]:
+                         confdata: ConfigGetItemProtocol) -> T.Tuple[str, T.Set[str]]:
     missing_variables: T.Set[str] = set()
 
     def variable_replace(match: T.Match[str]) -> str:
@@ -1510,7 +1525,7 @@ def do_replacement_meson(regex: T.Pattern[str], line: str,
     return re.sub(regex, variable_replace, line), missing_variables
 
 def do_replacement_cmake(line: str, at_only: bool,
-                         confdata: T.Union[T.Dict[str, T.Tuple[str, T.Optional[str]]], 'ConfigurationData']) -> T.Tuple[str, T.Set[str]]:
+                         confdata: ConfigGetItemProtocol) -> T.Tuple[str, T.Set[str]]:
     missing_variables: T.Set[str] = set()
 
     character_regex = re.compile(r'''
@@ -1693,7 +1708,7 @@ def get_variable_regex(variable_format: Literal['meson', 'cmake', 'cmake@'] = 'm
 
 def do_conf_str(src: str, data: T.List[str], confdata: 'ConfigurationData',
                 variable_format: Literal['meson', 'cmake', 'cmake@'],
-                subproject: T.Optional[SubProject] = None) -> T.Tuple[T.List[str], T.Set[str], bool]:
+                subproject: SubProject = SubProject('')) -> T.Tuple[T.List[str], T.Set[str], bool]:
     if variable_format == 'meson':
         return do_conf_str_meson(src, data, confdata, subproject)
     elif variable_format in {'cmake', 'cmake@'}:
@@ -1729,7 +1744,7 @@ def do_conf_str_meson(src: str, data: T.List[str], confdata: 'ConfigurationData'
     return result, missing_variables, confdata_useless
 
 def do_conf_str_cmake(src: str, data: T.List[str], confdata: 'ConfigurationData', at_only: bool,
-                      subproject: T.Optional[SubProject] = None) -> T.Tuple[T.List[str], T.Set[str], bool]:
+                      subproject: SubProject) -> T.Tuple[T.List[str], T.Set[str], bool]:
 
     variable_format: Literal['cmake', 'cmake@'] = 'cmake'
     if at_only:
@@ -1763,7 +1778,7 @@ def do_conf_str_cmake(src: str, data: T.List[str], confdata: 'ConfigurationData'
 
 def do_conf_file(src: str, dst: str, confdata: 'ConfigurationData',
                  variable_format: Literal['meson', 'cmake', 'cmake@'],
-                 encoding: str = 'utf-8', subproject: T.Optional[SubProject] = None) -> T.Tuple[T.Set[str], bool]:
+                 encoding: str = 'utf-8', subproject: SubProject = SubProject('')) -> T.Tuple[T.Set[str], bool]:
     try:
         with open(src, encoding=encoding, newline='') as f:
             data = f.readlines()
@@ -1896,17 +1911,6 @@ def listify_array_value(value: object, shlex_split_args: bool = False) -> T.List
         raise MesonException(f'"{value}" should be a string array, but it is not')
     assert isinstance(newvalue, list)
     return newvalue
-
-def extract_as_list(dict_object: T.Dict[_T, _U], key: _T, pop: bool = False) -> T.List[_U]:
-    '''
-    Extracts all values from given dict_object and listifies them.
-    '''
-    fetch: T.Callable[[_T], _U] = dict_object.get
-    if pop:
-        fetch = dict_object.pop
-    # If there's only one key, we don't return a list with one element
-    return listify(fetch(key) or [], flatten=True)
-
 
 def typeslistify(item: 'T.Union[_T, T.Sequence[_T]]',
                  types: 'T.Union[T.Type[_T], T.Tuple[T.Type[_T]]]') -> T.List[_T]:
@@ -2725,7 +2729,8 @@ class lazy_property(T.Generic[_T]):
 
     def __get__(self, instance: object, cls: T.Type) -> _T:
         value = self.__func(instance)
-        setattr(instance, self.__name, value)
+        # __set_name__ always called before __get__
+        setattr(instance, T.cast('str', self.__name), value)
         return value
 
 

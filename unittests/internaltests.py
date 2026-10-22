@@ -1203,32 +1203,6 @@ InstalledDir: /usr/bin'''), '14.0.0-1ubuntu1.1')
         self.assertEqual([holder1, 2], listify([holder1, 2]))
         self.assertEqual([holder1, 2, 3], listify([holder1, 2, [3]]))
 
-    def test_extract_as_list(self):
-        extract = mesonbuild.mesonlib.extract_as_list
-        # Test sanity
-        kwargs = {'sources': [1, 2, 3]}
-        self.assertEqual([1, 2, 3], extract(kwargs, 'sources'))
-        self.assertEqual(kwargs, {'sources': [1, 2, 3]})
-        self.assertEqual([1, 2, 3], extract(kwargs, 'sources', pop=True))
-        self.assertEqual(kwargs, {})
-
-        class TestHeldObj(mesonbuild.mesonlib.HoldableObject):
-            pass
-        class MockInterpreter:
-            def __init__(self) -> None:
-                self.subproject = ''
-                self.environment = None
-        heldObj = TestHeldObj()
-
-        # Test unholding
-        holder3 = ObjectHolder(heldObj, MockInterpreter())
-        kwargs = {'sources': [1, 2, holder3]}
-        self.assertEqual(kwargs, {'sources': [1, 2, holder3]})
-
-        # flatten nested lists
-        kwargs = {'sources': [1, [2, [3]]]}
-        self.assertEqual([1, 2, 3], extract(kwargs, 'sources'))
-
     def _test_all_naming(self, cc, patterns, platform):
         shr = patterns[platform]['shared']
         stc = patterns[platform]['static']
