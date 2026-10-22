@@ -188,7 +188,7 @@ class QtPkgConfigDependency(_QtBase, PkgConfigDependency, metaclass=mesonlib.Sim
                 qt_inc_dir = mod.get_variable(pkgconfig='includedir')
                 qt_inc_dir = self.env.get_sys_root_path(self.for_machine, qt_inc_dir)
                 mod_private_dir = os.path.join(qt_inc_dir, 'Qt' + m)
-                if not os.path.isdir(mod_private_dir):
+                if not os.path.isdir(os.path.join(mod_private_dir, mod.version)):
                     if self.env.machines[self.for_machine].is_darwin():
                         # On macOS Qt is conventionally shipped as a framework
                         # (e.g. Homebrew's qt@6). pkg-config 'includedir' is
