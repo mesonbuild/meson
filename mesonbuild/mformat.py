@@ -670,10 +670,10 @@ class TrimWhitespaces(FullAstVisitor):
 
         inner_ws = node.inner.whitespaces.value
         if (node.is_multiline and self.config.sticky_parens and '#' in inner_ws and inner_ws.count('\n') == 1
-                and node.rpar.whitespaces and node.rpar.whitespaces.value.lstrip(' \t') == '\n'):
-            # Move the comment of last operand after the closing parenthesis,
-            # when nothing else follows it on the same line
-            node.rpar.whitespaces.value = inner_ws.strip() + node.rpar.whitespaces.value
+                and not (node.rpar.whitespaces and '#' in node.rpar.whitespaces.value)):
+            # The comment of last operand is moved to the end of the line of the closing parenthesis,
+            # by ArgumentFormatter, which knows where that line ends
+            node.moved_comment = inner_ws.strip()
             node.inner.whitespaces.value = ''
 
         node.rpar.accept(self)
@@ -713,6 +713,7 @@ class FormatterState:
     is_function_arguments: bool = False
     split_operators: bool = False
     column: int = 0
+    pending_comment: T.Optional[str] = None  # comment to insert at the end of current line
 
 
 Breakable = T.Union[mparser.ArgumentNode, mparser.ParenthesizedNode]
@@ -978,9 +979,25 @@ class ArgumentFormatter(FullAstVisitor):
         if node.format_layout:
             value = self.apply_layout(node, node.format_layout, value)
             self.set_attr(node, 'format_layout', None)
+        if self.state.pending_comment:
+            value = self.insert_pending_comment(value)
         self.set_attr(node, 'value', value)
         # Comments are not counted in line length: splitting the line rarely makes them fit
         self.measure('\n'.join(line.split('#', 1)[0].rstrip(' \t') if '#' in line else line for line in value.split('\n')))
+
+    def insert_pending_comment(self, value: str) -> str:
+        """Insert the pending comment at the end of the first line of value, if value ends that line"""
+        line, newline, rest = value.partition('\n')
+        if not newline or '\\' in line:
+            return value  # line continues after this whitespace
+        comment = self.config.indent_before_comments + self.state.pending_comment
+        self.state.pending_comment = None
+        if '#' in line:
+            # Keep the comment already on this line, on its own line with the indentation of the next one
+            line, _, other = line.partition('#')
+            indent = rest[:len(rest) - len(rest.lstrip(' \t'))]
+            rest = f'{indent}#{other}\n{rest}'
+        return line.rstrip(' \t') + comment + '\n' + rest
 
     def visit_ArgumentNode(self, node: mparser.ArgumentNode) -> None:
         is_function_arguments = self.state.is_function_arguments
@@ -1086,6 +1103,8 @@ class ArgumentFormatter(FullAstVisitor):
             self.state.indent_after = current_indent_after
         self.state.split_operators = current_split_operators
         node.rpar.accept(self)
+        if node.moved_comment:
+            self.state.pending_comment = node.moved_comment
         self.exit_node(node)
 
     def visit_OrNode(self, node: mparser.OrNode) -> None:
@@ -1222,7 +1241,11 @@ class Formatter:
 
         ast.accept(AstConditionLevel())
         ast.accept(TrimWhitespaces(self.current_config))
-        ast.accept(ArgumentFormatter(self.current_config))
+        formatter = ArgumentFormatter(self.current_config)
+        ast.accept(formatter)
+        if formatter.state.pending_comment:
+            # No line break after the last statement
+            ast.whitespaces.value += self.current_config.indent_before_comments + formatter.state.pending_comment
 
         printer = RawPrinter()
         ast.accept(printer)

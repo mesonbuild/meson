@@ -462,6 +462,16 @@ class PlatformAgnosticTests(BasePlatformTests):
              'x = ((aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa or bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb)\n    and ccccccccccccccc)\n'),
             ("x = (a.get_variable(cmake: 'LLVM_ENABLE_RTTI') == 'ON') == (b.get_variable(configtool: 'has-rtti') == 'YES')\n",
              "x = (a.get_variable(cmake: 'LLVM_ENABLE_RTTI') == 'ON') == (b.get_variable(\n  configtool: 'has-rtti',\n) == 'YES')\n"),
+            # comment of last operand is moved to the end of the line of the closing parenthesis
+            ('x = (a\n  or b  # comment\n) + c\n',
+             'x = (a\n    or b) + c  # comment\n'),
+            ('foo((a\n  or b  # comment\n),  # other\n  1)\n',
+             'foo(\n  (a\n      or b),  # comment\n  # other\n  1,\n)\n'),
+            # not moved when closing parenthesis has its own comment, or with several comment lines
+            ('x = (a\n  or b  # comment\n)  # other\n',
+             'x = (a\n    or b  # comment\n)  # other\n'),
+            ('x = (a\n  or b  # comment\n  # more\n)\n',
+             'x = (a\n    or b  # comment\n    # more\n)\n'),
         ]
         for code, expected in cases:
             formatted = formatter.format(code, Path())

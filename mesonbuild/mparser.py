@@ -668,6 +668,7 @@ class ParenthesizedNode(BaseNode):
     inner: BaseNode
     rpar: SymbolNode = field(hash=False)
     is_multiline: bool
+    moved_comment: T.Optional[str]
 
     def __init__(self, lpar: SymbolNode, inner: BaseNode, rpar: SymbolNode):
         super().__init__(lpar.lineno, lpar.colno, inner.filename, end_lineno=rpar.lineno, end_colno=rpar.colno+1)
@@ -675,6 +676,7 @@ class ParenthesizedNode(BaseNode):
         self.inner = inner
         self.rpar = rpar
         self.is_multiline = False
+        self.moved_comment = None
 
 if T.TYPE_CHECKING:
     COMPARISONS = Literal['==', '!=', '<', '<=', '>=', '>', 'in', 'not in']
