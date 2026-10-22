@@ -422,6 +422,17 @@ class PlatformAgnosticTests(BasePlatformTests):
         formatted = formatter.format(code, Path())
         self.assertEqual(code, formatted)
 
+    def test_format_comment_between_operands_in_arguments(self) -> None:
+        """Ensure the operand after a comment is indented like the argument"""
+        formatter = Formatter(None, use_editor_config=False, fetch_subdirs=False)
+        code = 'foo(\n    a or  # comment\n    b,\n)\n'
+        formatted = formatter.format(code, Path())
+        self.assertEqual(code, formatted)
+
+        code = 'a = [\n    b  # comment\n    + c,\n]\n'
+        formatted = formatter.format(code, Path())
+        self.assertEqual(code, formatted)
+
     def test_format_sticky_parens(self) -> None:
         fd, fname = tempfile.mkstemp(suffix='.ini', text=True)
         self.addCleanup(os.unlink, fname)
