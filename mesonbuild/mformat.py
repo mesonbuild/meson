@@ -711,7 +711,12 @@ class FormatterState:
     level: int = 0
     indent_after: bool = False
     is_function_arguments: bool = False
-    split_operators: bool = False
+    bracket_depth: int = 0  # line breaks are only allowed inside brackets
+    paren_inner: T.Optional[mparser.BaseNode] = None  # content of current multiline parentheses
+    chain_level: int = 0  # operator level of the chain of operators being visited
+    split_chain: bool = False
+    chain_indent: int = 0  # indentation level of operators of a split chain
+    chain_point: T.Optional[RewindPoint] = None  # rewind point of the chain of operators being visited
     column: int = 0
     pending_comment: T.Optional[str] = None  # comment to insert at the end of current line
     line_start: T.Optional[mparser.WhitespaceNode] = None  # whitespace ending with the indentation of current line
@@ -719,7 +724,7 @@ class FormatterState:
     moved_comments: int = 0
 
 
-Breakable = T.Union[mparser.ArgumentNode, mparser.ParenthesizedNode]
+Breakable = T.Union[mparser.ArgumentNode, mparser.ParenthesizedNode, mparser.BinaryOperatorNode]
 
 
 @dataclass(slots=True, eq=False)
@@ -730,6 +735,7 @@ class RewindPoint:
     log_length: int
     state: FormatterState
     closed_order: int = 0  # 0 while the node is visited, then order in which nodes were closed
+    first_operand_end: int = 0  # for a chain of operators, column where its first operand ends
 
 
 class Rewind(Exception):
@@ -824,8 +830,10 @@ class ArgumentFormatter(FullAstVisitor):
                 point.target.is_multiline = True
                 raise Rewind(point)
 
-        # Otherwise, the node closed last on current line, visited again from its innermost open parent
-        closed = [p for p in self.points if p.closed_order and p.target and not p.target.is_multiline]
+        # Otherwise, the node closed last on current line, visited again from its innermost open parent.
+        # Splitting a chain of operators cannot make the line fit if its first operand is already too long.
+        closed = [p for p in self.points if p.closed_order and p.target and not p.target.is_multiline
+                  and p.first_operand_end <= self.config.max_line_length]
         if closed:
             point = max(closed, key=lambda p: p.closed_order)
             index = self.points.index(point)
@@ -914,6 +922,7 @@ class ArgumentFormatter(FullAstVisitor):
 
     def format_array(self, node: mparser.ArrayNode) -> None:
         self.enter_node(node)
+        self.state.bracket_depth += 1
         if node.args.is_multiline:
             self.state.level += 1
             if node.args.arguments:
@@ -923,6 +932,7 @@ class ArgumentFormatter(FullAstVisitor):
         node.args.accept(self)
         if node.args.is_multiline:
             self.state.level -= 1
+        self.state.bracket_depth -= 1
         node.rbracket.accept(self)
         self.exit_node(node)
 
@@ -931,6 +941,7 @@ class ArgumentFormatter(FullAstVisitor):
 
     def format_dict(self, node: mparser.DictNode) -> None:
         self.enter_node(node)
+        self.state.bracket_depth += 1
         if node.args.is_multiline:
             self.state.level += 1
             if node.args.kwargs:
@@ -940,6 +951,7 @@ class ArgumentFormatter(FullAstVisitor):
         node.args.accept(self)
         if node.args.is_multiline:
             self.state.level -= 1
+        self.state.bracket_depth -= 1
         node.rcurl.accept(self)
         self.exit_node(node)
 
@@ -969,7 +981,9 @@ class ArgumentFormatter(FullAstVisitor):
             self.add_nl_after(node.lpar, indent=self.state.level)
         node.lpar.accept(self)
         self.state.is_function_arguments = True
+        self.state.bracket_depth += 1
         node.args.accept(self)
+        self.state.bracket_depth -= 1
         if node.args.is_multiline:
             self.state.level -= 1
         node.rpar.accept(self)
@@ -1093,21 +1107,22 @@ class ArgumentFormatter(FullAstVisitor):
         self.state.indent_after = current_indent_after
 
     def visit_ParenthesizedNode(self, node: mparser.ParenthesizedNode) -> None:
-        # Sticky parentheses can only be split on and / or operators
-        can_split = not self.config.sticky_parens or isinstance(node.inner, (mparser.OrNode, mparser.AndNode))
+        # Sticky parentheses can only be split on operators
+        can_split = not self.config.sticky_parens or self.operator_level(node.inner) > 0
         self.rewind_point(node if can_split else None, lambda: self.format_parentheses(node))
 
     def format_parentheses(self, node: mparser.ParenthesizedNode) -> None:
         self.enter_node(node)
-        current_split_operators = self.state.split_operators
+        current_paren_inner = self.state.paren_inner
         if node.is_multiline:
             self.state.level += self.config.paren_levels
             current_indent_after = self.state.indent_after
             self.state.indent_after = True
-            self.state.split_operators = True
-        else:
-            # Only split operators of the multiline parentheses, not those of nested parentheses
-            self.state.split_operators = False
+            self.state.paren_inner = node.inner
+            # Operators of multiline parentheses are split with them: and / or, or any operator with sticky parentheses
+            operator_level = self.operator_level(node.inner)
+            if operator_level == 1 or (operator_level and self.config.sticky_parens):
+                T.cast('mparser.BinaryOperatorNode', node.inner).is_multiline = True
 
         if not node.is_multiline:
             self.set_whitespaces(node.inner, '')
@@ -1127,33 +1142,80 @@ class ArgumentFormatter(FullAstVisitor):
             self.indent_last_line(node.inner, indent=self.state.level - self.config.paren_levels)
 
         node.lpar.accept(self)
+        self.state.bracket_depth += 1
         node.inner.accept(self)
+        self.state.bracket_depth -= 1
         if node.is_multiline:
             self.state.level -= self.config.paren_levels
             self.state.indent_after = current_indent_after
-        self.state.split_operators = current_split_operators
+        self.state.paren_inner = current_paren_inner
         node.rpar.accept(self)
         if node.moved_comment:
             self.state.pending_comment = node.moved_comment
         self.exit_node(node)
 
+    @staticmethod
+    def operator_level(node: mparser.BaseNode) -> int:
+        """Precedence level of a chain of operators split together, or 0 if node is not such an operator"""
+        if isinstance(node, (mparser.OrNode, mparser.AndNode)):
+            return 1
+        if isinstance(node, mparser.ArithmeticNode):
+            return 2 if node.operation in {'+', '-'} else 3
+        return 0
+
     def visit_OrNode(self, node: mparser.OrNode) -> None:
-        self.enter_node(node)
-        if self.state.split_operators:
-            self.add_nl_after(node.left, indent=self.state.level)
-        node.left.accept(self)
-        node.operator.accept(self)
-        node.right.accept(self)
-        self.exit_node(node)
+        self.visit_operator(node)
 
     def visit_AndNode(self, node: mparser.AndNode) -> None:
+        self.visit_operator(node)
+
+    def visit_ArithmeticNode(self, node: mparser.ArithmeticNode) -> None:
+        self.visit_operator(node)
+
+    def visit_operator(self, node: mparser.BinaryOperatorNode) -> None:
+        level = self.operator_level(node)
+        if level == self.state.chain_level:
+            self.format_operator(node)  # part of the chain being visited
+        else:
+            self.rewind_point(node if self.state.bracket_depth else None, lambda: self.format_chain(node, level))
+
+    def format_chain(self, node: mparser.BinaryOperatorNode, level: int) -> None:
+        """Visit a chain of operators of same level; when split, there is one operand per line"""
+        chain_level, split_chain, chain_indent = self.state.chain_level, self.state.split_chain, self.state.chain_indent
+        chain_point, self.state.chain_point = self.state.chain_point, self.points[-1]
+        self.state.chain_level = level
+        self.state.split_chain = node.is_multiline
+        # Operators are indented one more level than the line of the first operand,
+        # except when the chain is the content of multiline parentheses, already indented
+        self.state.chain_indent = self.state.level + (0 if node is self.state.paren_inner else 1)
+        self.format_operator(node)
+        self.state.chain_level, self.state.split_chain, self.state.chain_indent = chain_level, split_chain, chain_indent
+        self.state.chain_point = chain_point
+
+    def format_operator(self, node: mparser.BinaryOperatorNode) -> None:
         self.enter_node(node)
-        if self.state.split_operators:
-            self.add_nl_after(node.left, indent=self.state.level)
-        node.left.accept(self)
+        if self.state.split_chain:
+            self.add_nl_after(node.left, indent=self.state.chain_indent)
+        self.visit_operand(node.left)
+        assert self.state.chain_point is not None
+        if not self.state.chain_point.first_operand_end:
+            self.state.chain_point.first_operand_end = self.state.column
+        level = self.state.level
+        if self.state.split_chain:
+            self.state.level = self.state.chain_indent
         node.operator.accept(self)
-        node.right.accept(self)
+        self.visit_operand(node.right)
+        self.state.level = level
         self.exit_node(node)
+
+    def visit_operand(self, node: mparser.BaseNode) -> None:
+        if self.operator_level(node) == self.state.chain_level:
+            node.accept(self)
+        else:
+            # The operand begins a new chain
+            chain_level, self.state.chain_level = self.state.chain_level, 0
+            node.accept(self)
+            self.state.chain_level = chain_level
 
 
 class SubdirFetcher(FullAstVisitor):
@@ -1434,7 +1496,6 @@ def run(options: argparse.Namespace) -> int:
     return err
 
 # TODO: remove empty newlines when more than N (2...)
-# TODO: split long lines on binary operators
 # TODO: align series of assignments
 # TODO: align comments
 

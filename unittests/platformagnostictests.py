@@ -432,6 +432,29 @@ class PlatformAgnosticTests(BasePlatformTests):
         formatted = formatter.format(code, Path())
         self.assertEqual(code, formatted)
 
+    def test_format_split_operators(self) -> None:
+        """Ensure long chains of operators are split, one operand per line"""
+        formatter = Formatter(None, use_editor_config=False, fetch_subdirs=False)
+        a, b, c, d = 'a' * 20, 'b' * 30, 'c' * 20, 'd' * 25
+        cases = [
+            # inside arguments, operators are indented one more level
+            (f"foo({a} and {b} or {c})\n",
+             f"foo(\n    {a}\n        and {b}\n        or {c},\n)\n"),
+            (f"foo(\n    '{a}' + '{b}' + '{c}',\n)\n",
+             f"foo(\n    '{a}'\n        + '{b}'\n        + '{c}',\n)\n"),
+            # multiline parentheses are split first; * is only split with the + level
+            (f"x = ({a} * {b} + {c} * {d})\n",
+             f"x = (\n    {a} * {b}\n    + {c} * {d}\n)\n"),
+            # not split when the first operand is already too long
+            (f"x = [{a}, {b}, {c}, {d}] + e\n",
+             f"x = [\n    {a},\n    {b},\n    {c},\n    {d},\n] + e\n"),
+        ]
+        for code, expected in cases:
+            formatted = formatter.format(code, Path())
+            self.assertEqual(expected, formatted)
+            # formatting must be stable
+            self.assertEqual(expected, formatter.format(formatted, Path()))
+
     def test_format_move_long_comments(self) -> None:
         """Ensure a comment making a line too long is moved on its own line above that line"""
         formatter = Formatter(None, use_editor_config=False, fetch_subdirs=False)
@@ -483,6 +506,9 @@ class PlatformAgnosticTests(BasePlatformTests):
              'x = ((aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa or bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb)\n    and ccccccccccccccc)\n'),
             ("x = (a.get_variable(cmake: 'LLVM_ENABLE_RTTI') == 'ON') == (b.get_variable(configtool: 'has-rtti') == 'YES')\n",
              "x = (a.get_variable(cmake: 'LLVM_ENABLE_RTTI') == 'ON') == (b.get_variable(\n  configtool: 'has-rtti',\n) == 'YES')\n"),
+            # all operators of the lowest level are split with the parentheses
+            ('x = (aaaaaaaaaaaaaaaaaaaa * bbbbbbbbbbbbbbbbbbbb + cccccccccccccccccccc * dddddddddd - eeeeee / ffffff)\n',
+             'x = (aaaaaaaaaaaaaaaaaaaa * bbbbbbbbbbbbbbbbbbbb\n    + cccccccccccccccccccc * dddddddddd\n    - eeeeee / ffffff)\n'),
             # comment of last operand is moved to the end of the line of the closing parenthesis
             ('x = (a\n  or b  # comment\n) + c\n',
              'x = (a\n    or b) + c  # comment\n'),
