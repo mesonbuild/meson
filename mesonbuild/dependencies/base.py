@@ -17,7 +17,7 @@ from enum import Enum
 
 from .. import mlog, mesonlib
 from ..compilers import clib_langs
-from ..mesonlib import LibType, MachineChoice, MesonException, HoldableObject, version_compare_many
+from ..mesonlib import LibType, MachineChoice, MesonException, HoldableObject, unwrap, version_compare_many
 from ..options import OptionKey
 #from ..interpreterbase import FeatureDeprecated, FeatureNew
 
@@ -377,7 +377,7 @@ class InternalDependency(Dependency):
             compile_args=compile_args, link_args=link_args, links=links,
             includes=includes, sources=sources) for d in self.ext_deps]
         return type(self)(
-            self.version, final_includes, final_embed, final_compile_args,
+            unwrap(self.version), final_includes, final_embed, final_compile_args,
             final_link_args, final_libraries, final_whole_libraries,
             final_sources, final_extra_files, final_deps, self.variables, [], [], [], self.name)
 
