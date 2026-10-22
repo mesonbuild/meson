@@ -14,7 +14,7 @@ from . import ModuleReturnValue, ExtensionModule
 from .. import build
 from .. import mlog
 from ..dependencies import DependencyMethods, find_external_dependency, Dependency, ExternalLibrary, InternalDependency
-from ..mesonlib import MesonException, File, FileMode, version_compare, Popen_safe
+from ..mesonlib import MesonException, File, FileMode, version_compare, OrderedSet, Popen_safe
 from ..interpreter import extract_required_kwarg
 from ..interpreter.type_checking import (
     DEPENDENCY_METHOD_KW, INSTALL_DIR_KW, INSTALL_KW, REQUIRED_KW, STR_PARG,
@@ -564,13 +564,13 @@ class QtBaseModule(ExtensionModule):
             raise build.InvalidArguments('At least one of the "headers" or "sources" keyword arguments must be provided and not empty')
 
         inc = state.get_include_args(include_dirs=kwargs['include_directories'])
-        compile_args: T.List[str] = []
+        compile_args: OrderedSet[str] = OrderedSet()
         depends: T.List[T.Union[build.BuildTarget, build.CustomTarget, build.CustomTargetIndex]] = []
         for dep in kwargs['dependencies']:
-            compile_args.extend(a for a in dep.get_all_compile_args() if a.startswith(('-I', '-F', '-D')))
+            compile_args.update(a for a in dep.get_all_compile_args() if a.startswith(('-I', '-F', '-D')))
             if isinstance(dep, InternalDependency):
                 for incl in dep.include_directories:
-                    compile_args.extend(f'-I{i}' for i in incl.abs_string_list(self.interpreter.source_root, self.interpreter.environment.build_dir))
+                    compile_args.update(f'-I{i}' for i in incl.abs_string_list(self.interpreter.source_root, self.interpreter.environment.build_dir))
                 for src in dep.sources:
                     if isinstance(src, (build.CustomTarget, build.BuildTarget, build.CustomTargetIndex)):
                         depends.append(src)
@@ -585,7 +585,7 @@ class QtBaseModule(ExtensionModule):
         DEPFILE_ARGS: T.List[str] = ['--output-dep-file'] if self._moc_supports_depfiles else []
         JSON_ARGS: T.List[str] = ['--output-json'] if do_output_json else []
 
-        arguments = kwargs['extra_args'] + DEPFILE_ARGS + JSON_ARGS + inc + compile_args + ['@INPUT@', '-o', '@OUTPUT0@']
+        arguments = kwargs['extra_args'] + DEPFILE_ARGS + JSON_ARGS + inc + list(compile_args) + ['@INPUT@', '-o', '@OUTPUT0@']
         preserve_path_from = os.path.join(state.source_root, state.subdir) if kwargs['preserve_paths'] else None
         if kwargs['headers']:
             header_gen_output: T.List[str] = ['moc_@BASENAME@.cpp']
