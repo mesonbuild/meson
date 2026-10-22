@@ -549,7 +549,7 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
     # manually searched.
     internal_libs: T.List[str] = []
 
-    LINKER_OPTION_STYLE: T.Optional[LinkerOptionStyle] = None
+    LINKER_OPTION_STYLE: LinkerOptionStyle
 
     # If the compiler is used to fire a separate linking step, environment
     # variables like CFLAGS have to be passed to the linking step as well.
