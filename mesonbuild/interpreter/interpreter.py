@@ -3084,7 +3084,9 @@ class Interpreter(InterpreterBase, HoldableObject):
             if len(inputs_abs) != 1:
                 raise InterpreterException('Exactly one input file must be given in copy mode')
             self.create_build_subdir(self.subdir)
-            shutil.copy2(inputs_abs[0], ofile_abs)
+            shutil.copyfile(inputs_abs[0], ofile_abs)
+            src_stat = os.stat(inputs_abs[0])
+            os.utime(ofile_abs, ns=(src_stat.st_atime_ns, src_stat.st_mtime_ns))
 
         # Install file if requested, we check for the empty string
         # for backwards compatibility. That was the behaviour before

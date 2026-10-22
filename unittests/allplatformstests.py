@@ -3237,6 +3237,26 @@ class AllPlatformTests(BasePlatformTests):
         with open(os.path.join(self.builddir, 'nosubst-nocopy2.txt'), 'rb') as f:
             self.assertEqual(f.read().strip(), b'')
 
+    def test_configure_file_copy_readonly_input(self):
+        with tempfile.TemporaryDirectory() as srcdir:
+            source = os.path.join(srcdir, 'input.txt')
+            with open(source, 'w', encoding='utf-8') as f:
+                f.write('hello')
+            os.chmod(source, 0o444)
+            try:
+                with open(os.path.join(srcdir, 'meson.build'), 'w', encoding='utf-8') as f:
+                    f.write("project('test', version: '1.0')\n"
+                            "configure_file(input: 'input.txt', output: 'output.txt', copy: true)\n")
+                self.init(srcdir)
+                output = os.path.join(self.builddir, 'output.txt')
+                self.assertTrue(os.access(output, os.W_OK),
+                                'configure_file output must be writable even when source is read-only')
+                self.assertEqual(os.stat(output).st_mtime_ns, os.stat(source).st_mtime_ns,
+                                 'configure_file output must preserve source mtime')
+                self.init(srcdir, extra_args=['--reconfigure'])
+            finally:
+                os.chmod(source, 0o644)
+
     def test_dirs(self):
         with tempfile.TemporaryDirectory() as containing:
             with tempfile.TemporaryDirectory(dir=containing) as srcdir:
