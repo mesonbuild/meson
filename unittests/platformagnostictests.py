@@ -413,6 +413,14 @@ class PlatformAgnosticTests(BasePlatformTests):
         formatted = formatter.format(code, Path())
         self.assertEqual(code, formatted)
 
+        code = 'a = foo(\n    [\n        1,\n        # comment\n    ],\n)\n'
+        formatted = formatter.format(code, Path())
+        self.assertEqual(code, formatted)
+
+        code = 'if true\n    a = [\n        1,\n        # comment\n    ]\nendif\n'
+        formatted = formatter.format(code, Path())
+        self.assertEqual(code, formatted)
+
     def test_format_sticky_parens(self) -> None:
         fd, fname = tempfile.mkstemp(suffix='.ini', text=True)
         self.addCleanup(os.unlink, fname)

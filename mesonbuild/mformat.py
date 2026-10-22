@@ -1024,7 +1024,10 @@ class ArgumentFormatter(FullAstVisitor):
             for comma in node.commas[arg_index:-1]:
                 self.add_nl_after(comma, self.state.level)
             if node.arguments or node.kwargs:
-                self.add_nl_after(node, self.state.level - 1)
+                # Closing bracket on its own line; comments before it keep the indentation of the arguments
+                if node.whitespaces.value in {'', ' '}:
+                    self.set_whitespaces(node, '\n')
+                self.indent_last_line(node, self.state.level - 1)
 
         else:
             if has_trailing_comma and not (node.commas[-1].whitespaces and node.commas[-1].whitespaces.value):
