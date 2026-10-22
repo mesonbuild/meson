@@ -714,6 +714,9 @@ class FormatterState:
     split_operators: bool = False
     column: int = 0
     pending_comment: T.Optional[str] = None  # comment to insert at the end of current line
+    line_start: T.Optional[mparser.WhitespaceNode] = None  # whitespace ending with the indentation of current line
+    line_has_code: bool = False
+    moved_comments: int = 0
 
 
 Breakable = T.Union[mparser.ArgumentNode, mparser.ParenthesizedNode]
@@ -788,7 +791,15 @@ class ArgumentFormatter(FullAstVisitor):
             return value
         return self.last_indent_re.sub('\n' + indent_by, value)
 
-    def measure(self, text: str) -> None:
+    def advance(self, column: int, text: str) -> int:
+        """Column after printing text (without line break) from column"""
+        if '\t' in text:
+            # Tabs advance to the next tab stop: expand them from the start of the current tab stop
+            offset = column % self.config.tab_width
+            return column + len((' ' * offset + text).expandtabs(self.config.tab_width)) - offset
+        return column + len(text)
+
+    def measure(self, text: str, is_code: bool = True) -> None:
         """Advance the column over printed text, and split a node at the end of a line that is too long"""
         for i, line in enumerate(text.split('\n')):
             if i:
@@ -798,12 +809,12 @@ class ArgumentFormatter(FullAstVisitor):
                 # Points closed on previous line are no more candidates
                 self.points = [p for p in self.points if not p.closed_order]
                 self.state.column = 0
-            if '\t' in line:
-                # Tabs advance to the next tab stop: expand them from the start of the current tab stop
-                offset = self.state.column % self.config.tab_width
-                self.state.column += len((' ' * offset + line).expandtabs(self.config.tab_width)) - offset
-            else:
-                self.state.column += len(line)
+                self.state.line_has_code = False
+            self.state.column = self.advance(self.state.column, line)
+        if is_code and text:
+            self.state.line_has_code = True
+            if '\n' in text:
+                self.state.line_start = None  # line starts inside a multiline string
 
     def split_line(self) -> None:
         """Choose a node to split, and rewind to restart visiting from it"""
@@ -981,9 +992,28 @@ class ArgumentFormatter(FullAstVisitor):
             self.set_attr(node, 'format_layout', None)
         if self.state.pending_comment:
             value = self.insert_pending_comment(value)
+        value = self.move_long_comment(value)
         self.set_attr(node, 'value', value)
         # Comments are not counted in line length: splitting the line rarely makes them fit
-        self.measure('\n'.join(line.split('#', 1)[0].rstrip(' \t') if '#' in line else line for line in value.split('\n')))
+        self.measure('\n'.join(line.split('#', 1)[0].rstrip(' \t') if '#' in line else line for line in value.split('\n')),
+                     is_code=False)
+        if '\n' in value or self.state.line_start is None:
+            self.state.line_start = node
+
+    def move_long_comment(self, value: str) -> str:
+        """Move the comment ending a line that is too long above that line"""
+        line, newline, rest = value.partition('\n')
+        if '#' not in line or not newline or not self.state.line_has_code or self.state.line_start is None:
+            return value
+        if self.advance(self.state.column, line) <= self.config.max_line_length:
+            return value
+        code, _, comment = line.partition('#')
+        # The whitespace starting the line ends with the indentation of the line
+        start = self.state.line_start.value
+        indent = start.rpartition('\n')[2]
+        self.set_attr(self.state.line_start, 'value', f'{start}#{comment}\n{indent}')
+        self.state.moved_comments += 1
+        return code.rstrip(' \t') + newline + rest
 
     def insert_pending_comment(self, value: str) -> str:
         """Insert the pending comment at the end of the first line of value, if value ends that line"""
@@ -1239,6 +1269,20 @@ class Formatter:
             ast.accept(subdir_fetcher)
             self.subdirs = subdir_fetcher.subdirs
 
+        formatted, moved_comments = self.format_ast(ast)
+        if moved_comments:
+            # Format again, as the moved comments may have forced line breaks or multiline arguments.
+            # Moved comments are on their own line, and are never moved again.
+            formatted, moved_comments = self.format_ast(mparser.Parser(formatted, source_file.as_posix()).parse())
+            # assert not moved_comments
+        if not directives:
+            return formatted
+
+        formatted_ast = mparser.Parser(formatted, source_file.as_posix()).parse()
+        return restore_disabled_regions(code, directives, formatted, find_format_directives(formatted_ast))
+
+    def format_ast(self, ast: mparser.CodeBlockNode) -> T.Tuple[str, int]:
+        """Format the ast; returns the formatted code, and the number of comments moved to their own line"""
         ast.accept(AstConditionLevel())
         ast.accept(TrimWhitespaces(self.current_config))
         formatter = ArgumentFormatter(self.current_config)
@@ -1249,11 +1293,7 @@ class Formatter:
 
         printer = RawPrinter()
         ast.accept(printer)
-        if not directives:
-            return printer.result
-
-        formatted_ast = mparser.Parser(printer.result, source_file.as_posix()).parse()
-        return restore_disabled_regions(code, directives, printer.result, find_format_directives(formatted_ast))
+        return printer.result, formatter.state.moved_comments
 
 
 def add_arguments(parser: argparse.ArgumentParser) -> None:
@@ -1397,7 +1437,6 @@ def run(options: argparse.Namespace) -> int:
 # TODO: split long lines on binary operators
 # TODO: align series of assignments
 # TODO: align comments
-# TODO: move comments on long lines
 
 # Differences from muon format:
 # - By default, uses two spaces before comment, and added option for that
