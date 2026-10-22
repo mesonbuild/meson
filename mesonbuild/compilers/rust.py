@@ -323,6 +323,9 @@ class RustCompiler(Compiler):
     def has_verbatim(self) -> bool:
         if version_compare(self.version, '< 1.67.0'):
             return False
+        # Solaris ld does not support GNU ld's -l:PATH syntax.
+        if self.linker.id == 'ld.solaris':
+            return False
         # GNU ld support '-l:PATH'
         if 'ld.' in self.linker.id and self.linker.id != 'ld.wasm':
             return True

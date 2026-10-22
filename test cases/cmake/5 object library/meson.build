@@ -12,7 +12,11 @@ sub_sha = sub_pro.dependency('lib_sha')
 sub_sta = sub_pro.dependency('lib_sta')
 
 # Required for the static library
-zlib_dep = dependency('zlib')
+if host_machine.system() == 'sunos'
+  zlib_dep = dep_test
+else
+  zlib_dep = dependency('zlib')
+endif
 
 exe_sha = executable('shared', ['main.cpp'], dependencies: [sub_sha])
 exe_sta = executable('static', ['main.cpp'], dependencies: [sub_sta, zlib_dep])
