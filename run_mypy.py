@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: Apache-2.0
-# Copyright © 2024 Intel Corporation
+# Copyright © 2024-2026 Intel Corporation
 
 from pathlib import Path
 import argparse
@@ -26,14 +26,13 @@ additional = [
 
 def check_mypy() -> None:
     try:
-        import mypy
+        from mypy.version import __version__ as mypy_version
+        if version_compare(mypy_version, '>=0.812'):
+            return
+        print('mypy >=0.812 is required, older versions report spurious errors')
     except ImportError:
         print('Failed import mypy')
-        sys.exit(1)
-    from mypy.version import __version__ as mypy_version
-    if not version_compare(mypy_version, '>=0.812'):
-        print('mypy >=0.812 is required, older versions report spurious errors')
-        sys.exit(1)
+    sys.exit(1)
 
 def main() -> int:
     root = Path(__file__).absolute().parent
