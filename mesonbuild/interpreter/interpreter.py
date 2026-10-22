@@ -3086,7 +3086,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             self.create_build_subdir(self.subdir)
             shutil.copyfile(inputs_abs[0], ofile_abs)
             src_stat = os.stat(inputs_abs[0])
-            os.utime(ofile_abs, (src_stat.st_atime, src_stat.st_mtime))
+            os.utime(ofile_abs, ns=(src_stat.st_atime_ns, src_stat.st_mtime_ns))
 
         # Install file if requested, we check for the empty string
         # for backwards compatibility. That was the behaviour before

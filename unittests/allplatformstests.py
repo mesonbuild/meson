@@ -3251,7 +3251,7 @@ class AllPlatformTests(BasePlatformTests):
                 output = os.path.join(self.builddir, 'output.txt')
                 self.assertTrue(os.access(output, os.W_OK),
                                 'configure_file output must be writable even when source is read-only')
-                self.assertEqual(os.stat(output).st_mtime, os.stat(source).st_mtime,
+                self.assertEqual(os.stat(output).st_mtime_ns, os.stat(source).st_mtime_ns,
                                  'configure_file output must preserve source mtime')
                 self.init(srcdir, extra_args=['--reconfigure'])
             finally:
