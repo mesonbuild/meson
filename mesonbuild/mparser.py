@@ -438,12 +438,14 @@ class BinaryOperatorNode(BaseNode):
     left: BaseNode
     operator: SymbolNode
     right: BaseNode
+    is_multiline: bool
 
     def __init__(self, left: BaseNode, operator: SymbolNode, right: BaseNode):
         super().__init__(left.lineno, left.colno, left.filename)
         self.left = left
         self.operator = operator
         self.right = right
+        self.is_multiline = False
 
 class OrNode(BinaryOperatorNode):
     pass
