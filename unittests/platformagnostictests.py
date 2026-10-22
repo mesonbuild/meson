@@ -433,6 +433,27 @@ class PlatformAgnosticTests(BasePlatformTests):
         formatted = formatter.format(code, Path())
         self.assertEqual(code, formatted)
 
+    def test_format_move_long_comments(self) -> None:
+        """Ensure a comment making a line too long is moved on its own line above that line"""
+        formatter = Formatter(None, use_editor_config=False, fetch_subdirs=False)
+        comment = '# ' + 'x' * 75
+        cases = [
+            (f"a = 1\nopts.set('cpp_std', 'c++14')  {comment}\n",
+             f"a = 1\n{comment}\nopts.set('cpp_std', 'c++14')\n"),
+            (f"foo(\n    'argument',  {comment}\n    other,\n)\n",
+             f"foo(\n    {comment}\n    'argument',\n    other,\n)\n"),
+            # the line break after the comment is not needed anymore
+            (f"x = (a or  {comment}\n    b)\n",
+             f"x = (\n    a\n    {comment}\n    or b\n)\n"),
+            # short comments are not moved
+            ("x = 1  # comment\n", "x = 1  # comment\n"),
+        ]
+        for code, expected in cases:
+            formatted = formatter.format(code, Path())
+            self.assertEqual(expected, formatted)
+            # formatting must be stable
+            self.assertEqual(expected, formatter.format(formatted, Path()))
+
     def test_format_blank_lines_after_opening_bracket(self) -> None:
         """Ensure blank lines after an opening bracket are removed"""
         formatter = Formatter(None, use_editor_config=False, fetch_subdirs=False)
