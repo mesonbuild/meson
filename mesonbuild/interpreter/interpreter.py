@@ -1376,7 +1376,8 @@ class Interpreter(InterpreterBase, HoldableObject):
         if self.cargo is None:
             self.load_root_cargo_lock_file()
 
-        build_project = build.BuildProject(proj_name, self.project_version, self.subproject, self.build.for_machine, for_machine)
+        build_project = build.BuildProject(proj_name, self.project_version, self.subproject,
+                                           self.build.for_machine, for_machine, self.subdir)
         self.build.projects[for_machine][self.subproject] = build_project
 
         extra_args: T.List[mlog.TV_Loggable] = []
