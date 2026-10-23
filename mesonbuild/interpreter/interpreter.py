@@ -1768,7 +1768,16 @@ class Interpreter(InterpreterBase, HoldableObject):
     def add_find_program_override(self, name: str, exe: Program, for_machine: MachineChoice) -> None:
         if name in self.build.searched_programs[for_machine]:
             raise InterpreterException(f'Tried to override finding of executable "{name}" which has already been found.')
-        if name in self.build.find_overrides[for_machine]:
+        previous = self.build.find_overrides[for_machine].get(name)
+        if previous is not None:
+            # For native builds, both machines map to MachineChoice.HOST.  Allow
+            # overriding the same program with the same executable, so that it is
+            # possible to call meson.override_find_program consecutively with
+            # `native: true` and `native: false`.
+            if previous == exe:
+                FeatureNew.single_use('Overriding the same program multiple times (with the same executable)',
+                                      '1.13.0', self.subproject)
+                return
             raise InterpreterException(f'Tried to override executable "{name}" which has already been overridden.')
         self.build.find_overrides[for_machine][name] = exe
         if name == 'pkg-config' and isinstance(exe, ExternalProgram):
