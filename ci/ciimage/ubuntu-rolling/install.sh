@@ -21,7 +21,7 @@ pkgs=(
   libgcrypt20-dev
   libgpgme-dev
   libhdf5-dev
-  libboost-python-dev libboost-regex-dev
+  libboost-python-dev libboost-numpy-dev libboost-regex-dev
   libblocksruntime-dev
   libperl-dev
   liblapack-dev libscalapack-mpi-dev
