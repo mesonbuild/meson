@@ -1355,7 +1355,7 @@ class NinjaBackend(backends.Backend):
 
     def build_run_target_name(self, target: build.RunTarget) -> str:
         if target.subproject != '':
-            subproject_prefix = f'{target.subproject}@@'
+            subproject_prefix = f'{target.build_project.prefix}{target.subproject}@@'
         else:
             subproject_prefix = ''
         return f'{subproject_prefix}{target.name}'
