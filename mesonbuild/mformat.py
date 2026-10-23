@@ -1271,7 +1271,7 @@ class Formatter:
 
             sections = [section for section in cp.sections() if match_path(source_file.as_posix(), section)]
             for f in fields(config):
-                if getattr(cp, f.name, None) is not None:
+                if getattr(config, f.name) is not None:
                     continue  # value already set from higher file
 
                 getter = f.metadata['getter']
