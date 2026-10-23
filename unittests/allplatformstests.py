@@ -4441,10 +4441,6 @@ class AllPlatformTests(BasePlatformTests):
                 integer: 1
                 boolean: true
 
-            subsub undefined
-
-                Something: Some value
-
             My Project 1.0
 
               Configuration
