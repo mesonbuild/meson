@@ -19,6 +19,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--sourcedir', dest='sourcedir')
 parser.add_argument('--builddir', dest='builddir')
 parser.add_argument('--subdir', dest='subdir')
+parser.add_argument('--build-subdir', dest='build_subdir')
 parser.add_argument('--headerdirs', dest='headerdirs', nargs='*', default=[])
 parser.add_argument('--mainfile', dest='mainfile')
 parser.add_argument('--modulename', dest='modulename')
@@ -80,7 +81,7 @@ def gtkdoc_run_check(cmd: T.List[str], cwd: str, library_paths: T.Optional[T.Lis
         except UnicodeEncodeError:
             pass
 
-def build_gtkdoc(source_root: str, build_root: str, doc_subdir: str, src_subdirs: T.List[str],
+def build_gtkdoc(source_root: str, build_root: str, doc_subdir: str, build_subdir: str, src_subdirs: T.List[str],
                  main_file: str, module: str, module_version: str,
                  html_args: T.List[str], scan_args: T.List[str], fixxref_args: T.List[str], mkdb_args: T.List[str],
                  gobject_typesfile: str, scanobjs_args: T.List[str], run: str, ld: str, cc: str, ldflags: str, cflags: str,
@@ -98,7 +99,7 @@ def build_gtkdoc(source_root: str, build_root: str, doc_subdir: str, src_subdirs
         src_dir_args += ['--source-dir=' + d for d in dirs]
 
     doc_src = os.path.join(source_root, doc_subdir)
-    abs_out = os.path.join(build_root, doc_subdir)
+    abs_out = os.path.join(build_root, build_subdir)
     htmldir = os.path.join(abs_out, 'html')
 
     content_files += [main_file]
@@ -212,8 +213,8 @@ def build_gtkdoc(source_root: str, build_root: str, doc_subdir: str, src_subdirs
         shutil.move(os.path.join(htmldir, f'{module}.devhelp2'),
                     os.path.join(htmldir, f'{module}-{module_version}.devhelp2'))
 
-def install_gtkdoc(build_root: str, doc_subdir: str, install_prefix: str, datadir: str, module: str) -> None:
-    source = os.path.join(build_root, doc_subdir, 'html')
+def install_gtkdoc(build_root: str, build_subdir: str, install_prefix: str, datadir: str, module: str) -> None:
+    source = os.path.join(build_root, build_subdir, 'html')
     final_destination = os.path.join(install_prefix, datadir, module)
     shutil.rmtree(final_destination, ignore_errors=True)
     shutil.copytree(source, final_destination)
@@ -244,6 +245,7 @@ def run(args: T.List[str]) -> int:
         options.sourcedir,
         options.builddir,
         options.subdir,
+        options.build_subdir or options.subdir,
         options.headerdirs,
         options.mainfile,
         options.modulename,
@@ -279,7 +281,7 @@ def run(args: T.List[str]) -> int:
         if os.path.isabs(install_dir):
             install_dir = destdir_join(destdir, install_dir)
         install_gtkdoc(options.builddir,
-                       options.subdir,
+                       options.build_subdir,
                        install_prefix,
                        'share/gtk-doc/html',
                        install_dir)
