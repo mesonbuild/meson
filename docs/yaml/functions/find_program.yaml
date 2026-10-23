@@ -111,6 +111,23 @@ kwargs:
       defined there, then from the system. If set to `true`, the cross
       file is ignored and the program is only searched from the system.
 
+      Note that `native` represent the machine that the program *generates
+      output for*, not the machine that the program *runs* on.  Generally,
+      `native: false` (the default) is the right choice, but if a program's
+      output is known not to depend on the machine, you might look it up for
+      the build machine as well:
+
+      ```meson
+      tool = find_program('mytool', required : false)
+      if not tool.found()
+        # The output of mytool is machine-independent.
+        tool = find_program('mytool', native : true)
+      endif
+      ```
+
+      *Since 1.12.0*, if the program is provided by a wrap and `native: true`
+      is provided, Meson configures the wrap's subproject for the build machine.
+
   disabler:
     type: bool
     since: 0.49.0
