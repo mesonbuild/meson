@@ -19,7 +19,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--sourcedir', dest='sourcedir')
 parser.add_argument('--builddir', dest='builddir')
 parser.add_argument('--subdir', dest='subdir')
-parser.add_argument('--headerdirs', dest='headerdirs')
+parser.add_argument('--headerdirs', dest='headerdirs', nargs='*', default=[])
 parser.add_argument('--mainfile', dest='mainfile')
 parser.add_argument('--modulename', dest='modulename')
 parser.add_argument('--moduleversion', dest='moduleversion')
@@ -244,7 +244,7 @@ def run(args: T.List[str]) -> int:
         options.sourcedir,
         options.builddir,
         options.subdir,
-        options.headerdirs.split('@@'),
+        options.headerdirs,
         options.mainfile,
         options.modulename,
         options.moduleversion,
