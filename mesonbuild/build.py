@@ -3672,6 +3672,20 @@ class LocalProgram(programs.Program):
         self.program = program
         self.version = version
 
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, LocalProgram):
+            return False
+        if isinstance(self.program, programs.ExternalProgram):
+            return isinstance(other.program, programs.ExternalProgram) and self.file == other.file
+        else:
+            return self.program is other.program
+
+    def __hash__(self) -> int:
+        if isinstance(self.program, programs.ExternalProgram):
+            return hash(self.file)
+        else:
+            return hash(self.program)
+
     def found(self) -> bool:
         return True
 

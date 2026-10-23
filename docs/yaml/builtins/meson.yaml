@@ -386,6 +386,32 @@ methods:
       *(since 1.12.0)* A program can be overridden both for the host machine and for the
       build machine.
 
+      Using `override_find_program` when cross compiling requires some care.  In particular:
+
+      - a program built for the host machine should only be registered if the host
+        binaries can be run, otherwise it cannot be executed.
+
+      - *since 1.13.0* Meson allows overriding the same program twice if both calls refer
+        to the same executable, but this may not work when cross compiling if a
+        subproject is invoked for both the host and build machine.
+
+      `meson.can_run_host_binaries()` and `meson.is_cross_build()` make it possible
+      to override the program for both cases:
+
+      ```meson
+      if meson.can_run_host_binaries()
+        meson.override_find_program('mytool', mytool_exe)
+        # Add a second override if the output of the tool is machine-independent.
+        # In a cross build, the copy of the subproject for the build machine
+        # provides the program for the build machine.
+        if not meson.is_cross_build() and meson.version().version_compare('>=1.13.0')
+          meson.override_find_program('mytool', mytool_exe, native : true)
+        endif
+      endif
+      ```
+
+      See [[find_program]] for how to use an overridden program.
+
     posargs:
       progname:
         type: str

@@ -1803,7 +1803,12 @@ class Interpreter(InterpreterBase, HoldableObject):
     def add_find_program_override(self, name: str, exe: Program, for_machine: MachineChoice) -> None:
         if name in self.build.searched_programs[for_machine]:
             raise InterpreterException(f'Tried to override finding of executable "{name}" which has already been found.')
-        if name in self.build.find_overrides[for_machine]:
+        previous = self.build.find_overrides[for_machine].get(name)
+        if previous is not None:
+            # For native builds, both machines map to MachineChoice.HOST.  Allow
+            # overriding `native: true` and `native: false` with the same program.
+            if previous == exe:
+                return
             raise InterpreterException(f'Tried to override executable "{name}" which has already been overridden.')
         self.build.find_overrides[for_machine][name] = exe
         if name == 'pkg-config' and isinstance(exe, ExternalProgram):
