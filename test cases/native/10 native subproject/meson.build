@@ -1,8 +1,15 @@
 project('native subproject', 'c', meson_version : '>= 1.12.0')
 
+cross = meson.is_cross_build()
+add_global_arguments(f'-DGLOBAL_CROSS_BUILD=@cross@', language : 'c', native : false)
+add_global_arguments('-DGLOBAL_CROSS_BUILD=0', language : 'c', native : true)
+
 # Test running a subproject for both host and build
-subproject('both', native : true)
 subproject('both', native : false)
+subproject('both', native : true)
+
+# Test coming back from a build-machine subproject to a host-machine superproject
+executable('main', 'main.c', c_args : f'-DEXPECTED_CROSS_BUILD=@cross@')
 
 maingen = executable('maingen', 'maingen.c', native : true)
 meson.override_find_program('maingen', maingen, native : true)
