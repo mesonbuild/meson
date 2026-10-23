@@ -46,7 +46,7 @@ from mesonbuild.interpreterbase import (
 )
 from mesonbuild.mesonlib import (
     FileMode, LibType, MachineChoice, PerMachine, SimpleABC, Version, is_windows, is_osx,
-    is_cygwin, is_openbsd, search_version, MesonException, EnvironmentException, python_command,
+    is_cygwin, is_openbsd, is_sunos, search_version, MesonException, EnvironmentException, python_command,
     version_check_to_range,
 )
 from mesonbuild.options import OptionKey, UserBooleanOption
@@ -1202,6 +1202,8 @@ InstalledDir: /usr/bin'''), '14.0.0-1ubuntu1.1')
             env.machines.host.system = 'windows'
             self._test_all_naming(cc, patterns, 'windows-mingw')
 
+        if is_sunos():
+            env.machines.host.system = 'sunos'
         self._test_find_library_undefined(cc)
 
     def _test_find_library_undefined(self, cc):
@@ -1221,6 +1223,8 @@ InstalledDir: /usr/bin'''), '14.0.0-1ubuntu1.1')
             # use of x86_64 is hardcoded in run_tests.py:get_fake_env()
             if is_osx():
                 subprocess.check_call(['clang', '-c', str(src), '-o', str(out), '-arch', 'x86_64'])
+            elif is_sunos():
+                subprocess.check_call(['gcc', '-fPIC', '-c', str(src), '-o', str(out)])
             else:
                 subprocess.check_call(['gcc', '-c', str(src), '-o', str(out)])
             subprocess.check_call(['ar', 'csr', str(name), str(out)])
