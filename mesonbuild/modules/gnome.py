@@ -578,9 +578,9 @@ class GnomeModule(ExtensionModule):
                input_file,
                '--generate-dependencies']
 
-        # Prefer generated files over source files
-        cmd += ['--sourcedir', state.subdir] # Current build dir
-        for source_dir in source_dirs:
+        for source_dir in ['', *source_dirs]:
+            # Prefer generated files over source files.
+            cmd += ['--sourcedir', os.path.join(state.environment.get_build_dir(), state.current_build_dir, source_dir)]
             cmd += ['--sourcedir', os.path.join(state.subdir, source_dir)]
 
         try:
