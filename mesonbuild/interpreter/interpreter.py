@@ -3425,7 +3425,8 @@ class Interpreter(InterpreterBase, HoldableObject):
                 for d in self.build.data:
                     for s in d.sources:
                         installablefiles.add(Path(s.absolute_path(srcdir, builddir)))
-                installabledirs = [str(Path(srcdir, s.source_subdir)) for s in self.build.install_dirs]
+                installabledirs = [str(Path(srcdir if s.from_source_dir else builddir, s.source_subdir))
+                                   for s in self.build.install_dirs]
                 if fpath in installablefiles:
                     return True
                 for d in installabledirs:
