@@ -1,0 +1,15 @@
+# format-test: group_arg_value = true
+
+arguments = [
+    'a',
+    '--opt_a', 'opt_a_value',
+    'b',
+    'c',
+    '--opt_d',
+    '--opt_e', 'opt_e_value',
+    '--opt_f',
+    '--opt_g', 'opt_g_value',
+    'other_value',
+    'again',
+    '--x',
+]

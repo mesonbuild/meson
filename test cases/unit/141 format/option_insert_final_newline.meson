@@ -1,0 +1,4 @@
+# format-test: insert_final_newline = false
+
+# no final newline is added
+x = 1

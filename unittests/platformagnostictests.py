@@ -3,6 +3,7 @@
 # Copyright © 2024-2025 Intel Corporation
 
 from __future__ import annotations
+import argparse
 import difflib
 import json
 import os
@@ -17,6 +18,7 @@ from pathlib import Path
 from .baseplatformtests import BasePlatformTests
 from .helpers import skip_if_not_language, IS_CI
 from mesonbuild.mesonlib import EnvironmentVariables, ExecutableSerialisation, MesonException, is_linux, python_command, windows_proof_rmtree
+from mesonbuild import mformat
 from mesonbuild.mformat import Formatter, match_path
 from mesonbuild.interpreterbase import InvalidArguments
 from mesonbuild.optinterpreter import OptionInterpreter, OptionException
@@ -433,6 +435,33 @@ class PlatformAgnosticTests(BasePlatformTests):
 
     def test_format_snippets(self) -> None:
         self.check_format_snippets(Path(self.unit_test_dir, '141 format'), use_editor_config=False)
+
+    def test_format_end_of_line(self) -> None:
+        dirpath = tempfile.mkdtemp()
+        self.addCleanup(windows_proof_rmtree, dirpath)
+        source = Path(dirpath, 'source.meson')
+        source.write_bytes(b'x=1\ny=2\n')
+        output = Path(dirpath, 'output.meson')
+        config = Path(dirpath, 'meson.format')
+        editorconfig = Path(dirpath, '.editorconfig')
+
+        parser = argparse.ArgumentParser()
+        mformat.add_arguments(parser)
+
+        def format_file(*args: str) -> bytes:
+            mformat.run(parser.parse_args([*args, '-c', str(config), '-o', str(output), str(source)]))
+            return output.read_bytes()
+
+        cases = [('lf', b'\n'), ('crlf', b'\r\n'), ('cr', b'\r'), ('native', os.linesep.encode())]
+        for end_of_line, newline in cases:
+            expected = b'x = 1' + newline + b'y = 2' + newline
+            config.write_text(f'end_of_line = {end_of_line}\n', encoding='utf-8')
+            self.assertEqual(expected, format_file(), f'end_of_line = {end_of_line}')
+
+            if end_of_line != 'native':
+                config.write_text('', encoding='utf-8')
+                editorconfig.write_text(f'root = true\n[*]\nend_of_line = {end_of_line}\n', encoding='utf-8')
+                self.assertEqual(expected, format_file('-e'), f'end_of_line = {end_of_line} in .editorconfig')
 
     def test_format_directive_errors(self) -> None:
         formatter = Formatter(None, use_editor_config=False, fetch_subdirs=False)
