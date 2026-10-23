@@ -1,3 +1,5 @@
+# format-test: indent_before_comments = ' '
+
 # SPDX-FileCopyrightText: Stone Tickle <lattis@mochiro.moe>
 # This file is used from muon sources, with permission
 

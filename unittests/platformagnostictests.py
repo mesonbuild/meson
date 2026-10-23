@@ -469,6 +469,21 @@ class PlatformAgnosticTests(BasePlatformTests):
                 editorconfig.write_text(f'root = true\n[*]\nend_of_line = {end_of_line}\n', encoding='utf-8')
                 self.assertEqual(expected, format_file('-e'), f'end_of_line = {end_of_line} in .editorconfig')
 
+    def test_format_find_configuration(self) -> None:
+        """meson.format is found in the parent directories of the source file"""
+        dirpath = tempfile.mkdtemp()
+        self.addCleanup(windows_proof_rmtree, dirpath)
+        Path(dirpath, 'meson.format').write_text("indent_by = '  '\n", encoding='utf-8')
+        source = Path(dirpath, 'subdir', 'meson.build')
+        source.parent.mkdir()
+        source.write_text('if true\nx = 1\nendif\n', encoding='utf-8')
+        output = Path(dirpath, 'output.meson')
+
+        parser = argparse.ArgumentParser()
+        mformat.add_arguments(parser)
+        mformat.run(parser.parse_args(['-o', str(output), str(source)]))
+        self.assertEqual('if true\n  x = 1\nendif\n', output.read_text(encoding='utf-8'))
+
     def test_format_directive_errors(self) -> None:
         formatter = Formatter(None, use_editor_config=False, fetch_subdirs=False)
         errors = [
