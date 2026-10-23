@@ -1569,7 +1569,7 @@ class GnomeModule(ExtensionModule):
             '--sourcedir=' + state.environment.get_source_dir(),
             '--builddir=' + state.environment.get_build_dir(),
             '--subdir=' + state.subdir,
-            '--headerdirs=' + '@@'.join(header_dirs),
+            '--headerdirs', *header_dirs,
             '--mainfile=' + main_file,
             '--modulename=' + modulename,
             '--moduleversion=' + moduleversion,
