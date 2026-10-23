@@ -478,6 +478,7 @@ class BuildProject:
     #    HOST           BUILD               BUILD ("native: true")
     orig_for_machine: MachineChoice
     for_machine: MachineChoice
+    subdir: str
     project_args: PerMachine[T.Dict[Language, T.List[str]]] = field(default_factory=lambda: PerMachine({}, {}))
     project_link_args: PerMachine[T.Dict[Language, T.List[str]]] = field(default_factory=lambda: PerMachine({}, {}))
     summary: Summary = field(default_factory=Summary)
@@ -485,6 +486,10 @@ class BuildProject:
     @lazy_property
     def prefix(self) -> str:
         return 'build.' if self.for_machine is MachineChoice.BUILD else ''
+
+    @lazy_property
+    def builddir(self) -> str:
+        return self.prefix + self.subdir
 
     def dump_summary(self) -> None:
         if not self.summary.sections:
