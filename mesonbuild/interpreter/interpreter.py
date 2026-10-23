@@ -947,12 +947,10 @@ class Interpreter(InterpreterBase, HoldableObject):
         ],
     )
     def func_subproject(self, nodes: mparser.BaseNode, args: T.Tuple[SubProject], kwargs: kwtypes.Subproject) -> SubprojectHolder:
-        # note that this does not use @apply_machine_map.  'for_machine'
-        # is only used by _do_subproject_meson to decide between
-        # Build.copy() and Build.copy_for_build_machine(), and copying
-        # a build-only subproject provides the correct result for "native:
-        # false".  This is needed so that it takes two *explicit* levels
-        # of "native: true" for the target_machine to become the build_machine.
+        # Note that this does not use @apply_machine_map. kw['for_machine']
+        # must be the machine as requested so that it takes two *explicit*
+        # levels of "native: true" for the target_machine to become the
+        # build_machine. See _do_subproject_meson().
         kw: kwtypes.DoSubproject = {
             'required': kwargs['required'],
             'default_options': kwargs['default_options'],
@@ -990,6 +988,9 @@ class Interpreter(InterpreterBase, HoldableObject):
     def do_subproject(self, subp_name: SubProject, kwargs: kwtypes.DoSubproject, force_method: T.Optional[wrap.Method] = None,
                       forced_options: T.Optional[OptionDict] = None) -> SubprojectHolder:
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
+        # kwargs['for_machine'] is used to choose between Build.copy() and
+        # Build.copy_for_build_machine(), while for_machine is used to
+        # look up and register the subproject.
         kwargs.setdefault('for_machine', MachineChoice.HOST)
         for_machine = self.build.machine_map[kwargs['for_machine']]
 
@@ -1061,7 +1062,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         m.extend(['for machine:', mlog.bold(for_machine.get_lower_case_name())])
         mlog.log(*m, '\n', nested=False)
 
-        methods_map: T.Dict[wrap.Method, T.Callable[[SubProject, str, OptionDict, kwtypes.DoSubproject],
+        methods_map: T.Dict[wrap.Method, T.Callable[[SubProject, MachineChoice, str, OptionDict, kwtypes.DoSubproject],
                                                     SubprojectHolder]] = {
             'meson': self._do_subproject_meson,
             'cmake': self._do_subproject_cmake,
@@ -1069,7 +1070,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         }
 
         try:
-            return methods_map[method](subp_name, subdir, default_options, kwargs)
+            return methods_map[method](subp_name, for_machine, subdir, default_options, kwargs)
         # Invalid code is always an error
         except InvalidCode:
             raise
@@ -1096,15 +1097,18 @@ class Interpreter(InterpreterBase, HoldableObject):
         mlog.log('Generated Meson AST:', meson_filename)
         mlog.cmd_ci_include(meson_filename)
 
-    def _do_subproject_meson(self, subp_name: SubProject, subdir: str,
+    def _do_subproject_meson(self, subp_name: SubProject,
+                             for_machine: MachineChoice, subdir: str,
                              default_options: OptionDict,
                              kwargs: kwtypes.DoSubproject,
                              ast: T.Optional[mparser.CodeBlockNode] = None,
                              build_def_files: T.Optional[T.List[str]] = None,
                              relaxations: T.Optional[T.Dict[InterpreterRuleRelaxation, T.Optional[FeatureCheckBase]]] = None,
                              cargo: T.Optional[cargo.Interpreter] = None) -> SubprojectHolder:
-        for_machine = kwargs['for_machine']
-        if for_machine is MachineChoice.BUILD:
+        # The machine in kwargs is the one that the caller requested.  Use it to choose
+        # the kind of Build, so that "native: false" in a subproject for the build
+        # machine keeps the target machine.
+        if kwargs['for_machine'] is MachineChoice.BUILD:
             new_build = self.build.copy_for_build_machine()
         else:
             new_build = self.build.copy()
@@ -1152,11 +1156,11 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.build.merge(subi.build)
         return self.subprojects[for_machine][subp_name]
 
-    def _do_subproject_cmake(self, subp_name: SubProject, subdir: str,
+    def _do_subproject_cmake(self, subp_name: SubProject,
+                             for_machine: MachineChoice, subdir: str,
                              default_options: OptionDict,
                              kwargs: kwtypes.DoSubproject) -> SubprojectHolder:
         from ..cmake import CMakeInterpreter
-        for_machine = kwargs['for_machine']
         with mlog.nested(subp_name):
             from ..modules.cmake import CMakeSubprojectOptions
             kw_opts = kwargs.get('options') or CMakeSubprojectOptions()
@@ -1168,8 +1172,8 @@ class Interpreter(InterpreterBase, HoldableObject):
             # Generate a meson ast and execute it with the normal do_subproject_meson
             ast = cm_int.pretend_to_be_meson(kw_opts.target_options)
             result = self._do_subproject_meson(
-                    subp_name, subdir, default_options,
-                    kwargs, ast,
+                    subp_name, for_machine, subdir,
+                    default_options, kwargs, ast,
                     [str(f) for f in cm_int.bs_files],
                     relaxations={
                         InterpreterRuleRelaxation.ALLOW_BUILD_DIR_FILE_REFERENCES: None,
@@ -1178,7 +1182,8 @@ class Interpreter(InterpreterBase, HoldableObject):
             result.cm_interpreter = cm_int
         return result
 
-    def _do_subproject_cargo(self, subp_name: SubProject, subdir: str,
+    def _do_subproject_cargo(self, subp_name: SubProject,
+                             for_machine: MachineChoice, subdir: str,
                              default_options: OptionDict,
                              kwargs: kwtypes.DoSubproject) -> SubprojectHolder:
         from .. import cargo
@@ -1199,7 +1204,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 ast = cargo_int.interpret(subdir)
 
             return self._do_subproject_meson(
-                subp_name, subdir, default_options, kwargs, ast,
+                subp_name, for_machine, subdir, default_options, kwargs, ast,
                 relaxations={InterpreterRuleRelaxation.CARGO_SUBDIR: None} if ast is not None else None,
                 cargo=cargo_int)
 
