@@ -418,9 +418,7 @@ class DepManifest:
 
 
 class Summary:
-    def __init__(self, project_name: str, project_version: str):
-        self.project_name = project_name
-        self.project_version = project_version
+    def __init__(self) -> None:
         self.sections: defaultdict[str, dict[str, tuple[mlog.TV_LoggableList, str | None]]] = defaultdict(dict)
         self.max_key_len = 0
 
@@ -432,7 +430,6 @@ class Summary:
         self.max_key_len = max(self.max_key_len, len(key))
 
     def dump(self) -> None:
-        mlog.log(self.project_name, mlog.normal_cyan(self.project_version))
         for section, values in self.sections.items():
             mlog.log('')  # newline
             if section:
@@ -482,10 +479,20 @@ class BuildProject:
     for_machine: MachineChoice
     project_args: PerMachine[T.Dict[Language, T.List[str]]] = field(default_factory=lambda: PerMachine({}, {}))
     project_link_args: PerMachine[T.Dict[Language, T.List[str]]] = field(default_factory=lambda: PerMachine({}, {}))
+    summary: Summary = field(default_factory=Summary)
 
     @lazy_property
     def prefix(self) -> str:
         return 'build.' if self.for_machine is MachineChoice.BUILD else ''
+
+    def dump_summary(self) -> None:
+        if not self.summary.sections:
+            return
+        name = self.name
+        if self.for_machine is MachineChoice.BUILD:
+            name += ' (for build machine)'
+        mlog.log(name, mlog.normal_cyan(self.version))
+        self.summary.dump()
 
 
 # literally everything isn't dataclass stuff
