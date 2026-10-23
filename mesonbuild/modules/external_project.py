@@ -64,6 +64,7 @@ class ExternalProject(NewExtensionModule):
                              })
 
         self.subdir = Path(state.subdir)
+        self.current_build_dir = Path(state.current_build_dir)
         self.project_version = state.project_version
         self.subproject = state.subproject
         self.env = state.environment
@@ -74,8 +75,8 @@ class ExternalProject(NewExtensionModule):
         self.user_env = env
 
         self.src_dir = Path(self.env.get_source_dir(), self.subdir)
-        self.build_dir = Path(self.env.get_build_dir(), self.subdir, 'build')
-        self.install_dir = Path(self.env.get_build_dir(), self.subdir, 'dist')
+        self.build_dir = Path(self.env.get_build_dir(), self.current_build_dir, 'build')
+        self.install_dir = Path(self.env.get_build_dir(), self.current_build_dir, 'dist')
         _p = self.env.coredata.optstore.get_value_for(OptionKey('prefix'))
         assert isinstance(_p, str), 'for mypy'
         self.prefix = Path(_p)
@@ -261,7 +262,7 @@ class ExternalProject(NewExtensionModule):
             description='Generating external project {}',
         )
 
-        idir = build.InstallDir(self.subdir.as_posix(),
+        idir = build.InstallDir(self.current_build_dir.as_posix(),
                                 Path('dist', self.rel_prefix).as_posix(),
                                 install_dir='.',
                                 install_dir_name='.',

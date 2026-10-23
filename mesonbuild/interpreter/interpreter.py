@@ -2864,7 +2864,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 raise InvalidArguments(f'Build subdir "{build_subdir}" in "{target}" exists in source tree.')
             if '..' in build_subdir:
                 raise InvalidArguments(f'Build subdir "{build_subdir}" in "{target}" contains ..')
-            self.create_build_subdir(os.path.join(self.subdir, build_subdir))
+            self.create_build_subdir(os.path.join(self.current_build_dir(), build_subdir))
 
     @TypedArgs(
         'configure_file',
@@ -2971,7 +2971,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         build_subdir = kwargs['build_subdir']
         self.validate_build_subdir(build_subdir, output)
 
-        ofile_rpath = os.path.join(self.subdir, build_subdir, output)
+        ofile_rpath = os.path.join(self.current_build_dir(), build_subdir, output)
         if ofile_rpath in self.configure_file_outputs:
             mesonbuildfile = os.path.join(self.subdir, 'meson.build')
             current_call = f"{mesonbuildfile}:{self.current_node.lineno}"
@@ -3058,7 +3058,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         elif kwargs['copy']:
             if len(inputs_abs) != 1:
                 raise InterpreterException('Exactly one input file must be given in copy mode')
-            self.create_build_subdir(self.subdir)
+            self.create_build_subdir(self.current_build_dir())
             shutil.copyfile(inputs_abs[0], ofile_abs)
             src_stat = os.stat(inputs_abs[0])
             os.utime(ofile_abs, ns=(src_stat.st_atime_ns, src_stat.st_mtime_ns))
@@ -3083,7 +3083,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             install_tag = kwargs['install_tag']
             self.build.data.append(build.Data([cfile], idir, idir_name, install_mode, self.subproject,
                                               install_tag=install_tag, data_type='configure'))
-        return mesonlib.File.from_built_file(self.subdir, output)
+        return mesonlib.File.from_built_file(self.current_build_dir(), output)
 
     def extract_incdirs(self, prospectives: T.List[T.Union[str, build.IncludeDirs]],
                         is_d_import_dirs: bool = False
@@ -3569,7 +3569,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                                               self.environment.build_dir)
                         results.append(mesonlib.File.from_built_relative(rel))
                     else:
-                        results.append(mesonlib.File.from_built_file(self.subdir, s))
+                        results.append(mesonlib.File.from_built_file(self.current_build_dir(), s))
                     continue
                 except SandboxViolationError:
                     if not self.relaxed(InterpreterRuleRelaxation.ALLOW_SANDBOX_VIOLATION):
@@ -4231,6 +4231,16 @@ class Interpreter(InterpreterBase, HoldableObject):
 
     def is_subproject(self) -> bool:
         return self.subproject != ''
+
+    def current_build_dir(self) -> str:
+        """Return the directory of the current meson.build in the build tree, relative to the build directory.
+
+        Unlike self.subdir, which is relative to the source tree, this has a different
+        prefix for subprojects that are built for the build machine.
+        """
+        project = self.current_build_project()
+        # self.subdir is always inside the directory of the subproject.
+        return project.builddir + self.subdir[len(project.subdir):]
 
     @TypedArgs(
         'set_variable',

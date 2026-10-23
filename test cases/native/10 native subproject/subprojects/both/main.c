@@ -1,3 +1,9 @@
+#include "config.h"
+
+#if IS_CROSS_BUILD != EXPECTED_CROSS_BUILD
+#error "config.h was generated for the wrong machine"
+#endif
+
 #ifndef GLOBAL_CROSS_BUILD
 #error "add_global_arguments() was not applied"
 #endif

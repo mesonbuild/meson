@@ -100,9 +100,9 @@ class SnippetsModule(NewExtensionModule):
             #  define {api} {api}_IMPORT extern
             #endif
             ''')
-        header_path = Path(state.environment.get_build_dir(), state.subdir, header_name)
+        header_path = Path(state.environment.get_build_dir(), state.current_build_dir, header_name)
         header_path.write_text(content, encoding='utf-8')
-        return mesonlib.File.from_built_file(state.subdir, header_name)
+        return mesonlib.File.from_built_file(state.current_build_dir, header_name)
 
 def initialize(*args: T.Any, **kwargs: T.Any) -> SnippetsModule:
     return SnippetsModule()
