@@ -244,7 +244,6 @@ class Interpreter(InterpreterBase, HoldableObject):
         if backend is not None:
             self.backend = backend
         self.cargo = cargo
-        self.summary: T.Dict[str, build.Summary] = {}
         self.modules: T.Dict[str, NewExtensionModule] = {}
         self.relaxations = relaxations or {}
         if ast is None:
@@ -1057,7 +1056,6 @@ class Interpreter(InterpreterBase, HoldableObject):
             subi.modules = self.modules
             subi.holder_map = self.holder_map
             subi.bound_holder_map = self.bound_holder_map
-            subi.summary = self.summary
 
             subi.subproject_stack = self.subproject_stack + [(subp_name, for_machine)]
             current_active = self.active_projectname
@@ -1463,9 +1461,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.summary_impl(values=values, **kwargs)
 
     def summary_impl(self, section: str, values: dict[str, mlog.TV_Loggable | mlog.TV_LoggableList], bool_yn: bool, list_sep: str | None) -> None:
-        if self.subproject not in self.summary:
-            self.summary[self.subproject] = build.Summary(self.active_projectname, self.project_version)
-        summary = self.summary[self.subproject]
+        summary = self.current_build_project().summary
         for k, v in values.items():
             formatted_values: mlog.TV_LoggableList = []
             for i in listify(v):
@@ -1527,12 +1523,11 @@ class Interpreter(InterpreterBase, HoldableObject):
                 self.summary_impl('User defined options', values, bool_yn=False, list_sep=None)
         # Print all summaries, main project last.
         mlog.log('')  # newline
-        main_summary = self.summary.pop('', None)
-        for subp_name, summary in sorted(self.summary.items()):
-            if self.subprojects.host[subp_name].found():
-                summary.dump()
-        if main_summary:
-            main_summary.dump()
+        for for_machine in MachineChoice:
+            for name, project in self.build.projects[for_machine].items():
+                if name != mesonlib.ROOT_SUBPROJECT and self.subprojects[for_machine][name].found():
+                    project.dump_summary()
+        self.current_build_project().dump_summary()
 
     @noArgsFlattening
     @FeatureNew('warning', '0.44.0')
