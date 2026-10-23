@@ -14,3 +14,6 @@ e = executable('buildtool', 'buildtool.c', ct)
 meson.override_find_program('buildtool', e)
 
 subproject('hostp', native : false)
+
+# A second request for a host subproject of a build subproject must not configure it again.
+subproject('hostp', native : false)
