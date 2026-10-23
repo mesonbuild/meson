@@ -204,77 +204,6 @@ class BuiltFileByNameError(InterpreterException):
                 'This will become a hard error in Meson 2.0')
 
 
-class Summary:
-    def __init__(self, project_name: str, project_version: str):
-        self.project_name = project_name
-        self.project_version = project_version
-        self.sections: collections.defaultdict[str, dict[str, tuple[mlog.TV_LoggableList, str | None]]] = collections.defaultdict(dict)
-        self.max_key_len = 0
-
-    def add_section(self, section: str, values: T.Dict[str, mlog.TV_Loggable | mlog.TV_LoggableList], bool_yn: bool,
-                    list_sep: T.Optional[str], subproject: SubProject) -> None:
-        for k, v in values.items():
-            if k in self.sections[section]:
-                raise InterpreterException(f'Summary section {section!r} already have key {k!r}')
-            formatted_values: mlog.TV_LoggableList = []
-            for i in listify(v):
-                if isinstance(i, bool):
-                    if bool_yn:
-                        formatted_values.append(mlog.green('YES') if i else mlog.red('NO'))
-                    else:
-                        formatted_values.append('true' if i else 'false')
-                elif isinstance(i, (str, int)):
-                    formatted_values.append(str(i))
-                elif isinstance(i, (ExternalProgram, Dependency)):
-                    FeatureNew.single_use('dependency or external program in summary', '0.57.0', subproject)
-                    formatted_values.append(i.summary_value())
-                elif isinstance(i, Disabler):
-                    FeatureNew.single_use('disabler in summary', '0.64.0', subproject)
-                    formatted_values.append(mlog.red('NO'))
-                elif isinstance(i, Feature):
-                    FeatureNew.single_use('feature option in summary', '0.58.0', subproject)
-                    formatted_values.append(str(i))
-                else:
-                    m = 'Summary value in section {!r}, key {!r}, must be string, integer, boolean, dependency, disabler, or external program'
-                    raise InterpreterException(m.format(section, k))
-            self.sections[section][k] = (formatted_values, list_sep)
-            self.max_key_len = max(self.max_key_len, len(k))
-
-    def dump(self) -> None:
-        mlog.log(self.project_name, mlog.normal_cyan(self.project_version))
-        for section, values in self.sections.items():
-            mlog.log('')  # newline
-            if section:
-                mlog.log(' ', mlog.bold(section))
-            for k, v in values.items():
-                v, list_sep = v
-                padding = self.max_key_len - len(k)
-                end = ' ' if v else ''
-                mlog.log(' ' * 3, k + ' ' * padding + ':', end=end)
-                indent = self.max_key_len + 6
-                self.dump_value(v, list_sep, indent)
-        mlog.log('')  # newline
-
-    def dump_value(self, arr: mlog.TV_LoggableList, list_sep: str | None, indent: int) -> None:
-        lines_sep = '\n' + ' ' * indent
-        if list_sep is None:
-            mlog.log(*arr, sep=lines_sep, display_timestamp=False)
-            return
-        max_len = shutil.get_terminal_size().columns
-        line: mlog.TV_LoggableList = []
-        line_len = indent
-        lines_sep = list_sep.rstrip() + lines_sep
-        for v in arr:
-            v_len = len(str(v)) + len(list_sep)
-            if line and line_len + v_len > max_len:
-                mlog.log(*line, sep=list_sep, end=lines_sep)
-                line_len = indent
-                line = []
-            line.append(v)
-            line_len += v_len
-        mlog.log(*line, sep=list_sep, display_timestamp=False)
-
-
 class InterpreterRuleRelaxation(Enum):
     ''' Defines specific relaxations of the Meson rules.
 
@@ -315,7 +244,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         if backend is not None:
             self.backend = backend
         self.cargo = cargo
-        self.summary: T.Dict[str, 'Summary'] = {}
+        self.summary: T.Dict[str, build.Summary] = {}
         self.modules: T.Dict[str, NewExtensionModule] = {}
         self.relaxations = relaxations or {}
         if ast is None:
@@ -1535,9 +1464,31 @@ class Interpreter(InterpreterBase, HoldableObject):
 
     def summary_impl(self, section: str, values: dict[str, mlog.TV_Loggable | mlog.TV_LoggableList], bool_yn: bool, list_sep: str | None) -> None:
         if self.subproject not in self.summary:
-            self.summary[self.subproject] = Summary(self.active_projectname, self.project_version)
-        self.summary[self.subproject].add_section(
-            section, values, bool_yn, list_sep, self.subproject)
+            self.summary[self.subproject] = build.Summary(self.active_projectname, self.project_version)
+        summary = self.summary[self.subproject]
+        for k, v in values.items():
+            formatted_values: mlog.TV_LoggableList = []
+            for i in listify(v):
+                if isinstance(i, bool):
+                    if bool_yn:
+                        formatted_values.append(mlog.green('YES') if i else mlog.red('NO'))
+                    else:
+                        formatted_values.append('true' if i else 'false')
+                elif isinstance(i, (str, int)):
+                    formatted_values.append(str(i))
+                elif isinstance(i, (ExternalProgram, Dependency)):
+                    FeatureNew.single_use('dependency or external program in summary', '0.57.0', self.subproject)
+                    formatted_values.append(i.summary_value())
+                elif isinstance(i, Disabler):
+                    FeatureNew.single_use('disabler in summary', '0.64.0', self.subproject)
+                    formatted_values.append(mlog.red('NO'))
+                elif isinstance(i, Feature):
+                    FeatureNew.single_use('feature option in summary', '0.58.0', self.subproject)
+                    formatted_values.append(str(i))
+                else:
+                    m = 'Summary value in section {!r}, key {!r}, must be string, integer, boolean, dependency, disabler, or external program'
+                    raise InterpreterException(m.format(section, k))
+            summary.add_value(section, k, formatted_values, list_sep)
 
     def _print_subprojects(self, for_machine: MachineChoice) -> None:
         # Add automatic 'Subprojects' section in main project.
