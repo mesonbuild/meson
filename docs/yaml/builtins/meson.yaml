@@ -383,6 +383,9 @@ methods:
       check is passed to [[find_program]] for a program that has been overridden with
       an executable, the current project version is used.
 
+      *(since 1.12.0)* A program can be overridden both for the host machine and for the
+      build machine.
+
     posargs:
       progname:
         type: str
@@ -392,13 +395,15 @@ methods:
         type: exe | file | program
         description: The program to set as the override for `progname`.
 
+    kwargs:
       native:
         type: bool
         since: 1.12.0
         default: false
         description : |
-          If set to `true`, the override is for the build machine, and will be returned
-          by `find_program(..., native : true)`, otherwise for the host machine. This
+          If set to `true`, the override produces output that can be used on the
+          build machine, and will be returned by `find_program(..., native : true)`,
+          otherwise (the default) the output is for the host machine. This
           is an important distinction when cross compiling.
 
   - name: override_dependency
