@@ -21,6 +21,10 @@ test('main', e)
 
 if meson.is_cross_build()
   subproject('test installs', native : true)
+
+  # A failure for the build machine must not be recorded for the host machine.
+  subproject('flaky', native : true, required : false)
+  subproject('flaky', native : false, required : true)
 endif
 
 # Test a subproject configured from the main project, and then called as a nested subproject
