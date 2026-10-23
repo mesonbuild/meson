@@ -997,6 +997,10 @@ class Interpreter(InterpreterBase, HoldableObject):
             'cargo': self._do_subproject_cargo,
         }
 
+        # The subprojects dictionary is shared with the subproject's interpreter, so it
+        # keeps the nested subprojects even if this one fails.  Remember what was
+        # there to forget the rest.
+        configured = {m: set(self.subprojects[m]) for m in MachineChoice}
         try:
             return methods_map[method](subp_name, for_machine, subdir, default_options, kwargs)
         # Invalid code is always an error
@@ -1004,6 +1008,11 @@ class Interpreter(InterpreterBase, HoldableObject):
             raise
         except Exception as e:
             if not required:
+                # The Build of the failed subproject is discarded, including the
+                # dependency overrides and the projects of the nested subprojects.
+                for m in MachineChoice:
+                    for name in set(self.subprojects[m]) - configured[m]:
+                        del self.subprojects[m][name]
                 with mlog.nested(subp_name):
                     # Suppress the 'ERROR:' prefix because this exception is not
                     # fatal and VS CI treat any logs with "ERROR:" as fatal.
