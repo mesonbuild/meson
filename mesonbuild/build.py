@@ -542,9 +542,9 @@ class Build:
 
     def merge(self, other: Build) -> None:
         for k, v in other.__dict__.items():
-            # This one is modified for build-only configs, but it is
-            # local.  No need to copy it.
-            if k == 'machine_map':
+            # These ones are modified for build-only configs, but they are
+            # local.  No need to copy back.
+            if k in {'machine_map', 'for_machine'}:
                 continue
             # These are not modified in subprojects
             if k in {'global_args', 'global_link_args'}:
