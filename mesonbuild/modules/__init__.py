@@ -101,8 +101,11 @@ class ModuleState:
         if prog_list is not None:
             return ExternalProgram.from_entry(name, prog_list)
 
-        # Check if pkgconfig has a variable
+        # A dependency can provide either an override or a pkgconfig variable
         dep = self.dependency(depname, native=native, required=False, wanted=wanted)
+        progobj = self._interpreter.program_from_overrides([name], for_machine, [])
+        if progobj is not None:
+            return progobj
         if dep.found() and dep.type_name == 'pkgconfig':
             value = dep.get_variable(pkgconfig=varname)
             if value:
