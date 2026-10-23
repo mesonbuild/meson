@@ -963,9 +963,9 @@ class Interpreter(InterpreterBase, HoldableObject):
         }
         return self.do_subproject(args[0], kw)
 
-    def disabled_subproject(self, subp_name: SubProject, disabled_feature: T.Optional[str] = None,
-                            exception: T.Optional[Exception] = None,
-                            for_machine: MachineChoice = MachineChoice.HOST) -> SubprojectHolder:
+    def disabled_subproject(self, subp_name: SubProject, for_machine: MachineChoice,
+                            disabled_feature: T.Optional[str] = None,
+                            exception: T.Optional[Exception] = None) -> SubprojectHolder:
         sub = SubprojectHolder(NullSubprojectInterpreter(), os.path.join(self.subproject_dir, subp_name),
                                disabled_feature=disabled_feature, exception=exception)
         self.subprojects[for_machine][subp_name] = sub
@@ -995,7 +995,7 @@ class Interpreter(InterpreterBase, HoldableObject):
 
         if disabled:
             mlog.log('Subproject', mlog.bold(subp_name), ':', 'skipped: feature', mlog.bold(feature), 'disabled')
-            return self.disabled_subproject(subp_name, disabled_feature=feature, for_machine=for_machine)
+            return self.disabled_subproject(subp_name, for_machine, disabled_feature=feature)
 
         default_options = kwargs['default_options']
 
@@ -1047,7 +1047,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             if not required:
                 mlog.log(e)
                 mlog.log(*msg, '(disabling)')
-                return self.disabled_subproject(subp_name, exception=e)
+                return self.disabled_subproject(subp_name, for_machine, exception=e)
             mlog.error(*msg)
             raise e
 
@@ -1080,7 +1080,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                     # fatal and VS CI treat any logs with "ERROR:" as fatal.
                     mlog.exception(e, prefix=mlog.yellow('Exception:'))
                 mlog.log('\nSubproject', mlog.bold(subdir), 'is buildable:', mlog.red('NO'), '(disabling)')
-                return self.disabled_subproject(subp_name, exception=e)
+                return self.disabled_subproject(subp_name, for_machine, exception=e)
             raise e
 
     def _save_ast(self, subdir: str, ast: mparser.CodeBlockNode) -> None:
