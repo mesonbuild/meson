@@ -436,6 +436,12 @@ class PlatformAgnosticTests(BasePlatformTests):
     def test_format_snippets(self) -> None:
         self.check_format_snippets(Path(self.unit_test_dir, '141 format'), use_editor_config=False)
 
+    def test_format_editorconfig(self) -> None:
+        testdir = Path(self.unit_test_dir, '142 format editorconfig')
+        # enabled from the use_editor_config option of the snippets, then from the -e argument
+        self.check_format_snippets(testdir, use_editor_config=False)
+        self.check_format_snippets(testdir, use_editor_config=True)
+
     def test_format_end_of_line(self) -> None:
         dirpath = tempfile.mkdtemp()
         self.addCleanup(windows_proof_rmtree, dirpath)

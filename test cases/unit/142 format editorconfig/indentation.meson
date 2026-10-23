@@ -1,3 +1,5 @@
+# format-test: use_editor_config = true
+
 project(
 	'indentation',
 	default_options: {

@@ -1,3 +1,5 @@
+# format-test: use_editor_config = true
+
 # This file is for testing meson format with editor config
 
 project('default format')

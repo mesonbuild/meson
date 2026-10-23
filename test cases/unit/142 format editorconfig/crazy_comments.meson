@@ -1,3 +1,5 @@
+# format-test: use_editor_config = true
+
 # SPDX-FileCopyrightText: Stone Tickle <lattis@mochiro.moe>
 # This file is used from muon sources, with permission
 
