@@ -438,7 +438,7 @@ class GnomeModule(ExtensionModule):
                 subdirs.append(dep.subdir)
             else:
                 depends.append(dep)
-                subdirs.append(dep.get_subdir())
+                subdirs.append(dep.get_builddir())
                 if not mesonlib.version_compare(glib_version, gresource_dep_needed_version):
                     m = 'The "dependencies" argument of gnome.compile_resources() cannot\n' \
                         'be used with the current version of glib-compile-resources due to\n' \
@@ -616,7 +616,7 @@ class GnomeModule(ExtensionModule):
                     if fname is not None:
                         raw_dep_files.remove(resfile)
                         depends.append(dep)
-                        subdirs.append(dep.get_subdir())
+                        subdirs.append(dep.get_builddir())
                         break
             else:
                 # In generate-dependencies mode, glib-compile-resources doesn't raise
@@ -722,7 +722,7 @@ class GnomeModule(ExtensionModule):
                 for source in dep.sources:
                     if isinstance(source, GirTarget):
                         gi_includes.update([os.path.join(state.environment.get_build_dir(),
-                                            source.get_subdir())])
+                                            source.get_builddir())])
             # This should be any dependency other than an internal one.
             elif isinstance(dep, Dependency):
                 cflags.update(dep.get_compile_args())
@@ -884,7 +884,7 @@ class GnomeModule(ExtensionModule):
             else:
                 # Because of https://gitlab.gnome.org/GNOME/gobject-introspection/merge_requests/72
                 # we can't use the full path until this is merged.
-                libpath = os.path.join(girtarget.get_subdir(), girtarget.get_filename())
+                libpath = os.path.join(girtarget.get_builddir(), girtarget.get_filename())
                 # Must use absolute paths here because g-ir-scanner will not
                 # add them to the runtime path list if they're relative. This
                 # means we cannot use @BUILD_ROOT@
@@ -1113,7 +1113,7 @@ class GnomeModule(ExtensionModule):
                     if isinstance(source, GirTarget) and source not in depends:
                         new_depends.append(source)
                         subdir = os.path.join(state.environment.get_build_dir(),
-                                              source.get_subdir())
+                                              source.get_builddir())
                         if subdir not in typelib_includes:
                             typelib_includes.append(subdir)
             # Do the same, but for dependencies of dependencies. These are
@@ -1125,7 +1125,7 @@ class GnomeModule(ExtensionModule):
                 for g_source in dep.generated:
                     if isinstance(g_source, GirTarget):
                         subdir = os.path.join(state.environment.get_build_dir(),
-                                              g_source.get_subdir())
+                                              g_source.get_builddir())
                         if subdir not in typelib_includes:
                             typelib_includes.append(subdir)
             if isinstance(dep, Dependency):
@@ -2267,7 +2267,7 @@ class GnomeModule(ExtensionModule):
                     srcdir = os.path.join(state.environment.get_source_dir(),
                                           target.get_subdir())
                     outdir = os.path.join(state.environment.get_build_dir(),
-                                          target.get_subdir())
+                                          target.get_builddir())
                     outfile = target.get_outputs()[0][:-5] # Strip .vapi
                     vapi_args.append('--vapidir=' + outdir)
                     vapi_args.append('--girdir=' + outdir)
