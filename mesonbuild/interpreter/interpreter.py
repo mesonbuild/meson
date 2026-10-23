@@ -3264,7 +3264,6 @@ class Interpreter(InterpreterBase, HoldableObject):
         var_types=STR_VARG,
         kw_types=[NATIVE_KW, LANGUAGE_KW],
     )
-    @apply_machine_map
     def func_add_project_arguments(self, node: mparser.FunctionNode, args: T.Tuple[T.List[str]], kwargs: 'kwtypes.FuncAddProjectArgs') -> None:
         self._add_project_arguments(node, self.current_build_project().project_args[kwargs['native']],
                                     args[0], kwargs)
@@ -3274,7 +3273,6 @@ class Interpreter(InterpreterBase, HoldableObject):
         var_types=STR_VARG,
         kw_types=[NATIVE_KW, LANGUAGE_KW],
     )
-    @apply_machine_map
     def func_add_project_link_arguments(self, node: mparser.FunctionNode, args: T.Tuple[T.List[str]], kwargs: 'kwtypes.FuncAddProjectArgs') -> None:
         self._add_project_arguments(node, self.current_build_project().project_link_args[kwargs['native']],
                                     args[0], kwargs)
@@ -3289,9 +3287,9 @@ class Interpreter(InterpreterBase, HoldableObject):
         var_types=VarArgInfo(dependencies.Dependency),
         kw_types=[NATIVE_KW, LANGUAGE_KW],
     )
-    @apply_machine_map
     def func_add_project_dependencies(self, node: mparser.FunctionNode, args: T.Tuple[T.List[dependencies.Dependency]], kwargs: 'kwtypes.FuncAddProjectArgs') -> None:
-        for_machine = kwargs['native']
+        requested_for_machine = kwargs['native']
+        for_machine = self.build.machine_map[requested_for_machine]
         for lang in kwargs['language']:
             if lang not in self.compilers[for_machine]:
                 raise InvalidCode(f'add_project_dependencies() called before add_language() for language "{lang}"')
@@ -3304,9 +3302,9 @@ class Interpreter(InterpreterBase, HoldableObject):
                     for idir in i.abs_string_list(self.environment.get_source_dir(), self.environment.get_build_dir()):
                         compile_args.extend(comp.get_include_args(idir, i.is_system))
 
-            self._add_project_arguments(node, self.current_build_project().project_args[for_machine],
+            self._add_project_arguments(node, self.current_build_project().project_args[requested_for_machine],
                                         compile_args, kwargs)
-            self._add_project_arguments(node, self.current_build_project().project_link_args[for_machine],
+            self._add_project_arguments(node, self.current_build_project().project_link_args[requested_for_machine],
                                         d.get_link_args(), kwargs)
 
     def _warn_about_builtin_args(self, args: T.List[str]) -> None:
