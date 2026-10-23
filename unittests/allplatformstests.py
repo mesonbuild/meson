@@ -4452,7 +4452,6 @@ class AllPlatformTests(BasePlatformTests):
               Subprojects (for host machine)
                 sub            : YES
                 sub2           : NO Problem encountered: This subproject failed
-                subsub         : YES (from sub2)
 
               User defined options
                 backend        : ''' + self.backend_name + '''
