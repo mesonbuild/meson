@@ -287,7 +287,7 @@ class FormatterConfig:
             config.indent_by = editorconfig.indent_size * ' '
 
         if editorconfig.max_line_length == 'off':
-            config.max_line_length = 0
+            config.max_line_length = None
         elif editorconfig.max_line_length:
             config.max_line_length = int(editorconfig.max_line_length)
 
@@ -810,7 +810,7 @@ class ArgumentFormatter(FullAstVisitor):
         for i, line in enumerate(text.split('\n')):
             if i:
                 # Decide at the end of the line, when all nodes on that line are known
-                if self.state.column > self.config.max_line_length:
+                if self.config.max_line_length is not None and self.state.column > self.config.max_line_length:
                     self.split_line()
                 # Points closed on previous line are no more candidates
                 self.points = [p for p in self.points if not p.closed_order]
@@ -833,7 +833,7 @@ class ArgumentFormatter(FullAstVisitor):
         # Otherwise, the node closed last on current line, visited again from its innermost open parent.
         # Splitting a chain of operators cannot make the line fit if its first operand is already too long.
         closed = [p for p in self.points if p.closed_order and p.target and not p.target.is_multiline
-                  and p.first_operand_end <= self.config.max_line_length]
+                  and self.config.max_line_length is not None and p.first_operand_end <= self.config.max_line_length]
         if closed:
             point = max(closed, key=lambda p: p.closed_order)
             index = self.points.index(point)
@@ -1019,7 +1019,7 @@ class ArgumentFormatter(FullAstVisitor):
         line, newline, rest = value.partition('\n')
         if '#' not in line or not newline or not self.state.line_has_code or self.state.line_start is None:
             return value
-        if self.advance(self.state.column, line) <= self.config.max_line_length:
+        if self.config.max_line_length is None or self.advance(self.state.column, line) <= self.config.max_line_length:
             return value
         code, _, comment = line.partition('#')
         # The whitespace starting the line ends with the indentation of the line

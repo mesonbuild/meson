@@ -8,6 +8,7 @@ meson_files = {
 	'comments': files('crazy_comments.meson'),
 	'indentation': files('indentation.meson'),
 	'subdir editorconfig': files('subdir/sub.meson'),
+	'length off': files('max_line_length_off.meson'),
 }
 
 foreach name, f : meson_files
