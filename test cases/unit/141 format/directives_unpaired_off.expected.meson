@@ -1,0 +1,5 @@
+# a lone off directive disables formatting until the end of file
+x = [1, 2]
+# meson-format off
+y  =  [1,
+  2]

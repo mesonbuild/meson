@@ -3,6 +3,7 @@
 # Copyright © 2024-2025 Intel Corporation
 
 from __future__ import annotations
+import difflib
 import json
 import os
 import pickle
@@ -392,179 +393,49 @@ class PlatformAgnosticTests(BasePlatformTests):
         with self.assertRaises(MesonException):
             formatter.load_editor_config(editorconfig)
 
-    def test_format_empty_file(self) -> None:
+    def check_format_snippets(self, testdir: Path, use_editor_config: bool) -> None:
+        """Format each snippet of testdir, and compare with the expected output.
+
+        foo.meson must be formatted as foo.expected.meson, or must be unchanged
+        if there is no expected file. Options are read from the
+        "# format-test: key = value" comments of the snippet. All snippets
+        are checked, and the failures are reported together.
+        """
+        tmpdir = tempfile.mkdtemp()
+        self.addCleanup(windows_proof_rmtree, tmpdir)
+        config = Path(tmpdir, 'meson.format')
+        failures = []
+        for source in sorted(testdir.rglob('*.meson')):
+            if source.name.endswith('.expected.meson'):
+                continue
+            name = source.relative_to(testdir).as_posix()
+            code = source.read_text(encoding='utf-8')
+            options = [line.partition('format-test:')[2] for line in code.splitlines()
+                       if line.startswith('# format-test:')]
+            config.write_text('\n'.join(options) + '\n', encoding='utf-8')
+            expected_file = source.with_suffix('.expected.meson')
+            expected = expected_file.read_text(encoding='utf-8') if expected_file.exists() else code
+            expected_name = expected_file.relative_to(testdir).as_posix() if expected_file.exists() else name
+            try:
+                formatter = Formatter(config, use_editor_config=use_editor_config, fetch_subdirs=False)
+                formatted = formatter.format(code, source)
+                if formatted == expected:
+                    name = f'{expected_name} formatted again'
+                    formatted = formatter.format(expected, source)
+            except MesonException as e:
+                failures.append(f'{name}: {e}\n')
+                continue
+            if formatted != expected:
+                failures.extend(difflib.unified_diff(expected.splitlines(keepends=True), formatted.splitlines(keepends=True),
+                                                     expected_name, f'{name} (formatted)'))
+        if failures:
+            self.fail('formatted snippets differ from expected:\n' + ''.join(failures))
+
+    def test_format_snippets(self) -> None:
+        self.check_format_snippets(Path(self.unit_test_dir, '141 format'), use_editor_config=False)
+
+    def test_format_directive_errors(self) -> None:
         formatter = Formatter(None, use_editor_config=False, fetch_subdirs=False)
-        for code in ('', '\n'):
-            formatted = formatter.format(code, Path())
-            self.assertEqual('\n', formatted)
-
-    def test_format_indent_comment_in_brackets(self) -> None:
-        """Ensure comments in arrays and dicts are correctly indented"""
-        formatter = Formatter(None, use_editor_config=False, fetch_subdirs=False)
-        code = 'a = [\n    # comment\n]\n'
-        formatted = formatter.format(code, Path())
-        self.assertEqual(code, formatted)
-
-        code = 'a = [\n    # comment\n    1,\n]\n'
-        formatted = formatter.format(code, Path())
-        self.assertEqual(code, formatted)
-
-        code = 'a = {\n    # comment\n}\n'
-        formatted = formatter.format(code, Path())
-        self.assertEqual(code, formatted)
-
-        code = 'a = foo(\n    [\n        1,\n        # comment\n    ],\n)\n'
-        formatted = formatter.format(code, Path())
-        self.assertEqual(code, formatted)
-
-        code = 'if true\n    a = [\n        1,\n        # comment\n    ]\nendif\n'
-        formatted = formatter.format(code, Path())
-        self.assertEqual(code, formatted)
-
-    def test_format_comment_between_operands_in_arguments(self) -> None:
-        """Ensure the operand after a comment is indented like the argument"""
-        formatter = Formatter(None, use_editor_config=False, fetch_subdirs=False)
-        code = 'foo(\n    a or  # comment\n    b,\n)\n'
-        formatted = formatter.format(code, Path())
-        self.assertEqual(code, formatted)
-
-        code = 'a = [\n    b  # comment\n    + c,\n]\n'
-        formatted = formatter.format(code, Path())
-        self.assertEqual(code, formatted)
-
-    def test_format_split_operators(self) -> None:
-        """Ensure long chains of operators are split, one operand per line"""
-        formatter = Formatter(None, use_editor_config=False, fetch_subdirs=False)
-        a, b, c, d = 'a' * 20, 'b' * 30, 'c' * 20, 'd' * 25
-        cases = [
-            # inside arguments, operators are indented one more level
-            (f"foo({a} and {b} or {c})\n",
-             f"foo(\n    {a}\n        and {b}\n        or {c},\n)\n"),
-            (f"foo(\n    '{a}' + '{b}' + '{c}',\n)\n",
-             f"foo(\n    '{a}'\n        + '{b}'\n        + '{c}',\n)\n"),
-            # multiline parentheses are split first; * is only split with the + level
-            (f"x = ({a} * {b} + {c} * {d})\n",
-             f"x = (\n    {a} * {b}\n    + {c} * {d}\n)\n"),
-            # not split when the first operand is already too long
-            (f"x = [{a}, {b}, {c}, {d}] + e\n",
-             f"x = [\n    {a},\n    {b},\n    {c},\n    {d},\n] + e\n"),
-        ]
-        for code, expected in cases:
-            formatted = formatter.format(code, Path())
-            self.assertEqual(expected, formatted)
-            # formatting must be stable
-            self.assertEqual(expected, formatter.format(formatted, Path()))
-
-    def test_format_move_long_comments(self) -> None:
-        """Ensure a comment making a line too long is moved on its own line above that line"""
-        formatter = Formatter(None, use_editor_config=False, fetch_subdirs=False)
-        comment = '# ' + 'x' * 75
-        cases = [
-            (f"a = 1\nopts.set('cpp_std', 'c++14')  {comment}\n",
-             f"a = 1\n{comment}\nopts.set('cpp_std', 'c++14')\n"),
-            (f"foo(\n    'argument',  {comment}\n    other,\n)\n",
-             f"foo(\n    {comment}\n    'argument',\n    other,\n)\n"),
-            # the line break after the comment is not needed anymore
-            (f"x = (a or  {comment}\n    b)\n",
-             f"x = (\n    a\n    {comment}\n    or b\n)\n"),
-            # short comments are not moved
-            ("x = 1  # comment\n", "x = 1  # comment\n"),
-        ]
-        for code, expected in cases:
-            formatted = formatter.format(code, Path())
-            self.assertEqual(expected, formatted)
-            # formatting must be stable
-            self.assertEqual(expected, formatter.format(formatted, Path()))
-
-    def test_format_blank_lines_after_opening_bracket(self) -> None:
-        """Ensure blank lines after an opening bracket are removed"""
-        formatter = Formatter(None, use_editor_config=False, fetch_subdirs=False)
-        for code, expected in [('u = (\n\n    a)\n', 'u = (a)\n'),
-                               ('x = [\n\n    1, 2]\n', 'x = [1, 2]\n'),
-                               ('foo(\n\n    1)\n', 'foo(1)\n'),
-                               # blank line after a comment is kept, without trailing whitespace
-                               ('foo(  # comment\n\n    1)\n', 'foo(  # comment\n\n    1,\n)\n')]:
-            formatted = formatter.format(code, Path())
-            self.assertEqual(expected, formatted)
-
-    def test_format_sticky_parens(self) -> None:
-        fd, fname = tempfile.mkstemp(suffix='.ini', text=True)
-        self.addCleanup(os.unlink, fname)
-
-        with os.fdopen(fd, 'w', encoding='utf-8') as handle:
-            handle.write("sticky_parens = true\nindent_by = '  '\nend_of_line = lf\n")
-
-        formatter = Formatter(Path(fname), use_editor_config=False, fetch_subdirs=False)
-        cases = [
-            ('if (\n  a\n  or b\n)\n  x = 1\nendif\n',
-             'if (a\n    or b)\n  x = 1\nendif\n'),
-            ('if (a or  # comment\n    b)\n  x = 1\nendif\n',
-             'if (a\n    or  # comment\n    b)\n  x = 1\nendif\n'),
-            ('x = (  # comment\n  a or b)\n',
-             'x = (  # comment\n    a\n    or b)\n'),
-            ('x = ((aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa or bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb) and ccccccccccccccc)\n',
-             'x = ((aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa or bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb)\n    and ccccccccccccccc)\n'),
-            ("x = (a.get_variable(cmake: 'LLVM_ENABLE_RTTI') == 'ON') == (b.get_variable(configtool: 'has-rtti') == 'YES')\n",
-             "x = (a.get_variable(cmake: 'LLVM_ENABLE_RTTI') == 'ON') == (b.get_variable(\n  configtool: 'has-rtti',\n) == 'YES')\n"),
-            # all operators of the lowest level are split with the parentheses
-            ('x = (aaaaaaaaaaaaaaaaaaaa * bbbbbbbbbbbbbbbbbbbb + cccccccccccccccccccc * dddddddddd - eeeeee / ffffff)\n',
-             'x = (aaaaaaaaaaaaaaaaaaaa * bbbbbbbbbbbbbbbbbbbb\n    + cccccccccccccccccccc * dddddddddd\n    - eeeeee / ffffff)\n'),
-            # comment of last operand is moved to the end of the line of the closing parenthesis
-            ('x = (a\n  or b  # comment\n) + c\n',
-             'x = (a\n    or b) + c  # comment\n'),
-            ('foo((a\n  or b  # comment\n),  # other\n  1)\n',
-             'foo(\n  (a\n      or b),  # comment\n  # other\n  1,\n)\n'),
-            # not moved when closing parenthesis has its own comment, or with several comment lines
-            ('x = (a\n  or b  # comment\n)  # other\n',
-             'x = (a\n    or b  # comment\n)  # other\n'),
-            ('x = (a\n  or b  # comment\n  # more\n)\n',
-             'x = (a\n    or b  # comment\n    # more\n)\n'),
-        ]
-        for code, expected in cases:
-            formatted = formatter.format(code, Path())
-            self.assertEqual(expected, formatted)
-            # formatting must be stable
-            self.assertEqual(expected, formatter.format(formatted, Path()))
-
-    def test_format_directives(self) -> None:
-        formatter = Formatter(None, use_editor_config=False, fetch_subdirs=False)
-        cases = [
-            # off/on pair
-            ('x=[1,2]\n# meson-format off\ny  =  [1,\n  2]\n# meson-format on\nz=[1,2]\n',
-             'x = [1, 2]\n# meson-format off\ny  =  [1,\n  2]\n# meson-format on\nz = [1, 2]\n'),
-            # lone off disables formatting until the end of file
-            ('x=[1,2]\n# meson-format off\ny  =  [1,\n  2]',
-             'x = [1, 2]\n# meson-format off\ny  =  [1,\n  2]'),
-            # lone on and duplicated off are no-ops
-            ('# meson-format on\nx=[1,2]\n',
-             '# meson-format on\nx = [1, 2]\n'),
-            ('# meson-format off\nx=[1,2]\n# meson-format off\ny=[1,2]\n# meson-format on\nz=[1,2]\n',
-             '# meson-format off\nx=[1,2]\n# meson-format off\ny=[1,2]\n# meson-format on\nz = [1, 2]\n'),
-            # indented and loosely spelled directives
-            ('if true\n#meson-format   off\n  y  =  [1,\n  2]\n    #  meson-format on\nz=1\nendif\n',
-             'if true\n    #meson-format   off\n  y  =  [1,\n  2]\n    #  meson-format on\n    z = 1\nendif\n'),
-            # muon compatible directives
-            ('# fmt: off\nx  =  [1,2]\n#fmt:on\ny=[1,2]\n',
-             '# fmt: off\nx  =  [1,2]\n#fmt:on\ny = [1, 2]\n'),
-            ('# fmt:off\nx  =  [1,2]\n# meson-format on\ny=[1,2]\n',
-             '# fmt:off\nx  =  [1,2]\n# meson-format on\ny = [1, 2]\n'),
-            # not a directive
-            ('# meson-format offset\nx=[1,2]\n',
-             '# meson-format offset\nx = [1, 2]\n'),
-            ('# fmt off\nx=[1,2]\n',
-             '# fmt off\nx = [1, 2]\n'),
-            # directives inside strings are ignored
-            ("s='''\n# meson-format off\n'''\ny=[1,2]\n",
-             "s = '''\n# meson-format off\n'''\ny = [1, 2]\n"),
-            ("s='# meson-format off'\ny=[1,2]\n",
-             "s = '# meson-format off'\ny = [1, 2]\n"),
-        ]
-        for code, expected in cases:
-            with self.subTest(code=code):
-                formatted = formatter.format(code, Path())
-                self.assertEqual(expected, formatted)
-                self.assertEqual(formatted, formatter.format(formatted, Path()))
-
         errors = [
             ('x = [1, 2]  # meson-format off\n', 1, 12, 'must be on its own line'),
             ('if true\n    x = 1 # meson-format on\nendif\n', 2, 10, 'must be on its own line'),

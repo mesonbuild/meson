@@ -1,0 +1,7 @@
+s = '''
+# meson-format off
+'''
+y = [1, 2]
+
+s = '# meson-format off'
+y = [1, 2]
