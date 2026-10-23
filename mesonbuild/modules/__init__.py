@@ -42,6 +42,7 @@ class ModuleState:
         self.subproject_dir = interpreter.subproject_dir
         self.subproject = interpreter.subproject
         self.subdir = interpreter.subdir
+        self.current_build_dir = interpreter.current_build_dir()
         self.root_subdir = interpreter.root_subdir
         self.environment = interpreter.environment
         self.project_name = interpreter.active_projectname
@@ -72,7 +73,7 @@ class ModuleState:
                 dirs_str.extend([f'{prefix}{i}' for i in dirs.abs_string_list(srcdir, builddir)])
 
         if implicit:
-            build_cur_dir = os.path.normpath(os.path.join(builddir, self.subdir))
+            build_cur_dir = os.path.normpath(os.path.join(builddir, self.current_build_dir))
             dirs_str.append(f'{prefix}{build_cur_dir}')
             source_cur_dir = os.path.normpath(os.path.join(srcdir, self.subdir))
             dirs_str.append(f'{prefix}{source_cur_dir}')

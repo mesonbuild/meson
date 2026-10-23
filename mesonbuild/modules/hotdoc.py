@@ -85,10 +85,11 @@ class HotdocTargetBuilder:
         self.builddir = state.environment.get_build_dir()
         self.sourcedir = state.environment.get_source_dir()
         self.subdir = state.subdir
+        self.current_build_dir = state.current_build_dir
         self.build_command = state.environment.get_build_command()
 
         self.cmd: T.List[TYPE_var] = ['conf', '--project-name', name, "--disable-incremental-build",
-                                      '--output', os.path.join(self.builddir, self.subdir, self.name + '-doc')]
+                                      '--output', os.path.join(self.builddir, self.current_build_dir, self.name + '-doc')]
 
         self._extra_extension_paths: set[str] = set()
         self.extra_depends: list[build.BuildTargetProto] = []
@@ -170,7 +171,7 @@ class HotdocTargetBuilder:
         value = self.kwargs.pop('gi_c_source_roots')
         value.extend([
             os.path.join(self.sourcedir, self.state.root_subdir),
-            os.path.join(self.builddir, self.state.root_subdir)
+            os.path.join(self.builddir, self.state.current_build_project.builddir)
         ])
 
         self.cmd += ['--gi-c-source-roots'] + value
@@ -279,7 +280,7 @@ class HotdocTargetBuilder:
         if not os.path.isdir(_dir):
             raise InvalidArguments(f'"{_dir}" is not a directory.')
 
-        return os.path.relpath(_dir, os.path.join(self.builddir, self.subdir))
+        return os.path.relpath(_dir, os.path.join(self.builddir, self.current_build_dir))
 
     def check_forbidden_args(self) -> None:
         for arg in ['conf_file']:
@@ -306,15 +307,15 @@ class HotdocTargetBuilder:
         fullname = self.name + '-doc'
         hotdoc_config_name = fullname + '.json'
         hotdoc_config_path = os.path.join(
-            self.builddir, self.subdir, hotdoc_config_name)
+            self.builddir, self.current_build_dir, hotdoc_config_name)
         with open(hotdoc_config_path, 'w', encoding='utf-8') as f:
             f.write('{}')
 
         self.cmd += ['--conf-file', hotdoc_config_path]
-        self.include_paths.add(os.path.join(self.builddir, self.subdir))
+        self.include_paths.add(os.path.join(self.builddir, self.current_build_dir))
         self.include_paths.add(os.path.join(self.sourcedir, self.subdir))
 
-        depfile = os.path.join(self.builddir, self.subdir, self.name + '.deps')
+        depfile = os.path.join(self.builddir, self.current_build_dir, self.name + '.deps')
         self.cmd += ['--deps-file-dest', depfile]
 
         for path in self.include_paths:
@@ -326,13 +327,13 @@ class HotdocTargetBuilder:
 
         target_cmd = self.build_command + ["--internal", "hotdoc"] + \
             self.hotdoc.get_command() + ['run', '--conf-file', hotdoc_config_name] + \
-            ['--builddir', os.path.join(self.builddir, self.subdir)]
+            ['--builddir', os.path.join(self.builddir, self.current_build_dir)]
 
         target = HotdocTarget(fullname,
                               subdir=self.subdir,
                               environment=self.state.environment,
                               hotdoc_conf=File.from_built_file(
-                                  self.subdir, hotdoc_config_name),
+                                  self.current_build_dir, hotdoc_config_name),
                               extra_extension_paths=self._extra_extension_paths,
                               extra_assets=self._extra_assets,
                               subprojects=self._subprojects,
@@ -367,7 +368,7 @@ class HotdocTargetBuilder:
                 "--install", install_from,
                 "--docdir", install_to,
                 '--name', self.name,
-                '--builddir', os.path.join(self.builddir, self.subdir)] +
+                '--builddir', os.path.join(self.builddir, self.current_build_dir)] +
                 self.hotdoc.get_command() +
                 ['run', '--conf-file', hotdoc_config_name])
             install_script.tag = 'doc'

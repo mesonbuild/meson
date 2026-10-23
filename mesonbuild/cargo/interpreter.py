@@ -124,13 +124,13 @@ class PackageState:
     def has_both_machines(self) -> bool:
         return bool(self.cfg.host and self.cfg.build)
 
-    def get_env_dict(self, environment: Environment, subdir: str) -> T.Dict[str, str]:
+    def get_env_dict(self, environment: Environment, subdir: str, build_subdir: str) -> T.Dict[str, str]:
         """Get environment variables for this package."""
         # Common variables for build.rs and crates
         # https://doc.rust-lang.org/cargo/reference/environment-variables.html
         # OUT_DIR is the directory where build.rs generate files. In our case,
         # it's the directory where meson/meson.build places generated files.
-        out_dir = os.path.join(environment.build_dir, subdir, 'meson')
+        out_dir = os.path.join(environment.build_dir, build_subdir, 'meson')
         os.makedirs(out_dir, exist_ok=True)
         version_arr = self.manifest.package.version.split('.')
         version_arr += [''] * (4 - len(version_arr))

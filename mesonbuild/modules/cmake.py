@@ -395,7 +395,7 @@ class CmakeModule(ExtensionModule):
 
         name = kwargs['name']
 
-        (ofile_path, ofile_fname) = os.path.split(os.path.join(state.subdir, f'{name}Config.cmake'))
+        (ofile_path, ofile_fname) = os.path.split(os.path.join(state.current_build_dir, f'{name}Config.cmake'))
         ofile_abs = os.path.join(state.environment.build_dir, ofile_path, ofile_fname)
 
         install_dir = kwargs['install_dir']

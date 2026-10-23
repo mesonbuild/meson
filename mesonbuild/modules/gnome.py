@@ -1211,7 +1211,7 @@ class GnomeModule(ExtensionModule):
 
         girfile = f'{ns}-{nsversion}.gir'
         srcdir = os.path.join(state.environment.get_source_dir(), state.subdir)
-        builddir = os.path.join(state.environment.get_build_dir(), state.subdir)
+        builddir = os.path.join(state.environment.get_build_dir(), state.current_build_dir)
 
         depends: T.List[TargetDepends] = []
         # hack - this cast represents how sources are defined for the
@@ -1284,7 +1284,8 @@ class GnomeModule(ExtensionModule):
 
         if self._gir_has_option('--sources-top-dirs'):
             scan_command += ['--sources-top-dirs', os.path.join(state.environment.get_source_dir(), state.root_subdir)]
-            scan_command += ['--sources-top-dirs', os.path.join(state.environment.get_build_dir(), state.root_subdir)]
+            scan_command += ['--sources-top-dirs', os.path.join(state.environment.get_build_dir(),
+                                                                state.current_build_project.builddir)]
 
         if kwargs['doc_format'] is not None and self._gir_has_option('--doc-format'):
             scan_command += ['--doc-format', kwargs['doc_format']]
@@ -1322,7 +1323,7 @@ class GnomeModule(ExtensionModule):
         typelib_target = self._make_typelib_target(
             state, typelib_output, typelib_cmd, generated_files, kwargs)
 
-        self._devenv_prepend('GI_TYPELIB_PATH', os.path.join(state.environment.get_build_dir(), state.subdir))
+        self._devenv_prepend('GI_TYPELIB_PATH', os.path.join(state.environment.get_build_dir(), state.current_build_dir))
 
         rv = [scan_target, typelib_target]
 
@@ -1331,7 +1332,7 @@ class GnomeModule(ExtensionModule):
     @TypedArgs('gnome.compile_schemas', kw_types=[_BUILD_BY_DEFAULT.evolve(since='0.40.0'), DEPEND_FILES_KW])
     def compile_schemas(self, state: 'ModuleState', args: T.List['TYPE_var'], kwargs: 'CompileSchemas') -> ModuleReturnValue:
         srcdir = os.path.join(state.build_to_src, state.subdir)
-        outdir = state.subdir
+        outdir = state.current_build_dir
 
         cmd: CommandList = [self._find_tool(state, 'glib-compile-schemas'), '--targetdir', outdir, srcdir]
         if state.subdir == '':
@@ -1350,7 +1351,7 @@ class GnomeModule(ExtensionModule):
             depend_files=state._interpreter.source_strings_to_files(kwargs['depend_files']),
             description='Compiling gschemas {}',
         )
-        self._devenv_prepend('GSETTINGS_SCHEMA_DIR', os.path.join(state.environment.get_build_dir(), state.subdir))
+        self._devenv_prepend('GSETTINGS_SCHEMA_DIR', os.path.join(state.environment.get_build_dir(), state.current_build_dir))
         return ModuleReturnValue(target_g, [target_g])
 
     @TypedArgs(
@@ -1568,6 +1569,7 @@ class GnomeModule(ExtensionModule):
             '--sourcedir=' + state.environment.get_source_dir(),
             '--builddir=' + state.environment.get_build_dir(),
             '--subdir=' + state.subdir,
+            '--build-subdir=' + state.current_build_dir,
             '--headerdirs', *header_dirs,
             '--mainfile=' + main_file,
             '--modulename=' + modulename,
@@ -1641,7 +1643,7 @@ class GnomeModule(ExtensionModule):
             check_env = ['DOC_MODULE=' + modulename,
                          'DOC_MAIN_SGML_FILE=' + main_file]
             check_args = (targetname + '-check', check_cmd)
-            check_workdir = os.path.join(state.environment.get_build_dir(), state.subdir)
+            check_workdir = os.path.join(state.environment.get_build_dir(), state.current_build_dir)
             state.test(check_args, env=check_env, workdir=check_workdir, depends=[custom_target])
         res: T.List[T.Union[build.Target, mesonlib.ExecutableSerialisation]] = [custom_target, alias_target]
         if kwargs['install']:
@@ -2323,7 +2325,7 @@ class GnomeModule(ExtensionModule):
     def generate_vapi(self, state: 'ModuleState', args: T.Tuple[str], kwargs: 'GenerateVapi') -> ModuleReturnValue:
         created_values: T.List[T.Union[Dependency, build.Data]] = []
         library = args[0]
-        build_dir = os.path.join(state.environment.get_build_dir(), state.subdir)
+        build_dir = os.path.join(state.environment.get_build_dir(), state.current_build_dir)
         source_dir = os.path.join(state.environment.get_source_dir(), state.subdir)
         pkg_cmd, vapi_depends, vapi_packages, vapi_includes, packages = self._extract_vapi_packages(state, kwargs['packages'])
         cmd: CommandList = [state.find_program('vapigen'), '--quiet', f'--library={library}', f'--directory={build_dir}']
@@ -2343,7 +2345,7 @@ class GnomeModule(ExtensionModule):
             elif isinstance(i, GirTarget):
                 link_with += self._get_vapi_link_with(i)
                 subdir = os.path.join(state.environment.get_build_dir(),
-                                      i.get_subdir())
+                                      i.get_builddir())
                 gir_file = os.path.join(subdir, i.get_outputs()[0])
                 cmd.append(gir_file)
             inputs.append(i)

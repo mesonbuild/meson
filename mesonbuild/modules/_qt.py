@@ -375,7 +375,7 @@ class QtBaseModule(ExtensionModule):
                     path_from_rcc = os.path.normpath(os.path.join(rcc_dirname, resource_path))
                     # a)
                     if path_from_rcc.startswith(state.environment.build_dir):
-                        result.append(File(is_built=True, subdir=state.subdir, fname=resource_path))
+                        result.append(File(is_built=True, subdir=state.current_build_dir, fname=resource_path))
                     # b)
                     else:
                         result.append(File(is_built=False, subdir=state.subdir, fname=path_from_rcc))
@@ -706,7 +706,7 @@ class QtBaseModule(ExtensionModule):
                 raise MesonException('qt.compile_translations: Cannot specify both ts_files and qresource')
             if os.path.dirname(qresource) != '':
                 raise MesonException('qt.compile_translations: qresource file name must not contain a subdirectory.')
-            qresource_file = File.from_built_file(state.subdir, qresource)
+            qresource_file = File.from_built_file(state.current_build_dir, qresource)
             infile_abs = os.path.join(state.environment.source_dir, qresource_file.relative_name())
             outfile_abs = os.path.join(state.environment.build_dir, qresource_file.relative_name())
             os.makedirs(os.path.dirname(outfile_abs), exist_ok=True)
@@ -773,7 +773,7 @@ class QtBaseModule(ExtensionModule):
                 content_files.append(s)
             elif isinstance(s, build.GeneratedList):
                 for gen_src in s.get_outputs():
-                    content_files.append(File.from_built_file(state.subdir, gen_src))
+                    content_files.append(File.from_built_file(state.current_build_dir, gen_src))
             else:
                 content_files.append(File.from_source_file(
                     state.environment.get_source_dir(),
@@ -784,7 +784,7 @@ class QtBaseModule(ExtensionModule):
 
     def _gen_qrc(self, state: ModuleState, kwargs: GenQrcKwArgs) -> File:
 
-        fileout = File.from_built_file(state.subdir, kwargs['output'])
+        fileout = File.from_built_file(state.current_build_dir, kwargs['output'])
         fileout_abs = os.path.join(state.environment.build_dir, fileout.relative_name())
         if not os.path.isdir(state.environment.build_dir):
             os.mkdir(state.environment.build_dir)
@@ -813,7 +813,7 @@ class QtBaseModule(ExtensionModule):
         #Foo.Bar/1.0 foo.bar/auto foo.bar
         import_re = re.compile(r'^(' + _MODULE_NAME_RE + r')(/((\d+(\.\d+)?)|auto))?$')
 
-        fileout = File.from_built_file(state.subdir, kwargs['output'])
+        fileout = File.from_built_file(state.current_build_dir, kwargs['output'])
         fileout_abs = os.path.join(state.environment.build_dir, fileout.relative_name())
         if not os.path.isdir(state.environment.build_dir):
             os.mkdir(state.environment.build_dir)
