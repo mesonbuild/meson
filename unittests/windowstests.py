@@ -446,6 +446,42 @@ class WindowsTests(BasePlatformTests):
         self.init(os.path.join(self.unit_test_dir, '85 cpp modules'))
         self.build()
 
+    def test_modules_multiple_targets(self):
+        if self.backend is not Backend.ninja:
+            raise SkipTest(f'C++ modules only work with the Ninja backend (not {self.backend.name}).')
+        if 'VSCMD_VER' not in os.environ:
+            raise SkipTest('C++ modules is only supported with Visual Studio.')
+        if version_compare(os.environ['VSCMD_VER'], '<17.2.0'):
+            raise SkipTest('Scanning the dependencies of C++ modules requires Visual Studio 2022 17.2 or newer.')
+        self.init(os.path.join(self.unit_test_dir, '142 cpp modules multiple targets'))
+        self.build()
+        self.run_tests()
+
+    def test_modules_propagation(self):
+        if self.backend is not Backend.ninja:
+            raise SkipTest(f'C++ modules only work with the Ninja backend (not {self.backend.name}).')
+        if 'VSCMD_VER' not in os.environ:
+            raise SkipTest('C++ modules is only supported with Visual Studio.')
+        if version_compare(os.environ['VSCMD_VER'], '<17.2.0'):
+            raise SkipTest('Scanning the dependencies of C++ modules requires Visual Studio 2022 17.2 or newer.')
+        self.init(os.path.join(self.unit_test_dir, '143 cpp modules propagation'))
+        self.build()
+        self.run_tests()
+
+    def test_modules_same_name(self):
+        if self.backend is not Backend.ninja:
+            raise SkipTest(f'C++ modules only work with the Ninja backend (not {self.backend.name}).')
+        if 'VSCMD_VER' not in os.environ:
+            raise SkipTest('C++ modules is only supported with Visual Studio.')
+        if version_compare(os.environ['VSCMD_VER'], '<17.2.0'):
+            raise SkipTest('Scanning the dependencies of C++ modules requires Visual Studio 2022 17.2 or newer.')
+        self.init(os.path.join(self.unit_test_dir, '144 cpp modules same name'))
+        self.build()
+        self.run_tests()
+        # Each target has the compiled module in its own directory
+        compiled = glob(os.path.join(self.builddir, '*', 'm.ifc'))
+        self.assertEqual(len(compiled), 2, compiled)
+
     def test_non_utf8_fails(self):
         # FIXME: VS backend does not use flags from compiler.get_always_args()
         # and thus it's missing /utf-8 argument. Was that intentional? This needs

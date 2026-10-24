@@ -8,6 +8,7 @@ See: https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2022/p1689r5.html
 
 from __future__ import annotations
 import json
+import os
 import re
 import textwrap
 import typing as T
@@ -66,29 +67,76 @@ def get_provider(rules: T.List[Rule], name: str) -> T.Optional[str]:
     return None
 
 
+def bmi_path(pattern: str, module: str, rule: Rule) -> str:
+    """The compiled module file of a module provided by a rule
+
+    ``{module}`` is the name of the module, a partition a:b is stored as a-b,
+    and ``{dir}`` is the directory of the object file of the rule, which is the
+    private directory of its target.
+    """
+    return pattern.format(dir=os.path.dirname(rule['primary-output']) or '.',
+                          module=module.replace(':', '-'))
+
+
+def find_providers(rules: T.List[Rule]) -> T.Dict[str, T.Dict[str, Rule]]:
+    """The rules which provide each module, by the object file of the rule"""
+    providers: T.Dict[str, T.Dict[str, Rule]] = {}
+    for rule in rules:
+        for p in rule.get('provides', []):
+            providers.setdefault(p['logical-name'], {})[rule['primary-output']] = rule
+    return providers
+
+
+def first_provider(providers: T.Dict[str, Rule]) -> Rule:
+    """The rule which provides a module, the same one every time if there are several"""
+    return providers[min(providers)]
+
+
 def process_rules(rules: T.List[Rule],
                   extra_rules: T.List[Rule],
+                  bmi_pattern: T.Optional[str] = None,
                   ) -> T.Iterable[T.Tuple[str, T.Optional[T.List[str]], T.List[str]]]:
     """Process the rules for this Target
 
     :param rules: the rules for this target
     :param extra_rules: the rules for all of the targets this one links with, to use their provides
+    :param bmi_pattern: where compiled modules are written, for the scanners which do not tell
+    :raises RuntimeError: If a module has several providers, when there is a pattern
     :yield: A tuple of the output, the exported modules, and the consumed modules
     """
+    provided = find_providers(rules)
+    reachable = find_providers(extra_rules) if bmi_pattern else {}
+    if bmi_pattern:
+        for name, rules_providing in provided.items():
+            if len(rules_providing) > 1:
+                raise RuntimeError(f'Module {name} is provided by several sources: {", ".join(sorted(rules_providing))}.')
     for rule in rules:
         prov: T.Optional[T.List[str]] = None
         req: T.List[str] = []
         if 'provides' in rule:
-            prov = [p['compiled-module-path'] for p in rule['provides']]
-        if 'requires' in rule:
-            for p in rule['requires']:
+            prov = []
+            for p in rule['provides']:
                 modfile = p.get('compiled-module-path')
+                if modfile is None and bmi_pattern:
+                    modfile = bmi_path(bmi_pattern, p['logical-name'], rule)
+                if modfile is not None:
+                    prov.append(modfile)
+        if 'requires' in rule:
+            for r in rule['requires']:
+                name = r['logical-name']
+                if len(reachable.get(name, {})) > 1:
+                    # Which one would be imported depends on the compiler
+                    raise RuntimeError(f'Module {name}, required by {rule["primary-output"]}, is provided by '
+                                       f'several targets: {", ".join(sorted(reachable[name]))}.')
+                modfile = r.get('compiled-module-path')
+                if modfile is None and bmi_pattern and name in provided:
+                    modfile = bmi_path(bmi_pattern, name, first_provider(provided[name]))
                 if modfile is not None:
                     req.append(modfile)
                 else:
                     # We can't error if this is not found because of compiler
                     # provided modules
-                    found = get_provider(extra_rules, p['logical-name'])
+                    found = get_provider(extra_rules, r['logical-name'])
                     if found:
                         req.append(found)
         yield rule['primary-output'], prov, req
@@ -101,11 +149,12 @@ def formatter(files: T.Optional[T.List[str]]) -> str:
     return ''
 
 
-def gen(outfile: str, desc: Description, extra_rules: T.List[Rule]) -> int:
+def gen(outfile: str, rules: T.List[Rule], extra_rules: T.List[Rule],
+        bmi_pattern: T.Optional[str] = None) -> int:
     with open(outfile, 'w', encoding='utf-8') as f:
         f.write('ninja_dyndep_version = 1\n\n')
 
-        for obj, provides, requires in process_rules(desc['rules'], extra_rules):
+        for obj, provides, requires in process_rules(rules, extra_rules, bmi_pattern):
             ins = formatter(requires)
             out = formatter(provides)
             f.write(f'build {quote(obj)} {out}: dyndep {ins}\n\n')
@@ -113,17 +162,61 @@ def gen(outfile: str, desc: Description, extra_rules: T.List[Rule]) -> int:
     return 0
 
 
+def write_module_map(outfile: str, rules: T.List[Rule], bmi_pattern: str, extra: T.Optional[str]) -> None:
+    """Write where the compiled modules are, for the compilers which have to be told
+
+    There is a line for each module, with its name and the file of the module.
+    """
+    lines = []
+    for name, providers in sorted(find_providers(rules).items()):
+        # With several providers, which is an error if any is imported, the first one is as good as another
+        lines.append(f'{name} {bmi_path(bmi_pattern, name, first_provider(providers))}')
+    if extra:
+        lines.append(extra.replace('=', ' ', 1))
+    with open(outfile, 'w', encoding='utf-8') as f:
+        f.write(''.join(f'{line}\n' for line in lines))
+
+
 def run(args: T.List[str]) -> int:
+    """Arguments: [--own N] [--bmi-pattern PATTERN] [--module-map FILE] [--module-map-extra NAME=FILE]
+                  OUTFILE JSONFILE...
+
+    The first N (default 1) description files are the ones of this target, the
+    others are the ones of the targets it links with. With a module map, the
+    file where the compiled modules are is written for the compiler, after the
+    ones of all the targets, and the extra module if there is one.
+    """
+    own = 1
+    bmi_pattern: T.Optional[str] = None
+    module_map: T.Optional[str] = None
+    module_map_extra: T.Optional[str] = None
+    while args and args[0] in {'--own', '--bmi-pattern', '--module-map', '--module-map-extra'}:
+        if len(args) < 2:
+            raise RuntimeError(f'{args[0]} needs a value')
+        if args[0] == '--own':
+            own = int(args[1])
+        elif args[0] == '--bmi-pattern':
+            bmi_pattern = args[1] or None
+        elif args[0] == '--module-map':
+            module_map = args[1] or None
+        else:
+            module_map_extra = args[1] or None
+        args = args[2:]
     assert len(args) >= 2, 'got wrong number of arguments!'
-    outfile, jsonfile, *jsondeps = args
-    with open(jsonfile, 'r', encoding='utf-8') as f:
-        desc: Description = json.load(f)
+    outfile, *jsonfiles = args
 
     # All rules, necessary for fulfilling across TU and target boundaries
-    rules = desc['rules'].copy()
-    for dep in jsondeps:
-        with open(dep, encoding='utf-8') as f:
-            d: Description = json.load(f)
-            rules.extend(d['rules'])
+    rules: T.List[Rule] = []
+    own_rules: T.List[Rule] = []
+    for i, jsonfile in enumerate(jsonfiles):
+        with open(jsonfile, 'r', encoding='utf-8') as f:
+            desc: Description = json.load(f)
+        rules.extend(desc['rules'])
+        if i < own:
+            own_rules.extend(desc['rules'])
 
-    return gen(outfile, desc, rules)
+    if module_map is not None:
+        if bmi_pattern is None:
+            raise RuntimeError('--module-map needs --bmi-pattern')
+        write_module_map(module_map, rules, bmi_pattern, module_map_extra)
+    return gen(outfile, own_rules, rules, bmi_pattern)

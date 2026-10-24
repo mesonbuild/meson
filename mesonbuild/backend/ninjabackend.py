@@ -61,6 +61,9 @@ if T.TYPE_CHECKING:
         rspfile_quote_style: RSPFileSyntax
 
 
+# Sources with these extensions are module interface units, without any argument for the compiler
+CPP_MODULE_INTERFACE_SUFFIXES = {'ixx', 'cppm'}
+
 FORTRAN_INCLUDE_PAT = r"^\s*#?include\s*['\"](\w+\.\w+)['\"]"
 FORTRAN_MODULE_PAT = r"^\s*\bmodule\b\s+(\w+)\s*(?:!+.*)*$"
 FORTRAN_SUBMOD_PAT = r"^\s*\bsubmodule\b\s*\((\w+:?\w+)\)\s*(\w+)"
@@ -142,13 +145,13 @@ class TargetDependencyScannerInfo:
     :param private_dir: The private scratch directory for the target.
     :param source2object: A mapping of source file names to the objects that
         will be created from them.
-    :param sources: a list of sources mapping them to the language rules to use
-        to scan them.
+    :param sources: a list of the sources to scan, which are Fortran sources.
+        C++ sources are scanned by the compiler.
     """
 
     private_dir: str
     source2object: T.Dict[str, str]
-    sources: T.List[T.Tuple[str, Literal['cpp', 'fortran']]]
+    sources: T.List[str]
 
 
 @unique
@@ -584,6 +587,12 @@ class NinjaBackend(backends.Backend):
         self.rust_crates: T.Dict[str, RustCrate] = {}
         self.implicit_meson_outs: T.List[str] = []
         self._uses_dyndeps = False
+        # The files describing the modules of each target (by id), written by the scanners
+        self.module_description_files: T.Dict[str, T.List[str]] = {}
+        # Evaluated for every source of a target, the answer only depends on the target
+        self._uses_dyndeps_cache: T.Dict[str, bool] = {}
+        self._uses_cpp_modules_cache: T.Dict[str, bool] = {}
+        self._cpp_modules_search_dirs: T.Dict[str, T.List[str]] = {}
         self._generated_header_cache: T.Dict[str, T.List[FileOrString]] = {}
         # nvcc chokes on thin archives:
         #   nvlink fatal   : Could not open input file 'libfoo.a.p'
@@ -1217,27 +1226,62 @@ class NinjaBackend(backends.Backend):
             return False
         if not isinstance(target, build.BuildTarget):
             return False
+        key = target.get_id()
+        result = self._uses_dyndeps_cache.get(key)
+        if result is None:
+            result = self._uses_dyndeps_cache[key] = self._should_use_dyndeps_for_target(target)
+        return result
+
+    def _should_use_dyndeps_for_target(self, target: build.BuildTarget) -> bool:
         if 'fortran' in target.compilers:
             return True
+        if not self.target_uses_cpp_modules(target):
+            return False
+        cpp = target.compilers['cpp']
+        if cpp.get_cpp_modules_scan_command() is None:
+            raise MesonException(
+                f'Target {target.name} uses C++ modules, but {cpp.get_id()} {cpp.version} cannot scan '
+                'the dependencies of modules. A more recent version of the compiler is required.')
+        return True
+
+    def target_uses_cpp_modules(self, target: build.BuildTarget) -> bool:
+        """Whether the C++ sources of a target must be scanned for modules.
+
+        This is the case if the target, or a target it is linked with, shows
+        that it uses modules. Linked targets matter because the sources which
+        only import a module do not show anything.
+        """
+        key = target.get_id()
+        result = self._uses_cpp_modules_cache.get(key)
+        if result is None:
+            result = self._uses_cpp_modules_cache[key] = 'cpp' in target.compilers and (
+                self._target_has_cpp_modules(target) or
+                any(isinstance(t, build.BuildTarget) and self._target_has_cpp_modules(t)
+                    for t in self.get_all_linked_targets(target)))
+        return result
+
+    def get_cpp_modules_search_dirs(self, target: build.BuildTarget) -> T.List[str]:
+        """The private directories of the targets linked with a target, which may provide modules"""
+        key = target.get_id()
+        result = self._cpp_modules_search_dirs.get(key)
+        if result is None:
+            result = self._cpp_modules_search_dirs[key] = [
+                self.get_target_private_dir(t) for t in self.get_all_linked_targets(target)
+                if isinstance(t, build.BuildTarget) and self.target_uses_cpp_modules(t)]
+        return result
+
+    def _target_has_cpp_modules(self, target: build.BuildTarget) -> bool:
         if 'cpp' not in target.compilers:
             return False
+        # An argument which enables modules
         for arg in target.compilers['cpp'].get_cpp_modules_args():
             if arg in target.extra_args['cpp']:
                 return True
-        # Currently only the preview version of Visual Studio is supported.
-        cpp = target.compilers['cpp']
-        if cpp.get_id() != 'msvc':
-            return False
-        cppversion = self.get_target_option(target, OptionKey('cpp_std',
-                                                              machine=target.for_machine,
-                                                              subproject=target.subproject))
-        if cppversion not in ('latest', 'c++latest', 'vc++latest'):
-            return False
-        if not mesonlib.current_vs_supports_modules():
-            return False
-        if mesonlib.version_compare(cpp.version, '<19.28.28617'):
-            return False
-        return True
+        # A source which is a module interface by its extension
+        for src in target.sources:
+            if os.path.splitext(src.fname)[1][1:].lower() in CPP_MODULE_INTERFACE_SUFFIXES:
+                return True
+        return self.target_uses_import_std(target)
 
     def generate_dependency_scan_target(self, target: build.BuildTarget,
                                         compiled_sources: T.List[str],
@@ -1247,58 +1291,110 @@ class NinjaBackend(backends.Backend):
             return
         self._uses_dyndeps = True
         json_file, depscan_file = self.get_dep_scan_file_for(target)
-        pickle_base = target.name + '.dat'
-        pickle_file = os.path.join(self.get_target_private_dir(target), pickle_base).replace('\\', '/')
-        pickle_abs = os.path.join(self.get_target_private_dir_abs(target), pickle_base).replace('\\', '/')
-        rule_name = 'depscan'
+        # C++ sources are scanned by the compiler, see generate_cpp_module_scan_edge()
+        description_files = list(self.module_description_files.get(target.get_id(), []))
         scan_sources = list(self.select_sources_to_scan(compiled_sources))
 
-        scaninfo = TargetDependencyScannerInfo(
-            self.get_target_private_dir(target), source2object, scan_sources)
+        if scan_sources or not description_files:
+            pickle_base = target.name + '.dat'
+            pickle_file = os.path.join(self.get_target_private_dir(target), pickle_base).replace('\\', '/')
+            pickle_abs = os.path.join(self.get_target_private_dir_abs(target), pickle_base).replace('\\', '/')
+            rule_name = 'depscan'
 
-        write = True
-        if os.path.exists(pickle_abs):
-            with open(pickle_abs, 'rb') as p:
-                old = pickle.load(p)
-            write = old != scaninfo
+            scaninfo = TargetDependencyScannerInfo(
+                self.get_target_private_dir(target), source2object, scan_sources)
 
-        if write:
-            with open(pickle_abs, 'wb') as p:
-                pickle.dump(scaninfo, p)
+            write = True
+            if os.path.exists(pickle_abs):
+                with open(pickle_abs, 'rb') as p:
+                    old = pickle.load(p)
+                write = old != scaninfo
 
-        elem = NinjaBuildElement(self.all_outputs, json_file, rule_name, pickle_file)
-        # A full dependency is required on all scanned sources, if any of them
-        # are updated we need to rescan, as they may have changed the modules
-        # they use or export.
-        for s in scan_sources:
-            elem.deps.add(s[0])
-        elem.add_orderdep(self.order_deps_to_strings(target, object_deps))
-        elem.add_item('name', target.name)
-        self.add_build(elem)
+            if write:
+                with open(pickle_abs, 'wb') as p:
+                    pickle.dump(scaninfo, p)
+
+            elem = NinjaBuildElement(self.all_outputs, json_file, rule_name, pickle_file)
+            # A full dependency is required on all scanned sources, if any of them
+            # are updated we need to rescan, as they may have changed the modules
+            # they use or export.
+            for s in scan_sources:
+                elem.deps.add(s)
+            elem.add_orderdep(self.order_deps_to_strings(target, object_deps))
+            elem.add_item('name', target.name)
+            self.add_build(elem)
+            description_files.insert(0, json_file)
+        self.module_description_files[target.get_id()] = description_files
 
         infiles: T.Set[str] = set()
         for t in self.get_all_linked_targets(target):
             if self.should_use_dyndeps_for_target(t):
                 assert isinstance(t, build.BuildTarget)
-                infiles.add(self.get_dep_scan_file_for(t)[0])
+                infiles.update(self.module_description_files.get(t.get_id(), []))
 
-        elem = NinjaBuildElement(self.all_outputs, depscan_file, 'depaccumulate', [json_file] + sorted(infiles))
+        cpp = target.compilers.get('cpp')
+        bmi_pattern = cpp.get_cpp_modules_bmi_pattern() if cpp and self.target_uses_cpp_modules(target) else None
+
+        # The compilers which have to be told where the compiled modules are
+        mapper = None
+        mapper_extra = ''
+        if cpp and bmi_pattern:
+            mapper = cpp.get_cpp_modules_mapper(self.get_target_private_dir(target))
+            if mapper and self.target_uses_import_std(target) and self.import_std is not None:
+                mapper_extra = f'std={self.import_std.gen_module_file}'
+
+        elem = NinjaBuildElement(self.all_outputs, depscan_file, 'depaccumulate',
+                                 description_files + sorted(infiles - set(description_files)),
+                                 implicit_outs=[mapper] if mapper else None)
         elem.add_item('name', target.name)
+        elem.add_item('own', str(len(description_files)))
+        elem.add_item('bmi_pattern', bmi_pattern or '')
+        elem.add_item('module_map', mapper or '')
+        elem.add_item('module_map_extra', mapper_extra)
         self.add_build(elem)
 
-    def select_sources_to_scan(self, compiled_sources: T.List[str],
-                               ) -> T.Iterable[T.Tuple[str, Literal['cpp', 'fortran']]]:
-        # in practice pick up C++ and Fortran files. If some other language
-        # requires scanning (possibly Java to deal with inner class files)
-        # then add them here.
+    def generate_cpp_module_scan_edge(self, target: build.BuildTarget, compiler: Compiler,
+                                      rel_src: str, rel_obj: str, args: CompilerArgs,
+                                      deps: T.List[str], header_deps: T.List[FileOrString],
+                                      order_deps: T.List[File] | T.List[FileOrString]) -> None:
+        """Make the compiler scan a C++ source for the modules it provides and requires."""
+        if compiler.get_language() != 'cpp' or isinstance(target, build.CompileTarget):
+            return
+        if not self.should_use_dyndeps_for_target(target) or not self.target_uses_cpp_modules(target):
+            return
+        rule = self.get_compiler_rule_name('cpp', compiler.for_machine, 'SCAN')
+        if not self.ninja.has_rule(rule):
+            scan_command = compiler.get_cpp_modules_scan_command()
+            assert scan_command is not None
+            # The arguments with Ninja variables must not be quoted
+            command = [NinjaCommandArg(c, Quoting.none) if '$' in c else c for c in scan_command]
+            gcc_depfile = compiler.get_depfile_format() == 'gcc'
+            self.add_rule(NinjaRule(rule, command, [], 'Scanning $in for modules',
+                                    deps='gcc' if gcc_depfile else 'msvc',
+                                    depfile='$DEPFILE' if gcc_depfile else None))
+        json_file = rel_obj + '.scan.json'
+        elem = NinjaBuildElement(self.all_outputs, json_file, rule, rel_src)
+        self.add_header_deps(target, elem, header_deps)
+        for d in deps:
+            elem.add_dep(d)
+        elem.add_orderdep(self.order_deps_to_strings(target, order_deps))
+        if compiler.get_depfile_format() == 'gcc':
+            elem.add_item('DEPFILE', json_file + '.d')
+        elem.add_item('ARGS', compiler.filter_cpp_modules_scan_args(args.to_native()))
+        elem.add_item('OBJ', rel_obj)
+        self.add_build(elem)
+        self.module_description_files.setdefault(target.get_id(), []).append(json_file)
+
+    def select_sources_to_scan(self, compiled_sources: T.List[str]) -> T.Iterable[str]:
+        # in practice pick up Fortran files, C++ files are scanned by the compiler.
+        # If some other language requires scanning (possibly Java to deal with
+        # inner class files) then add them here.
         for source in compiled_sources:
             if isinstance(source, mesonlib.File):
                 source = source.rel_to_builddir(self.build_to_src)
             ext = os.path.splitext(source)[1][1:]
-            if ext.lower() in compilers.lang_suffixes['cpp'] or ext == 'C':
-                yield source, 'cpp'
-            elif ext.lower() in compilers.lang_suffixes['fortran']:
-                yield source, 'fortran'
+            if ext.lower() in compilers.lang_suffixes['fortran']:
+                yield source
 
     def process_target_dependencies(self, target: build.BuildTarget) -> None:
         for t in target.get_dependencies():
@@ -2855,7 +2951,8 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         rulename = 'depaccumulate'
         command = self.environment.get_build_command() + \
             ['--internal', 'depaccumulate']
-        args = ['$out', '$in']
+        args = ['--own', '$own', '--bmi-pattern', '$bmi_pattern',
+                '--module-map', '$module_map', '--module-map-extra', '$module_map_extra', '$out', '$in']
         description = 'Generating dynamic dependency information for target $name'
         rule = NinjaRule(rulename, command, args, description)
         self.add_rule(rule)
@@ -3380,6 +3477,11 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         # C++ import std is complicated enough to get its own method.
         istd_args, istd_dep = self.handle_cpp_import_std(target, compiler)
         commands.extend(istd_args)
+        if compiler.language == 'cpp' and self.should_use_dyndeps_for_target(target):
+            commands.extend(compiler.get_cpp_modules_depfile_args())
+            if self.target_uses_cpp_modules(target) and not isinstance(target, build.CompileTarget):
+                commands.extend(compiler.get_cpp_modules_bmi_args(self.get_target_private_dir(target),
+                                                                  self.get_cpp_modules_search_dirs(target)))
         header_deps += istd_dep
         if extra_args is not None:
             commands.extend(extra_args)
@@ -3418,6 +3520,8 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                 return result
             element.add_item('CUDA_ESCAPED_TARGET', quote_make_target(rel_obj))
         element.add_item('ARGS', commands)
+        self.generate_cpp_module_scan_edge(target, compiler, rel_src, rel_obj, commands,
+                                           extra_deps, header_deps, order_deps)
 
         # NinjaRule.should_use_rspfile counts element.elems too, which will
         # exceed the RSP threshold only after added
@@ -3509,7 +3613,12 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         extension = os.path.splitext(src.fname)[1][1:]
         if extension != 'C':
             extension = extension.lower()
-        if not (extension in compilers.lang_suffixes['fortran'] or extension in compilers.lang_suffixes['cpp']):
+        if extension in compilers.lang_suffixes['cpp']:
+            # C++ sources are only scanned if the target uses modules, the
+            # dyndep file does not mention them otherwise
+            if not self.target_uses_cpp_modules(target):
+                return
+        elif extension not in compilers.lang_suffixes['fortran']:
             return
         dep_scan_file = self.get_dep_scan_file_for(target)[1]
         element.add_item('dyndep', dep_scan_file)
