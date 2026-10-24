@@ -188,7 +188,11 @@ def detect_static_linker(env: 'Environment', compiler: Compiler) -> StaticLinker
         if compiler.language == 'cuda':
             trials = [defaults['cuda_static_linker']] + trials
         elif compiler.get_argument_syntax() == 'msvc':
-            trials = [defaults['clang_cl_static_linker']]
+            prefixed_lib = compute_clang_cl_tool_name(compiler.get_exelist(), 'llvm-lib')
+            if prefixed_lib and shutil.which(prefixed_lib):
+                trials = [[prefixed_lib]]
+            else:
+                trials = [defaults['clang_cl_static_linker']]
             if 'vs_static_linker' in defaults:
                 trials = [defaults['vs_static_linker']] + trials
         elif m.is_os2() and env.coredata.optstore.get_value_for(OptionKey('os2_emxomf')):
@@ -225,7 +229,10 @@ def detect_static_linker(env: 'Environment', compiler: Compiler) -> StaticLinker
     for linker in trials:
         linker_name = os.path.basename(linker[0])
 
-        if any(os.path.basename(x) in {'lib', 'lib.exe', 'llvm-lib', 'llvm-lib.exe', 'xilib', 'xilib.exe'} for x in linker):
+        lib_names = {'lib', 'lib.exe', 'llvm-lib', 'llvm-lib.exe', 'xilib', 'xilib.exe'}
+        if any((b := os.path.basename(x).lower()) in lib_names
+               or b.endswith('-llvm-lib') or b.endswith('-llvm-lib.exe')
+               for x in linker):
             arg = '/?'
         elif linker_name in {'ar2000', 'ar2000.exe', 'ar430', 'ar430.exe', 'ar6x', 'ar6x.exe'}:
             arg = '?'
@@ -296,6 +303,26 @@ def detect_static_linker(env: 'Environment', compiler: Compiler) -> StaticLinker
 # Compilers
 # =========
 
+def _is_msvc_cl_like_name(name: str) -> bool:
+    """Whether a compiler executable name is MSVC's cl or clang-cl.
+
+    Toolchains such as nixpkgs prefix their compilers with the target triple
+    (e.g. x86_64-pc-windows-msvc-clang-cl), so accept a '-clang-cl' suffix in
+    addition to the plain names.
+    """
+    if name in {'cl', 'cl.exe', 'clang-cl', 'clang-cl.exe'}:
+        return True
+    return name.endswith('-clang-cl') or name.endswith('-clang-cl.exe')
+
+
+def compute_clang_cl_tool_name(exelist: T.List[str], tool: str) -> T.Optional[str]:
+    """Compute a sibling LLVM tool name for a plain or prefixed clang-cl."""
+    directory, name = os.path.split(exelist[0])
+    match = re.fullmatch(r'(.*?-|)clang-cl(\.exe|)', name, re.IGNORECASE)
+    if match:
+        return os.path.join(directory, match[1] + tool + match[2])
+    return None
+
 
 def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: MachineChoice, *, override_compilers: T.Optional[T.List[T.List[str]]] = None) -> Compiler:
     """Shared implementation for finding the C or C++ compiler to use.
@@ -317,7 +344,7 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
     for compiler in compilers:
         compiler_name = os.path.basename(compiler[0])
 
-        if any(os.path.basename(x) in {'cl', 'cl.exe', 'clang-cl', 'clang-cl.exe'} for x in compiler):
+        if any(_is_msvc_cl_like_name(os.path.basename(x)) for x in compiler):
             # Watcom C provides its own cl.exe clone that mimics an older
             # version of Microsoft's compiler. Since Watcom's cl.exe is
             # just a wrapper, we skip using it if we detect its presence
@@ -484,7 +511,12 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
             else:
                 target = 'unknown target'
             cls = c.ClangClCCompiler if lang == 'c' else cpp.ClangClCPPCompiler
-            linker = guess_win_linker(env, ['lld-link'], cls, version, for_machine)
+            # Prefer a target-prefixed lld-link matching a target-prefixed
+            # clang-cl driver (e.g. nixpkgs), falling back to plain lld-link.
+            lld = compute_clang_cl_tool_name(compiler, 'lld-link')
+            if lld is None or not shutil.which(lld):
+                lld = 'lld-link'
+            linker = guess_win_linker(env, [lld], cls, version, for_machine)
             return cls(
                 compiler, version, for_machine, env, target,
                 linker=linker)

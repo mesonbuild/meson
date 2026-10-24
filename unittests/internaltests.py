@@ -2750,6 +2750,31 @@ InstalledDir: /usr/bin'''), '14.0.0-1ubuntu1.1')
         with self.assertRaises(InvalidArguments):
             _(None, mock.Mock(), [], {'install_mode': ['rw-rw-r--', True]})
 
+    def test_compute_clang_cl_tool_name(self) -> None:
+        from mesonbuild.compilers.detect import compute_clang_cl_tool_name
+
+        cases = [
+            ('clang-cl', 'llvm-lib', 'llvm-lib'),
+            ('clang-cl.exe', 'llvm-lib', 'llvm-lib.exe'),
+            ('x86_64-pc-windows-msvc-clang-cl', 'llvm-lib',
+             'x86_64-pc-windows-msvc-llvm-lib'),
+            ('x86_64-pc-windows-msvc-clang-cl.exe', 'lld-link',
+             'x86_64-pc-windows-msvc-lld-link.exe'),
+            (os.path.join('tools', 'clang-cl'), 'lld-link',
+             os.path.join('tools', 'lld-link')),
+            (os.path.join('tools', 'target-clang-cl.exe'), 'llvm-lib',
+             os.path.join('tools', 'target-llvm-lib.exe')),
+            ('CLANG-CL.EXE', 'lld-link', 'lld-link.EXE'),
+            ('cl', 'llvm-lib', None),
+            ('clang', 'lld-link', None),
+            ('notclang-cl', 'lld-link', None),
+            ('clang-clxexe', 'lld-link', None),
+            ('target-clang-cl-extra', 'llvm-lib', None),
+        ]
+        for driver, tool, expected in cases:
+            with self.subTest(driver=driver, tool=tool):
+                self.assertEqual(compute_clang_cl_tool_name([driver], tool), expected)
+
     def test_detect_cpu_family(self) -> None:
         """Test the various cpu families that we detect and normalize.
 
