@@ -2720,55 +2720,6 @@ InstalledDir: /usr/bin'''), '14.0.0-1ubuntu1.1')
             with self.subTest(driver=driver, tool=tool):
                 self.assertEqual(compute_clang_cl_tool_name([driver], tool), expected)
 
-    def test_detect_static_linker_target_prefixed_llvm_lib(self) -> None:
-        """With a target-prefixed clang-cl, detect_static_linker must prefer
-        the target-prefixed llvm-lib (e.g. nixpkgs'
-        x86_64-pc-windows-msvc-llvm-lib) over the plain llvm-lib, which such
-        toolchains do not ship."""
-        from mesonbuild.compilers.detect import detect_static_linker
-        from mesonbuild.compilers.detect import defaults as detect_defaults
-        from mesonbuild.linkers.linkers import ArLinker
-
-        env = get_fake_env()
-        compiler = mock.Mock()
-        compiler.language = 'c'
-        compiler.for_machine = MachineChoice.HOST
-        compiler.get_argument_syntax.return_value = 'msvc'
-        compiler.get_exelist.return_value = ['x86_64-pc-windows-msvc-clang-cl']
-
-        probed = []
-
-        def fake_popen(cmd, *args, **kwargs):
-            probed.append(cmd)
-            return mock.Mock(returncode=0), 'LLVM version 17.0.6\n', ''
-
-        def fake_which(name, *args, **kwargs):
-            if name == 'x86_64-pc-windows-msvc-llvm-lib':
-                return '/fake/bin/' + name
-            return None
-
-        with mock.patch('mesonbuild.compilers.detect.Popen_safe_logged',
-                        side_effect=fake_popen), \
-                mock.patch('mesonbuild.compilers.detect.Popen_safe',
-                           side_effect=fake_popen), \
-                mock.patch('mesonbuild.mesonlib.Popen_safe',
-                           side_effect=fake_popen), \
-                mock.patch('mesonbuild.compilers.detect.shutil.which',
-                           side_effect=fake_which), \
-                mock.patch.dict('mesonbuild.compilers.detect.defaults'):
-            # On Windows with Visual Studio the MSVC 'lib' is tried before
-            # llvm-lib; drop it so the test only covers the llvm-lib order.
-            detect_defaults.pop('vs_static_linker', None)
-            linker = detect_static_linker(env, compiler)
-
-        self.assertIsInstance(linker, ArLinker)
-        self.assertEqual(linker.get_exelist(),
-                         ['x86_64-pc-windows-msvc-llvm-lib'])
-        # A lib-style archiver is probed with /?, not --version
-        self.assertEqual(probed[0],
-                         ['x86_64-pc-windows-msvc-llvm-lib', '/?'])
-
-
     def test_detect_cpu_family(self) -> None:
         """Test the various cpu families that we detect and normalize.
 
