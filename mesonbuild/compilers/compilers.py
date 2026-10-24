@@ -32,7 +32,7 @@ if T.TYPE_CHECKING:
     from ..options import MutableKeyedOptionDictType
     from ..envconfig import MachineInfo
     from ..environment import Environment
-    from ..linkers import RSPFileSyntax
+    from ..backend.rspfile import RSPFileSyntax
     from ..linkers.linkers import DynamicLinker
     from ..mesonlib import MachineChoice
     from ..dependencies import Dependency
@@ -1719,6 +1719,11 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
         be implemented
         """
         return self.linker.rsp_file_syntax()
+
+    def linker_rsp_file_syntax(self) -> 'RSPFileSyntax':
+        """The format of the RSP file used when this compiler is used as
+           the link_language."""
+        return self.rsp_file_syntax()
 
     def get_debug_args(self, is_debug: bool) -> T.List[str]:
         """Arguments required for a debug build."""

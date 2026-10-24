@@ -9,7 +9,7 @@ import typing as T
 
 from .. import mesonlib
 from ..arglist import CompilerArgs
-from ..linkers import RSPFileSyntax
+from ..backend.rspfile import RSPFileSyntax
 from ..mesonlib import (
     EnvironmentException, MesonBugException, version_compare, is_windows,
     is_lib_filename

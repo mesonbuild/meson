@@ -20,6 +20,8 @@ import subprocess
 import typing as T
 
 from . import backends
+from .backends import CleanTrees
+from .rspfile import RSPFileSyntax, rsp_file_flag, rsp_quote_func
 from .. import modules
 from .. import mesonlib
 from .. import build
@@ -28,14 +30,13 @@ from .. import compilers
 from .. import tooldetect
 from ..arglist import CompilerArgs
 from ..compilers import Compiler, is_library
-from ..linkers import ArLikeLinker, RSPFileSyntax, StaticLinker, VisualStudioLikeLinkerMixin
+from ..linkers import ArLikeLinker, StaticLinker, VisualStudioLikeLinkerMixin
 from ..mesonlib import (
     File, LibType, MachineChoice, MesonBugException, MesonException, OrderedSet, PerMachine,
-    ProgressBar, quote_arg, unique_list
+    ProgressBar, quote_arg, unique_list, cmd_quote
 )
 from ..mesonlib import as_posix, get_compiler_for_source, has_path_sep, is_parent_path, lookbehind, path_has_root
 from ..options import OptionKey
-from .backends import CleanTrees
 from ..build import GeneratedList, InvalidArguments
 
 if T.TYPE_CHECKING:
@@ -66,19 +67,6 @@ FORTRAN_MODULE_PAT = r"^\s*\bmodule\b\s+(\w+)\s*(?:!+.*)*$"
 FORTRAN_SUBMOD_PAT = r"^\s*\bsubmodule\b\s*\((\w+:?\w+)\)\s*(\w+)"
 FORTRAN_USE_PAT = r"^\s*use,?\s*(?:non_intrinsic)?\s*(?:::)?\s*(\w+)"
 
-def cmd_quote(arg: str) -> str:
-    # see: https://docs.microsoft.com/en-us/windows/desktop/api/shellapi/nf-shellapi-commandlinetoargvw#remarks
-
-    # backslash escape any existing double quotes
-    # any existing backslashes preceding a quote are doubled
-    arg = re.sub(r'(\\*)"', lambda m: '\\' * (len(m.group(1)) * 2 + 1) + '"', arg)
-    # any terminal backslashes likewise need doubling
-    arg = re.sub(r'(\\*)$', lambda m: '\\' * (len(m.group(1)) * 2), arg)
-    # and double quote
-    arg = f'"{arg}"'
-
-    return arg
-
 # How ninja executes command lines differs between Unix and Windows
 # (see https://ninja-build.org/manual.html#ref_rule_command)
 if mesonlib.is_windows():
@@ -89,22 +77,6 @@ else:
     quote_func = quote_arg
     execute_wrapper = []
     rmfile_prefix = ['rm', '-f', '{}', '&&']
-
-GCC_RSP_UNSAFE_PAT = re.compile(r'[^\w@%+=:,./-]', re.ASCII)
-
-def gcc_rsp_quote(s: str) -> str:
-    # see: the function buildargv() in libiberty
-    #
-    # Up to GCC 15 (and in clang), a backslash *always* escapes the following
-    # character, even inside single quotes.  Starting with GCC 16, backslashes
-    # inside single quotes are literal as in sh.  Avoid quotes and escape
-    # every special character with a backslash, which works the same way in
-    # both cases.  The exception is newlines, for which a backslash is a line
-    # continuation in sh; place them in single quotes instead.
-
-    if not s:
-        return "''"
-    return GCC_RSP_UNSAFE_PAT.sub(lambda m: "'\n'" if m.group() == '\n' else '\\' + m.group(), s)
 
 # a conservative estimate of the command-line length limit
 rsp_threshold = mesonlib.get_rsp_threshold()
@@ -242,12 +214,9 @@ class NinjaRule:
 
     def write(self, outfile: T.TextIO) -> None:
         rspfile_args = self.args
-        rspfile_quote_func: T.Callable[[str], str]
+        rspfile_quote_func = rsp_quote_func(self.rspfile_quote_style)
         if self.rspfile_quote_style in {RSPFileSyntax.MSVC, RSPFileSyntax.TASKING}:
-            rspfile_quote_func = cmd_quote
             rspfile_args = [NinjaCommandArg('$in_newline', arg.quoting) if arg.s == '$in' else arg for arg in rspfile_args]
-        else:
-            rspfile_quote_func = gcc_rsp_quote
 
         def rule_iter() -> T.Iterable[str]:
             if self.refcount:
@@ -258,10 +227,8 @@ class NinjaRule:
         for rsp in rule_iter():
             outfile.write(f'rule {self.name}{rsp}\n')
             if rsp == '_RSP':
-                if self.rspfile_quote_style is RSPFileSyntax.TASKING:
-                    outfile.write(' command = {} --option-file=$out.rsp\n'.format(' '.join([self._quoter(x) for x in self.command])))
-                else:
-                    outfile.write(' command = {} @$out.rsp\n'.format(' '.join([self._quoter(x) for x in self.command])))
+                command = ' '.join([self._quoter(x) for x in self.command])
+                outfile.write(f' command = {command} {rsp_file_flag(self.rspfile_quote_style)}$out.rsp\n')
                 outfile.write(' rspfile = $out.rsp\n')
                 outfile.write(' rspfile_content = {}\n'.format(' '.join([self._quoter(x, rspfile_quote_func) for x in rspfile_args])))
             else:
@@ -424,10 +391,7 @@ class NinjaBuildElement:
         outfile.write(line)
 
         if use_rspfile:
-            if self.rule.rspfile_quote_style in {RSPFileSyntax.MSVC, RSPFileSyntax.TASKING}:
-                qf = cmd_quote
-            else:
-                qf = gcc_rsp_quote
+            qf = rsp_quote_func(self.rule.rspfile_quote_style)
         else:
             qf = quote_func
 
@@ -1333,7 +1297,7 @@ class NinjaBackend(backends.Backend):
                                                 capture=ofilenames[0] if target.capture else None,
                                                 feed=srcs[0] if target.feed else None,
                                                 env=target.env,
-                                                can_use_rsp_file=target.rspable,
+                                                rsp_syntax=target.rsp_syntax,
                                                 verbose=target.console)
         if reason:
             cmd_type = f' (wrapped by meson {reason})'
@@ -2595,6 +2559,8 @@ class NinjaBackend(backends.Backend):
                     pool = None
 
                 options = self._rsp_options(compiler)
+                if options['rspable']:
+                    options['rspfile_quote_style'] = compiler.linker_rsp_file_syntax()
                 self.add_rule(NinjaRule(rule, command, args, description, **options, extra=pool))
             if self.environment.machines[for_machine].is_aix() and complist:
                 rule = 'AIX_LINKER{}'.format(self.get_rule_suffix(for_machine))
@@ -3434,9 +3400,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             element.rulename = 'CUSTOM_COMMAND'
             meson_exe_cmd, reason = self.as_meson_exe_cmdline(exe[0],
                                                               exe[1:] + commands.to_native(),
-                                                              separator='\n',
-                                                              rsp_file_flag='-@',
-                                                              can_use_rsp_file=True,
+                                                              rsp_syntax=RSPFileSyntax.NASM,
                                                               verbose=True)
             cmd_type = f' (wrapped by meson {reason})' if reason else ''
             element.add_item('COMMAND', meson_exe_cmd)

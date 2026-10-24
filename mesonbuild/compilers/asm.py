@@ -4,9 +4,9 @@ import os
 import typing as T
 
 from ..mesonlib import EnvironmentException, MesonException, get_meson_command
+from ..backend.rspfile import RSPFileSyntax
 from ..options import OptionKey
 from .compilers import Compiler, CompileCheckMode
-from ..linkers import RSPFileSyntax
 from ..linkers.linkers import VisualStudioLikeLinkerMixin
 from .mixins.metrowerks import MetrowerksCompiler, mwasmarm_instruction_set_args, mwasmeppc_instruction_set_args
 from .mixins.ti import TICompiler
@@ -162,6 +162,10 @@ class NasmCompiler(ASMCompiler):
 
     def rsp_file_syntax(self) -> RSPFileSyntax:
         return RSPFileSyntax.NASM
+
+    def linker_rsp_file_syntax(self) -> RSPFileSyntax:
+        # NASM does not link, the response file is read by the linker.
+        return self.linker.rsp_file_syntax()
 
 class YasmCompiler(NasmCompiler):
     id = 'yasm'
