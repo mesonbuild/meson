@@ -55,6 +55,7 @@ from mesonbuild.interpreter.type_checking import (
     INSTALL_MODE_KW, in_set_validator, NoneType, _pkgconfig_define_feature_validator,
 )
 from mesonbuild.dependencies.pkgconfig import PkgConfigDependency, PkgConfigInterface, PkgConfigCLI
+from mesonbuild.minstall import DirMaker
 from mesonbuild.programs import ExternalProgram
 import mesonbuild.modules.pkgconfig
 
@@ -798,6 +799,21 @@ InstalledDir: /usr/bin'''), '14.0.0-1ubuntu1.1')
         self.assertEqual(list(_pkgconfig_define_feature_validator([])), [])
         self.assertEqual(list(_pkgconfig_define_feature_validator(['prefix', '/tmp'])), [])
         self.assertEqual(len(list(_pkgconfig_define_feature_validator(['prefix', '/tmp', 'libdir', '/x']))), 1)
+
+    def test_dirmaker_makedirs_raises_on_file_conflict(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Create a file where makedirs later expects a directory.
+            conflict = os.path.join(tmpdir, 'bin', 'p11-kit')
+            os.makedirs(os.path.join(tmpdir, 'bin'))
+            with open(conflict, 'w') as f:
+                f.write('')
+            dm = DirMaker(open(os.devnull, 'w'), os.makedirs)
+            # Trying to treat the file as a directory must raise a MesonException
+            # rather than the cryptic FileExistsError from os.makedirs.
+            with self.assertRaises(MesonException) as ctx:
+                dm.makedirs(os.path.join(tmpdir, 'bin', 'p11-kit', 'sub'), exist_ok=True)
+            self.assertIn('p11-kit', str(ctx.exception))
 
     def test_qcc_unsupported_features_raise(self):
         # qcc/q++ have no alternate-linker-selection equivalent, so Meson
