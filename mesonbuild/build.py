@@ -12,6 +12,7 @@ import itertools, pathlib
 import os
 import pickle
 import re
+import shutil
 import textwrap
 import typing as T
 
@@ -416,6 +417,52 @@ class DepManifest:
         }
 
 
+class Summary:
+    def __init__(self) -> None:
+        self.sections: defaultdict[str, dict[str, tuple[mlog.TV_LoggableList, str | None]]] = defaultdict(dict)
+        self.max_key_len = 0
+
+    def add_value(self, section: str, key: str, values: mlog.TV_LoggableList,
+                  list_sep: str | None) -> None:
+        if key in self.sections[section]:
+            raise MesonException(f'Summary section {section!r} already have key {key!r}')
+        self.sections[section][key] = (values, list_sep)
+        self.max_key_len = max(self.max_key_len, len(key))
+
+    def dump(self) -> None:
+        for section, values in self.sections.items():
+            mlog.log('')  # newline
+            if section:
+                mlog.log(' ', mlog.bold(section))
+            for k, v in values.items():
+                v, list_sep = v
+                padding = self.max_key_len - len(k)
+                end = ' ' if v else ''
+                mlog.log(' ' * 3, k + ' ' * padding + ':', end=end)
+                indent = self.max_key_len + 6
+                self.dump_value(v, list_sep, indent)
+        mlog.log('')  # newline
+
+    def dump_value(self, arr: mlog.TV_LoggableList, list_sep: str | None, indent: int) -> None:
+        lines_sep = '\n' + ' ' * indent
+        if list_sep is None:
+            mlog.log(*arr, sep=lines_sep, display_timestamp=False)
+            return
+        max_len = shutil.get_terminal_size().columns
+        line: mlog.TV_LoggableList = []
+        line_len = indent
+        lines_sep = list_sep.rstrip() + lines_sep
+        for v in arr:
+            v_len = len(str(v)) + len(list_sep)
+            if line and line_len + v_len > max_len:
+                mlog.log(*line, sep=list_sep, end=lines_sep)
+                line_len = indent
+                line = []
+            line.append(v)
+            line_len += v_len
+        mlog.log(*line, sep=list_sep, display_timestamp=False)
+
+
 @dataclass(eq=False)
 class BuildProject:
     name: str
@@ -432,10 +479,20 @@ class BuildProject:
     for_machine: MachineChoice
     project_args: PerMachine[T.Dict[Language, T.List[str]]] = field(default_factory=lambda: PerMachine({}, {}))
     project_link_args: PerMachine[T.Dict[Language, T.List[str]]] = field(default_factory=lambda: PerMachine({}, {}))
+    summary: Summary = field(default_factory=Summary)
 
     @lazy_property
     def prefix(self) -> str:
         return 'build.' if self.for_machine is MachineChoice.BUILD else ''
+
+    def dump_summary(self) -> None:
+        if not self.summary.sections:
+            return
+        name = self.name
+        if self.for_machine is MachineChoice.BUILD:
+            name += ' (for build machine)'
+        mlog.log(name, mlog.normal_cyan(self.version))
+        self.summary.dump()
 
 
 # literally everything isn't dataclass stuff
