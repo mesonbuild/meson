@@ -413,6 +413,32 @@ class PlatformAgnosticTests(BasePlatformTests):
         formatted = formatter.format(code, Path())
         self.assertEqual(code, formatted)
 
+    def test_format_sticky_parens(self) -> None:
+        fd, fname = tempfile.mkstemp(suffix='.ini', text=True)
+        self.addCleanup(os.unlink, fname)
+
+        with os.fdopen(fd, 'w', encoding='utf-8') as handle:
+            handle.write("sticky_parens = true\nindent_by = '  '\nend_of_line = lf\n")
+
+        formatter = Formatter(Path(fname), use_editor_config=False, fetch_subdirs=False)
+        cases = [
+            ('if (\n  a\n  or b\n)\n  x = 1\nendif\n',
+             'if (a\n    or b)\n  x = 1\nendif\n'),
+            ('if (a or  # comment\n    b)\n  x = 1\nendif\n',
+             'if (a\n    or  # comment\n    b)\n  x = 1\nendif\n'),
+            ('x = (  # comment\n  a or b)\n',
+             'x = (  # comment\n    a\n    or b)\n'),
+            ('x = ((aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa or bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb) and ccccccccccccccc)\n',
+             'x = ((aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa or bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb)\n    and ccccccccccccccc)\n'),
+            ("x = (a.get_variable(cmake: 'LLVM_ENABLE_RTTI') == 'ON') == (b.get_variable(configtool: 'has-rtti') == 'YES')\n",
+             "x = (a.get_variable(cmake: 'LLVM_ENABLE_RTTI') == 'ON') == (b.get_variable(\n  configtool: 'has-rtti',\n) == 'YES')\n"),
+        ]
+        for code, expected in cases:
+            formatted = formatter.format(code, Path())
+            self.assertEqual(expected, formatted)
+            # formatting must be stable
+            self.assertEqual(expected, formatter.format(formatted, Path()))
+
     def test_format_directives(self) -> None:
         formatter = Formatter(None, use_editor_config=False, fetch_subdirs=False)
         cases = [

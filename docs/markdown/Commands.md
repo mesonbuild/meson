@@ -485,6 +485,9 @@ The following options are recognized:
     followed by string argument without `--` prefix are grouped on the
     same line, in multiline arguments (default is false).
 - use_editor_config (bool): When true, also uses config from .editorconfig .
+- sticky_parens (bool): *Since 1.13.0*. When true, parentheses stay on
+    the same line as the expression, the expression gets double indentation,
+    and only the content is indented on multiple lines (default is false).
 
 The first six options are the same than for the `muon fmt` command.
 
