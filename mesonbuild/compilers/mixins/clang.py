@@ -186,7 +186,7 @@ class ClangCompiler(GnuLikeCompiler):
         # qcld: Qualcomm's deprecated linker
         if linker == 'qcld':
             return ['-fuse-ld=qcld']
-        if linker == 'mold':
+        if linker in {'mold', 'ld64.mold'}:
             return ['-fuse-ld=mold']
         if linker == 'wild':
             return ['--ld-path=wild']
