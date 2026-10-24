@@ -106,6 +106,12 @@ class DirMaker:
                 break
             if not os.path.exists(dirname):
                 dirs.append(dirname)
+            elif not os.path.isdir(dirname):
+                raise MesonException(
+                    f'Cannot create installation directory {path!r}: '
+                    f'{dirname!r} already exists but is not a directory. '
+                    f'This can happen when options such as bindir and libexecdir '
+                    f'are set to the same path.')
             dirname = os.path.dirname(dirname)
         self.makedirs_impl(path, exist_ok=exist_ok)
 
