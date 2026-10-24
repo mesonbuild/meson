@@ -53,6 +53,7 @@ from mesonbuild.options import OptionKey, UserBooleanOption
 from mesonbuild.interpreter.type_checking import (
     STR_PARG, INT_PARG, BOOL_PARG, STR_OARG, INT_OARG, STR_VARG,
     INSTALL_MODE_KW, in_set_validator, NoneType, _pkgconfig_define_feature_validator,
+    _pkgconfig_define_validator,
 )
 from mesonbuild.dependencies.pkgconfig import PkgConfigDependency, PkgConfigInterface, PkgConfigCLI
 from mesonbuild.programs import ExternalProgram
@@ -798,6 +799,20 @@ InstalledDir: /usr/bin'''), '14.0.0-1ubuntu1.1')
         self.assertEqual(list(_pkgconfig_define_feature_validator([])), [])
         self.assertEqual(list(_pkgconfig_define_feature_validator(['prefix', '/tmp'])), [])
         self.assertEqual(len(list(_pkgconfig_define_feature_validator(['prefix', '/tmp', 'libdir', '/x']))), 1)
+
+    def test_pkgconfig_define_validator(self):
+        # Non-empty values must be accepted.
+        self.assertIsNone(_pkgconfig_define_validator([]))
+        self.assertIsNone(_pkgconfig_define_validator(['prefix', '/usr']))
+        self.assertIsNone(_pkgconfig_define_validator(['prefix', '/usr', 'libdir', '/usr/lib']))
+        # An empty value must be rejected with a descriptive message.
+        result = _pkgconfig_define_validator(['rootprefix', ''])
+        self.assertIsNotNone(result)
+        self.assertIn('rootprefix', result)
+        # Empty value in second pair must also be caught.
+        result = _pkgconfig_define_validator(['prefix', '/usr', 'libdir', ''])
+        self.assertIsNotNone(result)
+        self.assertIn('libdir', result)
 
     def test_qcc_unsupported_features_raise(self):
         # qcc/q++ have no alternate-linker-selection equivalent, so Meson
