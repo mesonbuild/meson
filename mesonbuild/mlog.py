@@ -148,6 +148,8 @@ class _Logger:
             env = os.environ.copy()
             if 'LESS' not in env:
                 env['LESS'] = 'RXF'
+            else:
+                env['LESS'] = 'RXF ' + env['LESS']
             # Set "-c" for lv to support color
             if 'LV' not in env:
                 env['LV'] = '-c'
