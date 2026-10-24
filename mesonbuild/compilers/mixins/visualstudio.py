@@ -8,7 +8,9 @@ from __future__ import annotations
 interface.
 """
 
+import hashlib
 import os
+import re
 import typing as T
 
 from ... import arglist
@@ -360,6 +362,42 @@ class VisualStudioLikeCompiler(Compiler, metaclass=mesonlib.SimpleABC):
         # See: https://ninja-build.org/manual.html#_deps
         return ['/showIncludes']
 
+# The standard library module (import std) can only be used by sources compiled with
+# compatible arguments, MSVC reports the difference as warning C5050. The arguments
+# which do not matter are removed, to build as few variants of the module as possible.
+_IMPORT_STD_IRRELEVANT_RE = re.compile(
+    r'/(?:'
+    r'I|external:|imsvc|'                  # where to look for headers
+    r'F[A-Za-z]|Y[a-z]|'                   # output files, forced includes, precompiled headers
+    r'Z7$|Zi$|ZI$|'                        # debug information
+    r'W|w|'                                # warnings
+    r'O(?!penmp)|'                         # optimization, but /openmp
+    r'GL|Gy|Gw|GS|Gs|GF|'                  # code generation which does not change the interface
+    r'nologo$|showIncludes$|diagnostics|MP|bigobj$|c$|scanDependencies$|sourceDependencies'
+    r')')
+
+# The macros that are read by the standard library, as they are documented in its headers
+_IMPORT_STD_MACRO_RE = re.compile(
+    r'(?:_HAS_|_STL_|_ENFORCE_|_ITERATOR_|_CONTAINER_|_ANNOTATE_|_DISABLE_|_USE_|_STD_)')
+
+# Options where the last one wins, with the name of the group they belong to.
+_IMPORT_STD_LAST_WINS_RE = re.compile(
+    r'/(?:'
+    r'(?P<crt>MDd?|MTd?)$|'
+    r'(?P<std>std:)|'
+    r'(?P<fp>fp:)|'
+    r'(?P<eh>EH)|'
+    r'(?P<gr>GR-?$)|'
+    r'(?P<callconv>G[drzv]$)|'
+    r'(?P<sdl>sdl-?$)|'
+    r'(?P<permissive>permissive-?$)|'
+    r'(?P<zp>Zp)|'
+    r'(?P<arch>arch:)|'
+    r'(?P<openmp>openmp)|'
+    r'Zc:(?P<zc>[\w+.]+)'
+    r')')
+
+
 class MSVCCompiler(VisualStudioLikeCompiler):
 
     """Specific to the Microsoft Compilers."""
@@ -393,6 +431,48 @@ class MSVCCompiler(VisualStudioLikeCompiler):
     # We want to drop '/utf-8' for Visual Studio 2013 and earlier
     def get_always_args(self) -> T.List[str]:
         return self.always_args
+
+    @staticmethod
+    def get_import_std_args(args: T.Iterable[str]) -> T.List[str]:
+        """The arguments which decide if a module can be imported by a source.
+
+        All the other arguments are not useful to build the standard library
+        module. The result is sorted and without duplicates, and can be used
+        as arguments to compile the module.
+
+        :param args: the arguments the source which imports the module is compiled with
+        """
+        kept: T.Dict[str, str] = {}
+        for arg in args:
+            # Options can start with - or /, the other arguments are files
+            if arg[:1] not in {'-', '/'}:
+                continue
+            arg = '/' + arg[1:]
+            if _IMPORT_STD_IRRELEVANT_RE.match(arg) is not None:
+                continue
+            if arg.startswith(('/D', '/U')):
+                name, _, value = arg[2:].partition('=')
+                if _IMPORT_STD_MACRO_RE.match(name) is None:
+                    continue
+                if arg[1] == 'D':
+                    arg = f'/D{name}={value or "1"}'
+                key = f'macro:{name}'
+            else:
+                m = _IMPORT_STD_LAST_WINS_RE.match(arg)
+                # An option which replaces the previous ones, or is a different one
+                key = f'{m.lastgroup}:{m.group("zc") if m.lastgroup == "zc" else ""}' if m else arg
+            kept.pop(key, None)
+            kept[key] = arg
+        return sorted(kept.values())
+
+    def get_import_std_id(self, args: T.Iterable[str]) -> str:
+        """A name which is unique for the arguments to build the standard library module.
+
+        A module can only be imported with the version of the compiler which built it,
+        for the same architecture.
+        """
+        normalized = '\n'.join([self.version, self.target, *self.get_import_std_args(args)])
+        return hashlib.sha256(normalized.encode('utf-8')).hexdigest()[:12]
 
     def get_instruction_set_args(self, instruction_set: str) -> T.Optional[T.List[str]]:
         if self.version.split('.')[0] == '16' and instruction_set == 'avx':
