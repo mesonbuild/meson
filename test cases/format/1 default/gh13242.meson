@@ -10,7 +10,11 @@ test(
 )
 
 test(
-    should_fail: (settings.get('x', false) and not settings['y'] and dep.version().version_compare(
-        '>=1.2.3',
-    )),
+    should_fail: (
+        settings.get('x', false)
+        and not settings['y']
+        and dep.version().version_compare(
+            '>=1.2.3',
+        )
+    ),
 )
