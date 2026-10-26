@@ -139,11 +139,7 @@ class CythonCompiler(Compiler):
 
     def compute_parameters_with_absolute_paths(self, parameter_list: T.List[str],
                                                build_dir: str) -> T.List[str]:
-        new: T.List[str] = []
-        for i in parameter_list:
-            new.append(i)
-
-        return new
+        return parameter_list.copy()
 
     def get_options(self) -> 'MutableKeyedOptionDictType':
         opts = super().get_options()

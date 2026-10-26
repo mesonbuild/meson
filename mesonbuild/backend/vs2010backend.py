@@ -1819,8 +1819,7 @@ class Vs2010Backend(backends.Backend):
         for o in self.flatten_object_list(target, proj_to_build_root)[0]:
             assert isinstance(o, str)
             additional_objects.append(o)
-        for o in custom_objs:
-            additional_objects.append(o)
+        additional_objects.extend(custom_objs)
 
         # VS automatically links CustomBuild outputs whose name ends in .obj or .res,
         # but the others need to be included explicitly
