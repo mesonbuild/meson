@@ -781,11 +781,9 @@ class ExtractedObjects(HoldableObject):
         # Merge sources and generated sources
         ret: T.List[FileOrString] = list(sources)
         for gensrc in generated_sources:
-            for s in gensrc.get_outputs():
-                # We cannot know the path where this source will be generated,
-                # but all we need here is the file extension to determine the
-                # compiler.
-                ret.append(s)
+            # We cannot know the path where this source will be generated, but
+            # all we need here is the file extension to determine the compiler.
+            ret.extend(gensrc.get_outputs())
 
         # Filter out headers and all non-source files
         return [s for s in ret if is_source(s)]

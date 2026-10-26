@@ -1353,8 +1353,7 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
                 failing_logs.append(result.stdo)
             else:
                 failing_logs.append(result.stdo)
-            for cmd_res in result.cicmds:
-                failing_logs.append(cmd_res)
+            failing_logs.extend(result.cicmds)
             failing_logs.append(result.stde)
             if failfast:
                 safe_print("Cancelling the rest of the tests")
