@@ -24,7 +24,7 @@ if T.TYPE_CHECKING:
     from ..interpreter import Interpreter
     from ..programs import CommandList
 
-    from typing_extensions import Literal, TypedDict
+    from typing_extensions import TypedDict
 
     class CompileResources(TypedDict):
 
@@ -186,7 +186,7 @@ class WindowsModule(ExtensionModule):
             name_formatted = name_formatted.replace('/', '_').replace('\\', '_').replace(':', '_')
             output = f'{name}_@BASENAME@.{suffix}'
             depfile: T.Optional[str] = None
-            depfile_type: T.Optional[Literal['gcc', 'msvc']] = None
+            depfile_type: T.Optional[T.Literal['gcc', 'msvc']] = None
             command: CommandList = []
 
             if rescomp_type == ResourceCompilerType.rc:

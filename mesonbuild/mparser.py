@@ -12,8 +12,6 @@ from .mesonlib import MesonException, unwrap
 from . import mlog
 
 if T.TYPE_CHECKING:
-    from typing_extensions import Literal
-
     from .ast import AstVisitor
 
     BaseNodeT = T.TypeVar('BaseNodeT', bound='BaseNode')
@@ -675,8 +673,8 @@ class ParenthesizedNode(BaseNode):
         self.is_multiline = False
 
 if T.TYPE_CHECKING:
-    COMPARISONS = Literal['==', '!=', '<', '<=', '>=', '>', 'in', 'not in']
-    ARITH_OPERATORS = Literal['+', '-', '*', '/', '%']
+    COMPARISONS = T.Literal['==', '!=', '<', '<=', '>=', '>', 'in', 'not in']
+    ARITH_OPERATORS = T.Literal['+', '-', '*', '/', '%']
 
 ALL_STRINGS = frozenset({'string', 'fstring', 'multiline_string', 'multiline_fstring'})
 

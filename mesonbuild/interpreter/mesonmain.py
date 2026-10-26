@@ -27,7 +27,7 @@ from .primitives import MesonVersionString
 from .type_checking import NATIVE_KW, STR_PARG, LANG_PARG, OBJ_OARG, NoneType
 
 if T.TYPE_CHECKING:
-    from typing_extensions import Literal, TypedDict
+    from typing_extensions import TypedDict
 
     from ..compilers.compilers import Compiler, Language
     from ..dependencies.base import DependencyObjectKWs
@@ -48,7 +48,7 @@ if T.TYPE_CHECKING:
         dry_run: bool
 
     class AddDevenvKW(TypedDict):
-        method: Literal['set', 'prepend', 'append']
+        method: T.Literal['set', 'prepend', 'append']
         separator: str
 
 

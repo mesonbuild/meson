@@ -6,11 +6,11 @@
 from __future__ import annotations
 import typing as T
 
-from typing_extensions import Literal, TypedDict, Required
+from typing_extensions import TypedDict, Required
 
-EDITION = Literal['2015', '2018', '2021']
-CRATE_TYPE = Literal['bin', 'lib', 'dylib', 'staticlib', 'cdylib', 'rlib', 'proc-macro']
-LINT_LEVEL = Literal['allow', 'deny', 'forbid', 'warn']
+EDITION = T.Literal['2015', '2018', '2021']
+CRATE_TYPE = T.Literal['bin', 'lib', 'dylib', 'staticlib', 'cdylib', 'rlib', 'proc-macro']
+LINT_LEVEL = T.Literal['allow', 'deny', 'forbid', 'warn']
 
 
 class FromWorkspace(TypedDict):
@@ -59,7 +59,7 @@ class Badge(TypedDict):
 
     """An entry in the badge section."""
 
-    status: Literal['actively-developed', 'passively-developed', 'as-is', 'experimental', 'deprecated', 'none']
+    status: T.Literal['actively-developed', 'passively-developed', 'as-is', 'experimental', 'deprecated', 'none']
     repository: str
 
 

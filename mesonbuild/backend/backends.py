@@ -48,11 +48,11 @@ if T.TYPE_CHECKING:
     from ..mesonlib import InstallScript
     from ..options import ElementaryOptionValues
 
-    from typing_extensions import Literal, TypedDict, NotRequired, TypeAlias
+    from typing_extensions import TypedDict, NotRequired
 
     class CompilerIntrospectionData(TypedDict):
 
-        language: T.Union[Language, Literal['unknown']]
+        language: T.Union[Language, T.Literal['unknown']]
         machine: NotRequired[str]
         compiler: T.List[str]
         parameters: T.List[str]
@@ -65,7 +65,7 @@ if T.TYPE_CHECKING:
         linker: T.List[str]
         parameters: T.List[str]
 
-    TargetIntrospectionData: TypeAlias = T.Union['CompilerIntrospectionData', 'LinkerIntrospectionData']
+    TargetIntrospectionData: T.TypeAlias = T.Union['CompilerIntrospectionData', 'LinkerIntrospectionData']
 
 # Languages that can mix with C or C++ but don't support unity builds yet
 # because the syntax we use for unity builds is specific to C/++/ObjC/++.

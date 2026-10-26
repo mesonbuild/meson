@@ -39,7 +39,7 @@ from ..options import OptionKey
 from ..scripts.gettext import read_linguas
 
 if T.TYPE_CHECKING:
-    from typing_extensions import Literal, TypedDict
+    from typing_extensions import TypedDict
 
     from . import ModuleState
     from ..build import BuildTarget
@@ -99,9 +99,9 @@ if T.TYPE_CHECKING:
         includes: T.List[T.Union[str, GirTarget]]
         install: bool
         install_gir: T.Optional[bool]
-        install_dir_gir: T.Union[str, None, Literal[False]]
+        install_dir_gir: T.Union[str, None, T.Literal[False]]
         install_typelib: T.Optional[bool]
-        install_dir_typelib: T.Union[str, None, Literal[False]]
+        install_dir_typelib: T.Union[str, None, T.Literal[False]]
         link_with: T.List[T.Union[build.SharedLibrary, build.StaticLibrary, build.BothLibraries]]
         namespace: str
         nsversion: str
@@ -115,7 +115,7 @@ if T.TYPE_CHECKING:
         main_xml: T.Optional[str]
         module_version: str
         namespace: str
-        mode: Literal['xml', 'smgl', 'auto', 'none']
+        mode: T.Literal['xml', 'smgl', 'auto', 'none']
         html_args: T.List[str]
         scan_args: T.List[str]
         scanobjs_args: T.List[str]
@@ -147,7 +147,7 @@ if T.TYPE_CHECKING:
         docbook: T.Optional[str]
         rst: T.Optional[str]
         markdown: T.Optional[str]
-        autocleanup: Literal['all', 'none', 'objects', 'default']
+        autocleanup: T.Literal['all', 'none', 'objects', 'default']
 
     class GenMarshal(TypedDict):
 
