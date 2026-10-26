@@ -327,7 +327,7 @@ class RustPackage(RustCrate):
         cfg = self.package.cfg[for_machine]
 
         if kwargs['dependencies']:
-            for dep_key, dep_pkg in cfg.dep_packages.items():
+            for dep_pkg in cfg.dep_packages.values():
                 if dep_pkg.manifest.lib:
                     # Get the dependency name for this package (rust or proc-macro ABI)
                     depname = dep_pkg.get_rust_dependency_name()
