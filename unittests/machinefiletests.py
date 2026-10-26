@@ -45,7 +45,7 @@ from .helpers import (
     skip_if_not_language, skipIfNoExecutable, get_classpath, skip_if_env_set
 )
 
-@functools.lru_cache()
+@functools.cache
 def is_real_gnu_compiler(path):
     '''
     Check if the gcc we have is a real gcc and not a macOS wrapper around clang
