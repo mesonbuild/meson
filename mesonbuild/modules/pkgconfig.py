@@ -192,8 +192,7 @@ class DependenciesHelper:
                     obj = obj.get_as_static(recursive=True)
                 else:
                     obj = obj.get_as_shared(recursive=True)
-                for lib in obj.libraries:
-                    processed_reqs.append(self.metadata[lib.get_id()].filebase)
+                processed_reqs.extend(self.metadata[lib.get_id()].filebase for lib in obj.libraries)
             else:
                 raise mesonlib.MesonException('requires argument not a string, '
                                               'library with pkgconfig-generated file, '

@@ -624,8 +624,7 @@ class Backend:
                         obj_list.extend(result[obj.target])
                     new_objs = self._determine_ext_objs(obj)
                     if proj_dir_to_build_root:
-                        for o in new_objs:
-                            obj_list.append(os.path.join(proj_dir_to_build_root, o))
+                        obj_list.extend(os.path.join(proj_dir_to_build_root, o) for o in new_objs)
                     else:
                         obj_list.extend(new_objs)
                 else:
@@ -650,8 +649,7 @@ class Backend:
 
     def determine_swift_dep_dirs(self, target: build.BuildTarget) -> T.List[str]:
         result: T.List[str] = []
-        for l in target.link_targets:
-            result.append(self.get_target_private_dir_abs(l))
+        result.extend(self.get_target_private_dir_abs(l) for l in target.link_targets)
         return result
 
     def get_exe_interpreter(self, exe_cmd: T.List[str], for_machine: MachineChoice) -> T.List[str]:
@@ -1550,9 +1548,8 @@ class Backend:
     @lru_cache(maxsize=None)
     def get_custom_target_provided_by_generated_source(self, generated_source: build.CustomTarget) -> 'ImmutableListProtocol[str]':
         libs: T.List[str] = []
-        for f in generated_source.get_outputs():
-            if compilers.is_library(f):
-                libs.append(os.path.join(self.get_target_dir(generated_source), f))
+        libs.extend(os.path.join(self.get_target_dir(generated_source), f)
+                    for f in generated_source.get_outputs() if compilers.is_library(f))
         return libs
 
     @lru_cache(maxsize=None)

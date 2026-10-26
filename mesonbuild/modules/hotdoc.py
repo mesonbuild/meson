@@ -262,8 +262,7 @@ class HotdocTargetBuilder:
                     ) -> File | CustomTarget | CustomTargetIndex | list[File | CustomTarget | CustomTargetIndex]:
         if isinstance(value, list):
             res: list[File | CustomTarget | CustomTargetIndex] = []
-            for val in value:
-                res.append(self.ensure_file(val))
+            res.extend(self.ensure_file(val) for val in value)
             return res
 
         if isinstance(value, str):

@@ -177,9 +177,7 @@ def get_llvm_tool_names(tool: str) -> T.List[str]:
         #'-20',    # Debian development snapshot
         '-devel', # FreeBSD development snapshot
     ]
-    names: T.List[str] = []
-    for suffix in suffixes:
-        names.append(tool + suffix)
+    names: T.List[str] = [tool + suffix for suffix in suffixes]
     return names
 
 def detect_scanbuild() -> T.List[str]:

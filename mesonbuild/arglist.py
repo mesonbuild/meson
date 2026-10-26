@@ -140,9 +140,8 @@ class CompilerArgs(T.MutableSequence[str]):
 
         #pre and post will overwrite every element that is in the container
         #only copy over args that are in _container but not in the post flush or pre flush set
-        for a in self._container:
-            if a not in post_flush_set and a not in pre_flush_set:
-                new.append(a)
+        new.extend(a for a in self._container
+                   if a not in post_flush_set and a not in pre_flush_set)
         new.extend(post_flush)
 
         self._container = new

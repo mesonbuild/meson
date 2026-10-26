@@ -509,9 +509,7 @@ class I18nModule(ExtensionModule):
         mo_targets = kwargs['mo_targets']
         its_files = kwargs.get('its_files', [])
 
-        mo_fnames = []
-        for target in mo_targets:
-            mo_fnames.append(path.join(target.get_builddir(), target.get_outputs()[0]))
+        mo_fnames = [path.join(target.get_builddir(), target.get_outputs()[0]) for target in mo_targets]
 
         command: T.List[CommandTypes] = []
         command.extend(state.environment.get_build_command())

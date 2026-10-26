@@ -550,9 +550,8 @@ def curses_factory(env: 'Environment',
 
     if DependencyMethods.PKGCONFIG in methods:
         pkgconfig_files = ['pdcurses', 'ncursesw', 'ncurses', 'curses']
-        for pkg in pkgconfig_files:
-            candidates.append(DependencyCandidate.from_dependency(
-                pkg, PkgConfigDependency, (env, kwargs)))
+        candidates.extend(DependencyCandidate.from_dependency(
+            pkg, PkgConfigDependency, (env, kwargs)) for pkg in pkgconfig_files)
 
     # There are path handling problems with these methods on msys, and they
     # don't apply to windows otherwise (cygwin is handled separately from

@@ -67,9 +67,8 @@ class ElbrusCompiler(GnuLikeCompiler):
         p = subprocess.Popen(self.get_exelist(ccache=False) + ['-xc', '-E', '-v', '-'], env=os_env, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         stderr = p.stderr.read().decode('utf-8', errors='replace')
         includes: T.List[str] = []
-        for line in stderr.split('\n'):
-            if line.lstrip().startswith('--sys_include'):
-                includes.append(re.sub(r'\s*\\$', '', re.sub(r'^\s*--sys_include\s*', '', line)))
+        includes.extend(re.sub(r'\s*\\$', '', re.sub(r'^\s*--sys_include\s*', '', line))
+                        for line in stderr.split('\n') if line.lstrip().startswith('--sys_include'))
         return includes
 
     def get_optimization_args(self, optimization_level: str) -> T.List[str]:

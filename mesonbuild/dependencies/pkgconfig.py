@@ -156,10 +156,9 @@ class PkgConfigCLI(PkgConfigInterface):
 
     @staticmethod
     def _define_variable_args(define_variable: PkgConfigDefineType) -> T.List[str]:
-        ret = []
+        ret: list[str] = []
         if define_variable:
-            for pair in define_variable:
-                ret.append('--define-variable=' + '='.join(pair))
+            ret.extend('--define-variable=' + '='.join(pair) for pair in define_variable)
         return ret
 
     @lru_cache(maxsize=None)

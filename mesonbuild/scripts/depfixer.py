@@ -601,10 +601,7 @@ class Elf(DataSizes):
 
     def fix_deps(self, prefix: bytes) -> None:
         sec = self.find_section(b'.dynstr')
-        deps = []
-        for i in self.dynamic:
-            if i.d_tag == DT_NEEDED:
-                deps.append(i)
+        deps = [i for i in self.dynamic if i.d_tag == DT_NEEDED]
         for i in deps:
             offset = sec.sh_offset + i.val
             self.bf.seek(offset)

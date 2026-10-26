@@ -212,8 +212,7 @@ class DmdLikeCompilerMixin(CompilerMixinBase):
             if arg.startswith('-Wl,'):
                 # Translate linker arguments here.
                 linkargs = arg[arg.index(',') + 1:].split(',')
-                for la in linkargs:
-                    dcargs.append('-L=' + la.strip())
+                dcargs.extend('-L=' + la.strip() for la in linkargs)
                 continue
             elif arg.startswith(('-link-defaultlib', '-linker', '-link-internally', '-linkonce-templates', '-lib')):
                 # these are special arguments to the LDC linker call,
@@ -308,10 +307,8 @@ class DmdLikeCompilerMixin(CompilerMixinBase):
         if arg.startswith('-Wl,'):
             # Translate linker arguments here.
             linkargs = arg[arg.index(',') + 1:].split(',')
-            for la in linkargs:
-                if la.startswith('--out-implib='):
-                    # Import library name
-                    args.append('-L=/IMPLIB:' + la[13:].strip())
+            args.extend('-L=/IMPLIB:' + la[13:].strip()
+                        for la in linkargs if la.startswith('--out-implib='))
         elif arg.startswith('-mscrtlib='):
             args.append(arg)
             mscrtlib = arg[10:].lower()
