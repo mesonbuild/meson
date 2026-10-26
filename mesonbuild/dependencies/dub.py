@@ -544,6 +544,6 @@ class DubDependency(ExternalDependency):
         else:
             (dubbin, dubver) = found
             mlog.log('Found DUB:', mlog.bold(dubbin.get_path()),
-                     '(version %s)' % dubver)
+                     '(version {})'.format(dubver))
 
         return found

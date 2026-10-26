@@ -438,7 +438,7 @@ def validate_install(test: TestDef, installdir: Path, env: environment.Environme
     return ret_msg
 
 def log_text_file(logfile: T.TextIO, testdir: Path, result: TestResult) -> None:
-    logfile.write('%s\nstdout\n\n---\n' % testdir.as_posix())
+    logfile.write('{}\nstdout\n\n---\n'.format(testdir.as_posix()))
     logfile.write(result.stdo)
     logfile.write('\n\n---\n\nstderr\n\n---\n')
     logfile.write(result.stde)
@@ -1205,7 +1205,7 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
             except Exception:
                 mlog.warning('Found invalid test directory:', t.path)
                 continue
-            testname = '%.3d %s' % (int(testnum), testbase)
+            testname = f'{int(testnum):03d} {testbase}'
             if t.name:
                 testname += f' ({t.name})'
             should_fail = ''
@@ -1297,7 +1297,7 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
 
         if result:
             testcase_time = result.conftime + result.buildtime + result.testtime
-            current_test.set('time', '%.3f' % testcase_time)
+            current_test.set('time', '{:.3f}'.format(testcase_time))
 
         # skip
         if is_skipped and skip_as_expected:
@@ -1392,9 +1392,9 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
     safe_print = default_print
 
     print()
-    print("Total configuration time: %.2fs" % conf_time)
-    print("Total build time:         %.2fs" % build_time)
-    print("Total test time:          %.2fs" % test_time)
+    print("Total configuration time: {:.2f}s".format(conf_time))
+    print("Total build time:         {:.2f}s".format(build_time))
+    print("Total test time:          {:.2f}s".format(test_time))
     ET.ElementTree(element=junit_root).write(xmlname, xml_declaration=True, encoding='UTF-8')
 
     # validate the JUnit XML output against the JUnit schema, if possible

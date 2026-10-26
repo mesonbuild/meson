@@ -71,7 +71,7 @@ class BlockParseException(ParseException):
             # Followed by a message saying where the block started.
             # Followed by the line of the block start.
             # Followed by a caret for the block start.
-            MesonException.__init__(self, "%s\n%s\n%s\nFor a block that started at %d,%d\n%s\n%s" % (text, line, '%s^' % (' ' * colno), start_lineno, start_colno, start_line, "%s^" % (' ' * start_colno)))
+            MesonException.__init__(self, "{}\n{}\n{}^\nFor a block that started at {},{}\n{}\n{}^".format(text, line, ' ' * colno, start_lineno, start_colno, start_line, ' ' * start_colno))
         self.lineno = lineno
         self.colno = colno
 
