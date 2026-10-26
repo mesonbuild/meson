@@ -121,7 +121,7 @@ class DictMergeValue(ConvertValue):
 
         explicit: T.Set[str] = set(self.merge_key(x) for x in out)
         out_d: T.Dict[str, object] = {self.out_key(x): x for x in out}
-        for k, v in self.default.items():
+        for v in self.default.values():
             if self.merge_key(v) not in explicit:
                 out_d[self.out_key(v)] = v
         return out_d
