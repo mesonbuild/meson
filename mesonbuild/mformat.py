@@ -579,7 +579,8 @@ class TrimWhitespaces(FullAstVisitor):
         self.add_space_after(node.colon)
 
         node.block.whitespaces.value += node.condition_level * self.config.indent_by
-        node.block.whitespaces.block_indent = True
+        # After the last statement, whitespaces begin on the line of that statement
+        node.block.whitespaces.block_indent = not node.block.lines
 
         self.move_whitespaces(node.endforeach, node)
 
@@ -595,19 +596,21 @@ class TrimWhitespaces(FullAstVisitor):
     def visit_IfNode(self, node: mparser.IfNode) -> None:
         super().visit_IfNode(node)
         self.add_space_after(node.if_)
-        self.in_block_comments = True
+        # After the last statement, whitespaces begin on the line of that statement
+        self.in_block_comments = not node.block.lines
         self.move_whitespaces(node.block, node)
         self.in_block_comments = False
         node.whitespaces.condition_level = node.condition_level + 1
-        node.whitespaces.block_indent = True
+        node.whitespaces.block_indent = not node.block.lines
 
     def visit_ElseNode(self, node: mparser.ElseNode) -> None:
         super().visit_ElseNode(node)
-        self.in_block_comments = True
+        # After the last statement, whitespaces begin on the line of that statement
+        self.in_block_comments = not node.block.lines
         self.move_whitespaces(node.block, node)
         self.in_block_comments = False
         node.whitespaces.condition_level = node.condition_level + 1
-        node.whitespaces.block_indent = True
+        node.whitespaces.block_indent = not node.block.lines
 
     def visit_TernaryNode(self, node: mparser.TernaryNode) -> None:
         super().visit_TernaryNode(node)
