@@ -31,7 +31,7 @@ def main() -> int:
         '--check-diff',
     ], capture_output=True, text=True)
 
-    with open('subprojects/find-me/expected.diff', 'r', encoding='utf-8') as f:
+    with open('subprojects/find-me/expected.diff', encoding='utf-8') as f:
         actual = result.stdout.replace('\\', '/')
         expected = f.read()
 

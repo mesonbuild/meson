@@ -9,7 +9,7 @@ fname = sys.argv[1]
 check_strs = sys.argv[2:]
 
 assert os.path.isfile(fname)
-with open(fname, 'r', encoding='utf-8') as f:
+with open(fname, encoding='utf-8') as f:
     content = f.read()
 
 for check_str in check_strs:

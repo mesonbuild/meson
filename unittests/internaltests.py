@@ -1807,7 +1807,7 @@ InstalledDir: /usr/bin'''), '14.0.0-1ubuntu1.1')
                     raise
                 raise unittest.SkipTest('neither Python fastjsonschema nor jsonschema module not found.')
 
-        with open('data/test.schema.json', 'r', encoding='utf-8') as f:
+        with open('data/test.schema.json', encoding='utf-8') as f:
             data = json.loads(f.read())
 
         if fast:

@@ -587,6 +587,6 @@ def ci_fold_file(fname: T.Union[str, os.PathLike], banner: str, force: bool = Fa
         # only github is implemented
         return None
 
-    with open(fname, 'r', encoding='utf-8') as f:
+    with open(fname, encoding='utf-8') as f:
         data = f.read()
     return f'{header}\n{data}\n{footer}\n'
