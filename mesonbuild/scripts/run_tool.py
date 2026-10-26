@@ -74,7 +74,7 @@ async def _run_workers(infos: T.Iterable[Info],
         loop.add_signal_handler(signal.SIGTERM, sigterm_handler)
 
     for i in infos:
-        futures.extend((asyncio.ensure_future(run_one(x)) for x in fn(i)))
+        futures.extend(asyncio.ensure_future(run_one(x)) for x in fn(i))
     if not futures:
         return 0
 

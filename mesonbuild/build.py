@@ -1230,8 +1230,8 @@ class BuildTarget(Target, BuildTargetProto):
                 raise MesonException('cannot build Rust sources with a different link_language')
             if self.structured_sources:
                 # TODO: the interpreter should be able to generate a better error message?
-                if any((s.endswith('.rs') for s in self.sources)) or \
-                       any(any((s.endswith('.rs') for s in g.get_outputs())) for g in self.generated):
+                if any(s.endswith('.rs') for s in self.sources) or \
+                       any(any(s.endswith('.rs') for s in g.get_outputs()) for g in self.generated):
                     raise MesonException('cannot mix Rust structured sources and unstructured sources')
 
             # relocation-model=pic is rustc's default and Meson does not
@@ -1545,8 +1545,8 @@ class BuildTarget(Target, BuildTargetProto):
             else:
                 nonresults.add(t)
             if isinstance(t, BuildTarget):
-                stack.extendleft((t2 for t2 in t.link_targets if t2 not in nonresults))
-                stack.extendleft((t2 for t2 in t.link_whole_targets if t2 not in nonresults))
+                stack.extendleft(t2 for t2 in t.link_targets if t2 not in nonresults)
+                stack.extendleft(t2 for t2 in t.link_whole_targets if t2 not in nonresults)
         return list(result)
 
     def get_link_deps_mapping(self, prefix: str) -> T.Mapping[str, str]:

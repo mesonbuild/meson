@@ -1157,7 +1157,7 @@ class GnomeModule(ExtensionModule):
         'g-ir-scanner only accepts -L/-l; must ignore -F and other linker flags'
         return (
             [f for f in ldflags if f.startswith(('-L', '-l', '--extra-library'))],
-            [f for f in ldflags if f.startswith(('-Wl,-rpath,'))],
+            [f for f in ldflags if f.startswith('-Wl,-rpath,')],
         )
 
     @TypedArgs(

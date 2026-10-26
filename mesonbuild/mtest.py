@@ -1245,7 +1245,7 @@ class TestRunRust(TestRun):
                 name, result = match.groups()
                 doctest = RUST_DOCTEST_RE.match(name)
                 if doctest:
-                    name = ':'.join((x.rstrip() for x in doctest.groups() if x))
+                    name = ':'.join(x.rstrip() for x in doctest.groups() if x)
                 else:
                     name = name.rstrip()
                 name = name.replace('::', '.')
