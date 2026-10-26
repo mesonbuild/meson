@@ -228,12 +228,8 @@ class SubprojectsCommandTests(BasePlatformTests):
         self._git_create_local_repo('sub_git_no_wrap')
 
         def ran_in(s):
-            ret = []
             prefix = 'Executing command in '
-            for l in s.splitlines():
-                if l.startswith(prefix):
-                    ret.append(l[len(prefix):])
-            return sorted(ret)
+            return sorted(l[len(prefix):] for l in s.splitlines() if l.startswith(prefix))
 
         dummy_cmd = ['true']
         out = self._subprojects_cmd(['foreach'] + dummy_cmd)
@@ -265,12 +261,8 @@ class SubprojectsCommandTests(BasePlatformTests):
                 '''))
 
         def deleting(s: str) -> T.List[str]:
-            ret = []
             prefix = 'Deleting '
-            for l in s.splitlines():
-                if l.startswith(prefix):
-                    ret.append(l[len(prefix):])
-            return sorted(ret)
+            return sorted(l[len(prefix):] for l in s.splitlines() if l.startswith(prefix))
 
         out = self._subprojects_cmd(['purge'])
         self.assertEqual(deleting(out), sorted([

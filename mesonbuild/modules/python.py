@@ -432,22 +432,19 @@ class PythonModule(ExtensionModule):
             return ret
 
         installdata = backend.create_install_data()
-        py_files = []
+        py_files: list[tuple[str, str]] = []
 
         def should_append(f: str, isdir: bool = False) -> bool:
             # This uses the install_plan decorated names to see if the original source was propagated via
             # install_sources() or get_install_dir().
             return f.startswith(('{py_platlib}', '{py_purelib}')) and (f.endswith('.py') or isdir)
 
-        for t in installdata.targets:
-            if should_append(t.out_name):
-                py_files.append((t.out_name, os.path.join(installdata.prefix, t.outdir, os.path.basename(t.fname))))
-        for d in installdata.data:
-            if should_append(d.install_path_name):
-                py_files.append((d.install_path_name, os.path.join(installdata.prefix, d.install_path)))
-        for d in installdata.install_subdirs:
-            if should_append(d.install_path_name, True):
-                py_files.append((d.install_path_name, os.path.join(installdata.prefix, d.install_path)))
+        py_files.extend((t.out_name, os.path.join(installdata.prefix, t.outdir, os.path.basename(t.fname)))
+                        for t in installdata.targets if should_append(t.out_name))
+        py_files.extend((d.install_path_name, os.path.join(installdata.prefix, d.install_path))
+                        for d in installdata.data if should_append(d.install_path_name))
+        py_files.extend((d.install_path_name, os.path.join(installdata.prefix, d.install_path))
+                        for d in installdata.install_subdirs if should_append(d.install_path_name, True))
 
         import importlib.resources
         pycompile = os.path.join(self.interpreter.environment.get_scratch_dir(), 'pycompile.py')

@@ -93,7 +93,7 @@ def get_env(b: build.Build, dump_fmt: T.Optional[str]) -> T.Tuple[T.Dict[str, st
 
 def bash_completion_files(b: build.Build, install_data: 'InstallData') -> T.List[str]:
     from .dependencies.pkgconfig import PkgConfigDependency
-    result = []
+    result: list[str] = []
     dep = PkgConfigDependency('bash-completion', b.environment,
                               {'required': False, 'silent': True, 'version': ['>=2.10'], 'native': MachineChoice.HOST})
     if dep.found():
@@ -105,9 +105,8 @@ def bash_completion_files(b: build.Build, install_data: 'InstallData') -> T.List
         completionsdir = dep.get_variable(pkgconfig='completionsdir', pkgconfig_define=(('datadir', datadir_abs),))
         assert isinstance(completionsdir, str), 'for mypy'
         completionsdir_path = Path(completionsdir)
-        for f in install_data.data:
-            if completionsdir_path in Path(f.install_path).parents:
-                result.append(f.path)
+        result.extend(f.path for f in install_data.data
+                      if completionsdir_path in Path(f.install_path).parents)
     return result
 
 def add_gdb_auto_load(autoload_path: Path, gdb_helper: str, fname: Path) -> None:

@@ -571,9 +571,9 @@ class QtBaseModule(ExtensionModule):
             if isinstance(dep, InternalDependency):
                 for incl in dep.include_directories:
                     compile_args.update(f'-I{i}' for i in incl.abs_string_list(self.interpreter.source_root, self.interpreter.environment.build_dir))
-                for src in dep.sources:
-                    if isinstance(src, (build.CustomTarget, build.BuildTarget, build.CustomTargetIndex)):
-                        depends.append(src)
+                depends.extend(src for src in dep.sources
+                               if isinstance(src, (build.CustomTarget, build.BuildTarget,
+                                                   build.CustomTargetIndex)))
 
         output: T.List[build.GeneratedList] = []
 
@@ -763,17 +763,16 @@ class QtBaseModule(ExtensionModule):
             return ModuleReturnValue(translations, [translations])
 
     def _source_to_files(self, state: ModuleState, sources: T.List[str | build.TargetSources]) -> T.List[File]:
-
-        content_files = []
+        content_files: list[File] = []
         for s in sources:
             if isinstance(s, (build.CustomTarget, build.CustomTargetIndex)):
-                for o in s.get_outputs():
-                    content_files.append(File.from_built_file(state.backend.get_target_dir(s), o))
+                content_files.extend(File.from_built_file(state.backend.get_target_dir(s), o)
+                                     for o in s.get_outputs())
             elif isinstance(s, File):
                 content_files.append(s)
             elif isinstance(s, build.GeneratedList):
-                for gen_src in s.get_outputs():
-                    content_files.append(File.from_built_file(state.current_build_dir, gen_src))
+                content_files.extend(File.from_built_file(state.current_build_dir, gen_src)
+                                     for gen_src in s.get_outputs())
             else:
                 content_files.append(File.from_source_file(
                     state.environment.get_source_dir(),

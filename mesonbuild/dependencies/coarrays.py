@@ -29,9 +29,8 @@ def coarray_factory(env: 'Environment',
     if fcid == 'gcc':
         # OpenCoarrays is the most commonly used method for Fortran Coarray with GCC
         if DependencyMethods.PKGCONFIG in methods:
-            for pkg in ['caf-openmpi', 'caf']:
-                candidates.append(DependencyCandidate.from_dependency(
-                    pkg, PkgConfigDependency, (env, kwargs)))
+            candidates.extend(DependencyCandidate.from_dependency(
+                pkg, PkgConfigDependency, (env, kwargs)) for pkg in ['caf-openmpi', 'caf'])
 
         if DependencyMethods.CMAKE in methods:
             nkwargs = kwargs

@@ -503,10 +503,10 @@ class CudaModule(NewExtensionModule):
             gencode_flags += ['-gencode', f'arch=compute_{virt},code=compute_{virt}']
 
         arch_names: T.List[str] = []
-        for _, output_target in sorted(bin_pairs, key=lambda p: version_key(p[1])):
-            arch_names.append('sm_' + str(output_target).replace('.', ''))
-        for virtual_target in sorted(cuda_arch_ptx, key=version_key):
-            arch_names.append('compute_' + str(virtual_target).replace('.', ''))
+        arch_names.extend('sm_' + str(output_target).replace('.', '')
+                          for _, output_target in sorted(bin_pairs, key=lambda p: version_key(p[1])))
+        arch_names.extend('compute_' + str(virtual_target).replace('.', '')
+                          for virtual_target in sorted(cuda_arch_ptx, key=version_key))
 
         return gencode_flags, arch_names
 

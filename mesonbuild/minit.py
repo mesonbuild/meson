@@ -96,9 +96,7 @@ def autodetect_options(options: Arguments, sample: bool = False) -> None:
         return
     if not options.srcfiles:
         srcfiles: T.List[Path] = []
-        for f in (f for f in Path().iterdir() if f.is_file()):
-            if f.suffix in LANG_SUFFIXES:
-                srcfiles.append(f)
+        srcfiles.extend(f for f in Path().iterdir() if f.is_file() and f.suffix in LANG_SUFFIXES)
         if not srcfiles:
             raise SystemExit('No recognizable source files found.\n'
                              'Run meson init in an empty directory to create a sample project.')

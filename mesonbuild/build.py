@@ -735,8 +735,7 @@ class IncludeDirs(HoldableObject):
         for idir in self.incdirs:
             strlist.append(os.path.join(sourcedir, self.curdir, idir))
             strlist.append(os.path.join(builddir, bsubdir, idir))
-        for idir in self.extra_build_dirs:
-            strlist.append(os.path.join(builddir, bsubdir, idir))
+        strlist.extend(os.path.join(builddir, bsubdir, idir) for idir in self.extra_build_dirs)
         return strlist
 
     def rel_string_list(self, build_to_src: str, build_root: T.Optional[str] = None) -> T.List[str]:
@@ -1418,19 +1417,12 @@ class BuildTarget(Target, BuildTargetProto):
                         generated.append(src)
 
         # All generated sources
-        for gensrc in generated:
-            for s in gensrc.get_outputs():
-                # Generated objects can't be compiled, so don't use them for
-                # compiler detection. If our target only has generated objects,
-                # we will fall back to using the first c-like compiler we find,
-                # which is what we need.
-                if not is_object(s):
-                    sources.append(s)
+        # Generated objects can't be compiled, so don't use them for compiler
+        # detection. If our target only has generated objects, we will fall back
+        # to using the first c-like compiler we find, which is what we need.
+        sources.extend(s for gensrc in generated for s in gensrc.get_outputs() if not is_object(s))
 
-        for d in self.external_deps:
-            for s in d.sources:
-                if isinstance(s, File):
-                    sources.append(s)
+        sources.extend(s for d in self.external_deps for s in d.sources if isinstance(s, File))
 
         # Sources that were used to create our extracted objects
         for o in self.objects:
@@ -3302,9 +3294,7 @@ class CustomTarget(Target, CustomTargetBase, CommandTargetProto):
 
     def get_generated_lists(self) -> T.List[GeneratedList]:
         genlists: T.List[GeneratedList] = []
-        for c in self.sources:
-            if isinstance(c, GeneratedList):
-                genlists.append(c)
+        genlists.extend(c for c in self.sources if isinstance(c, GeneratedList))
         return genlists
 
     def get_generated_sources(self) -> T.Iterable[GeneratedTypes]:

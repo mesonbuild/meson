@@ -153,10 +153,8 @@ def build_gtkdoc(source_root: str, build_root: str, doc_subdir: str, build_subdi
                          '--ld=' + ld,
                          '--output-dir=' + abs_out]
 
-        library_paths = []
-        for ldflag in split_args(ldflags):
-            if ldflag.startswith('-Wl,-rpath,'):
-                library_paths.append(ldflag[11:])
+        library_paths = [ldflag[11:] for ldflag in split_args(ldflags)
+                         if ldflag.startswith('-Wl,-rpath,')]
 
         gtkdoc_run_check(scanobjs_cmd, build_root, library_paths)
 

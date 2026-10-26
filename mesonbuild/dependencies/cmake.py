@@ -200,9 +200,9 @@ class CMakeDependency(ExternalDependency):
         root_paths = [x for x in root_paths if os.path.isdir(x)]
         module_paths_set = process_paths(temp_parser.get_cmake_var('MESON_PATHS_LIST'))
         rooted_paths: T.List[str] = []
-        for j in [Path(x) for x in root_paths]:
-            for p in [Path(x) for x in module_paths_set]:
-                rooted_paths.append(str(j / p.relative_to(p.anchor)))
+        rooted_paths.extend(str(j / p.relative_to(p.anchor))
+                            for j in [Path(x) for x in root_paths]
+                            for p in [Path(x) for x in module_paths_set])
         module_paths = sorted(module_paths_set.union(rooted_paths))
         module_paths = [x for x in module_paths if os.path.isdir(x)]
         archs = temp_parser.get_cmake_var('MESON_ARCH_LIST')

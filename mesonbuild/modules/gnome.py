@@ -869,9 +869,7 @@ class GnomeModule(ExtensionModule):
 
         for lang in langs:
             link_args = T.cast('T.List[str]', state.get_option(f'{lang}_link_args', state.subproject))
-            for link_arg in link_args:
-                if link_arg.startswith('-L'):
-                    ret.append(link_arg)
+            ret.extend(link_arg for link_arg in link_args if link_arg.startswith('-L'))
 
         return ret
 
@@ -1595,23 +1593,21 @@ class GnomeModule(ExtensionModule):
         t_args.append(f'--html-assets={"@@".join(abs_filenames(kwargs["html_assets"]))}')
 
         depends: T.List['build.GeneratedTypes'] = []
-        content_files = []
+        content_files: list[str] = []
         for s in kwargs['content_files']:
             if isinstance(s, (CustomTarget, CustomTargetIndex)):
                 depends.append(s)
-                for o in s.get_outputs():
-                    content_files.append(os.path.join(state.environment.get_build_dir(),
-                                                      state.backend.get_target_dir(s),
-                                                      o))
+                content_files.extend(os.path.join(state.environment.get_build_dir(),
+                                                  state.backend.get_target_dir(s), o)
+                                     for o in s.get_outputs())
             elif isinstance(s, mesonlib.File):
                 content_files.append(s.absolute_path(state.environment.get_source_dir(),
                                                      state.environment.get_build_dir()))
             elif isinstance(s, GeneratedList):
                 depends.append(s)
-                for gen_src in s.get_outputs():
-                    content_files.append(os.path.join(state.environment.get_source_dir(),
-                                                      state.subdir,
-                                                      gen_src))
+                content_files.extend(os.path.join(state.environment.get_source_dir(),
+                                                  state.subdir, gen_src)
+                                     for gen_src in s.get_outputs())
             else:
                 content_files.append(os.path.join(state.environment.get_source_dir(),
                                                   state.subdir,
@@ -1838,9 +1834,7 @@ class GnomeModule(ExtensionModule):
             docbook = kwargs['docbook']
             # The docbook output is always ${docbook}-${name_of_xml_file}
             output = namebase + '-docbook'
-            outputs = []
-            for f in xml_files:
-                outputs.append('{}-{}'.format(docbook, os.path.basename(str(f))))
+            outputs = ['{}-{}'.format(docbook, os.path.basename(str(f))) for f in xml_files]
 
             if mesonlib.version_compare(glib_version, '>= 2.56.2'):
                 docbook_cmd = cmd + ['--output-directory', '@OUTDIR@', '--generate-docbook', docbook, '@INPUT@']

@@ -32,9 +32,8 @@ def scalapack_factory(env: 'Environment',
         candidates.append(DependencyCandidate.from_dependency(
             mkl, MKLPkgConfigDependency, (env, kwargs)))
 
-        for pkg in ['scalapack-openmpi', 'scalapack']:
-            candidates.append(DependencyCandidate.from_dependency(
-                pkg, PkgConfigDependency, (env, kwargs)))
+        candidates.extend(DependencyCandidate.from_dependency(
+            pkg, PkgConfigDependency, (env, kwargs)) for pkg in ['scalapack-openmpi', 'scalapack'])
 
     if DependencyMethods.CMAKE in methods:
         candidates.append(DependencyCandidate.from_dependency(

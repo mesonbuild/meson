@@ -815,9 +815,8 @@ class NinjaBackend(backends.Backend):
         for genlist in target.get_generated_sources():
             if isinstance(genlist, (build.CustomTarget, build.CustomTargetIndex)):
                 continue
-            for src in genlist.get_outputs():
-                if compilers.is_header(src):
-                    header_deps.append(self.get_target_generated_dir(target, genlist, src))
+            header_deps.extend(self.get_target_generated_dir(target, genlist, src)
+                               for src in genlist.get_outputs() if compilers.is_header(src))
         if target.vala_header:
             vala_header = File.from_built_file(self.get_target_dir(target), target.vala_header)
             header_deps.append(vala_header)
@@ -1626,9 +1625,7 @@ class NinjaBackend(backends.Backend):
     def generate_java_compile(self, srcs: T.List[File], target: build.BuildTarget, compiler: Compiler, args: T.List[str]) -> T.List[str]:
         deps = [os.path.join(self.get_target_dir(l), l.get_filename()) for l in target.link_targets]
         generated_sources = self.get_target_generated_sources(target)
-        for rel_src in generated_sources:
-            if rel_src.endswith('.java'):
-                deps.append(rel_src)
+        deps.extend(rel_src for rel_src in generated_sources if rel_src.endswith('.java'))
 
         rel_srcs = []
         plain_class_paths = []
@@ -2356,17 +2353,12 @@ class NinjaBackend(backends.Backend):
         return result
 
     def get_swift_link_deps(self, target: build.BuildTarget) -> T.List[str]:
-        result = []
-        for l in target.link_targets:
-            result.append(self.get_target_filename(l))
-        return result
+        return [self.get_target_filename(l) for l in target.link_targets]
 
     def split_swift_generated_sources(self, target: build.BuildTarget) -> T.List[str]:
         all_srcs = self.get_target_generated_sources(target)
         srcs: T.List[str] = []
-        for i in all_srcs:
-            if i.endswith('.swift'):
-                srcs.append(i)
+        srcs.extend(i for i in all_srcs if i.endswith('.swift'))
         return srcs
 
     def generate_swift_target(self, target: build.BuildTarget) -> None:
@@ -4245,12 +4237,11 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         # instead of files. This is needed because on platforms other than
         # Windows, Ninja only deletes directories while cleaning if they are
         # empty. https://github.com/mesonbuild/meson/issues/1220
-        ctlist = []
+        ctlist: list[str] = []
         for t in self.build.get_targets().values():
             if isinstance(t, build.CustomTarget):
                 # Create a list of all custom target outputs
-                for o in t.get_outputs():
-                    ctlist.append(os.path.join(self.get_target_dir(t), o))
+                ctlist.extend(os.path.join(self.get_target_dir(t), o) for o in t.get_outputs())
         # Also clean meson-dist directory created by `meson dist`
         ctlist.append('meson-dist')
         if ctlist:

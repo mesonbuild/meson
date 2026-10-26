@@ -159,9 +159,8 @@ def hdf5_factory(env: 'Environment', kwargs: DependencyObjectKWs,
             except DependencyException:
                 # use just the standard files if pkg-config --list-all fails
                 pass
-        for mod in pkgconfig_files:
-            candidates.append(DependencyCandidate.from_dependency(
-                mod, HDF5PkgConfigDependency, (env, kwargs)))
+        candidates.extend(DependencyCandidate.from_dependency(
+            mod, HDF5PkgConfigDependency, (env, kwargs)) for mod in pkgconfig_files)
 
     if DependencyMethods.CONFIG_TOOL in methods:
         candidates.append(DependencyCandidate.from_dependency(

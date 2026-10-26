@@ -300,15 +300,13 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
     def _get_candidates(self) -> T.List[CandidateType]:
         candidates: T.List[CandidateType] = []
         # 1. check if any of the names is cached already.
-        for name in self.names:
-            candidates.append((self._do_dependency_cache, name))
+        candidates.extend((self._do_dependency_cache, name) for name in self.names)
         # 2. check if the subproject fallback has already been configured.
         if self.subproject_name:
             candidates.append((self._do_existing_subproject, self.subproject_name))
         # 3. check external dependency if we are not forced to use subproject
         if not self.forcefallback or not self.subproject_name:
-            for name in self.names:
-                candidates.append((self._do_dependency, name))
+            candidates.extend((self._do_dependency, name) for name in self.names)
         # 4. configure the subproject
         if self.subproject_name:
             candidates.append((self._do_subproject, self.subproject_name))

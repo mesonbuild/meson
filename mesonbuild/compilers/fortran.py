@@ -308,8 +308,7 @@ class GnuFortranCompiler(GnuCompiler, FortranCompiler):
         # search paths, such as when using Clang for C/C++ and gfortran for
         # fortran,
         search_dirs: T.List[str] = []
-        for d in self.get_compiler_dirs('libraries'):
-            search_dirs.append(f'-L{d}')
+        search_dirs.extend(f'-L{d}' for d in self.get_compiler_dirs('libraries'))
         return search_dirs + ['-lgfortran', '-lm']
 
     def has_header(self, hname: str, prefix: str, *,
@@ -591,8 +590,7 @@ class ClassicFlangFortranCompiler(ClangCompiler, FortranCompiler):
         # fortran,
         # XXX: Untested....
         search_dirs: T.List[str] = []
-        for d in self.get_compiler_dirs('libraries'):
-            search_dirs.append(f'-L{d}')
+        search_dirs.extend(f'-L{d}' for d in self.get_compiler_dirs('libraries'))
         return search_dirs + ['-lflang', '-lpgmath']
 
 
@@ -639,8 +637,7 @@ class LlvmFlangFortranCompiler(ClangCompiler, FortranCompiler):
     def language_stdlib_only_link_flags(self) -> T.List[str]:
         # matching setup from ClassicFlangFortranCompiler
         search_dirs: T.List[str] = []
-        for d in self.get_compiler_dirs('libraries'):
-            search_dirs.append(f'-L{d}')
+        search_dirs.extend(f'-L{d}' for d in self.get_compiler_dirs('libraries'))
         # does not automatically link to Fortran_main anymore after
         # https://github.com/llvm/llvm-project/commit/9d6837d595719904720e5ff68ec1f1a2665bdc2f
         # note that this changed again in flang 19 with

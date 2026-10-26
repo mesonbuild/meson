@@ -430,10 +430,7 @@ class Rewriter:
             if target == i.id:
                 return i
 
-        potential_tgts = []
-        for i in self.interpreter.targets:
-            if target == i.name:
-                potential_tgts.append(i)
+        potential_tgts = [i for i in self.interpreter.targets if target == i.name]
 
         if not potential_tgts:
             potenial_tgts_1 = self.all_assignments(target)
@@ -454,9 +451,7 @@ class Rewriter:
 
     def find_dependency(self, dependency: str) -> T.Optional[IntrospectionDependency]:
         potential_deps: T.List[IntrospectionDependency] = []
-        for i in self.interpreter.dependencies:
-            if i.name == dependency:
-                potential_deps.append(i)
+        potential_deps.extend(i for i in self.interpreter.dependencies if i.name == dependency)
 
         checking_varnames = len(potential_deps) == 0
 

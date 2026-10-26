@@ -989,12 +989,9 @@ class CLikeCompiler(Compiler):
             # For static libs, `_s' is used instead of `_dll'.
             for s in suffixes:
                 dot = '' if s.startswith(('_dll.', '_s.')) else '.'
-                for p in prefixes:
-                    patterns.append(p + '{}' + dot + s)
+                patterns.extend(p + '{}' + dot + s for p in prefixes)
             return patterns
-        for p in prefixes:
-            for s in suffixes:
-                patterns.append(p + '{}.' + s)
+        patterns.extend(p + '{}.' + s for p in prefixes for s in suffixes)
         if shared and self.info.is_openbsd():
             # Shared libraries on OpenBSD can be named libfoo.so.X.Y:
             # https://www.openbsd.org/faq/ports/specialtopics.html#SharedLibs
@@ -1003,8 +1000,7 @@ class CLikeCompiler(Compiler):
             # is expensive. It's wrong in many edge cases, but it will match
             # correctly-named libraries and hopefully no one on OpenBSD names
             # their files libfoo.so.9a.7b.1.0
-            for p in prefixes:
-                patterns.append(p + '{}.so.[0-9]*.[0-9]*')
+            patterns.extend(p + '{}.so.[0-9]*.[0-9]*' for p in prefixes)
         return patterns
 
     def get_library_naming(self, libtype: LibType, strict: bool = False) -> T.Tuple[str, ...]:

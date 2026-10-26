@@ -323,9 +323,9 @@ class XCodeBackend(backends.Backend):
 
     def determine_swift_dep_dirs(self, target: build.BuildTarget) -> T.List[str]:
         result: T.List[str] = []
-        for l in target.link_targets:
-            # Xcode does not recognize our private directories, so we have to use its build directories instead.
-            result.append(os.path.join(self.environment.get_build_dir(), self.get_target_dir(l)))
+        # Xcode does not recognize our private directories, so we have to use its build directories instead.
+        result.extend(os.path.join(self.environment.get_build_dir(), self.get_target_dir(l))
+                      for l in target.link_targets)
         return result
 
     def set_arch(self) -> None:
@@ -821,9 +821,7 @@ class XCodeBackend(backends.Backend):
             styledict.add_item('name', name)
 
     def to_shell_script(self, args: CompilerArgs) -> str:
-        quoted_cmd = []
-        for c in args:
-            quoted_cmd.append(c.replace('"', chr(92) + '"'))
+        quoted_cmd = [c.replace('"', chr(92) + '"') for c in args]
         cmd = ' '.join(quoted_cmd)
         return f"\"#!/bin/sh\\n{cmd}\\n\""
 
@@ -1400,9 +1398,7 @@ class XCodeBackend(backends.Backend):
             custom_dict.add_item('runOnlyForDeploymentPostprocessing', 0)
             custom_dict.add_item('shellPath', '/bin/sh')
             workdir = self.environment.get_build_dir()
-            quoted_cmd = []
-            for c in fixed_cmd:
-                quoted_cmd.append(c.replace('"', chr(92) + '"'))
+            quoted_cmd = [c.replace('"', chr(92) + '"') for c in fixed_cmd]
             cmdstr = ' '.join([f"\\'{x}\\'" for x in quoted_cmd])
             custom_dict.add_item('shellScript', f'cd \'{workdir}\'; {cmdstr}')
             custom_dict.add_item('showEnvVarsInLog', 0)
