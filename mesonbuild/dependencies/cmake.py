@@ -226,7 +226,7 @@ class CMakeDependency(ExternalDependency):
         return res
 
     @staticmethod
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def _cached_listdir(path: str) -> T.Tuple[T.Tuple[str, str], ...]:
         try:
             return tuple((x, str(x).lower()) for x in os.listdir(path))
@@ -234,7 +234,7 @@ class CMakeDependency(ExternalDependency):
             return tuple()
 
     @staticmethod
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def _cached_isdir(path: str) -> bool:
         try:
             return os.path.isdir(path)

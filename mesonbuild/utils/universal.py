@@ -17,7 +17,7 @@ import abc
 import multiprocessing
 import platform, subprocess, operator, os, shlex, shutil, re
 import collections
-from functools import lru_cache, wraps
+from functools import lru_cache, wraps, cache
 from itertools import tee
 from tempfile import TemporaryDirectory, NamedTemporaryFile
 import typing as T
@@ -469,19 +469,19 @@ class File(HoldableObject):
         return ret.format(self.relative_name())
 
     @staticmethod
-    @lru_cache(maxsize=None)
+    @cache
     def from_source_file(source_root: str, subdir: str, fname: str) -> File:
         if not os.path.isfile(os.path.join(source_root, subdir, fname)):
             raise MesonException(f'File {fname} does not exist.')
         return File(False, subdir, fname)
 
     @staticmethod
-    @lru_cache(maxsize=None)
+    @cache
     def from_built_file(subdir: str, fname: str) -> 'File':
         return File(True, subdir, fname)
 
     @staticmethod
-    @lru_cache(maxsize=None)
+    @cache
     def from_built_relative(relative: str) -> 'File':
         dirpart, fnamepart = os.path.split(relative)
         return File.from_built_file(dirpart, fnamepart)
@@ -490,14 +490,14 @@ class File(HoldableObject):
     def from_absolute_file(fname: str) -> 'File':
         return File(False, '', fname)
 
-    @lru_cache(maxsize=None)
+    @cache
     def rel_to_builddir(self, build_to_src: str) -> str:
         if self.is_built:
             return self.relative_name()
         else:
             return os.path.join(build_to_src, self.subdir, self.fname)
 
-    @lru_cache(maxsize=None)
+    @cache
     def absolute_path(self, srcdir: str, builddir: str) -> str:
         absdir = srcdir
         if self.is_built:
@@ -527,7 +527,7 @@ class File(HoldableObject):
     def __hash__(self) -> int:
         return self.hash
 
-    @lru_cache(maxsize=None)
+    @cache
     def relative_name(self) -> str:
         return os.path.join(self.subdir, self.fname)
 
@@ -818,7 +818,7 @@ def is_os2() -> bool:
 def is_os400() -> bool:
     return platform.system().lower() == 'os400'
 
-@lru_cache(maxsize=None)
+@cache
 def darwin_get_object_archs(objpath: str) -> 'ImmutableListProtocol[str]':
     '''
     For a specific object (executable, static library, dylib, etc), run `lipo`

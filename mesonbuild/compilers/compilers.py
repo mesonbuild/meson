@@ -10,7 +10,7 @@ import enum
 import itertools
 import typing as T
 from dataclasses import dataclass, field
-from functools import lru_cache
+from functools import cache
 
 from .. import mlog
 from .. import mesonlib
@@ -147,7 +147,7 @@ def is_header(fname: 'mesonlib.FileOrString') -> bool:
 def is_source_suffix(suffix: str) -> bool:
     return suffix in source_suffixes
 
-@lru_cache(maxsize=None)
+@cache
 def cached_is_source_by_name(fname: str) -> bool:
     suffix = fname.split('.')[-1].lower()
     return is_source_suffix(suffix)
@@ -178,7 +178,7 @@ def is_llvm_ir(fname: 'mesonlib.FileOrString') -> bool:
     suffix = fname.split('.')[-1]
     return suffix in llvm_ir_suffixes
 
-@lru_cache(maxsize=None)
+@cache
 def cached_is_object_by_name(fname: str) -> bool:
     suffix = fname.split('.')[-1]
     return suffix in obj_suffixes
@@ -188,7 +188,7 @@ def is_object(fname: 'mesonlib.FileOrString') -> bool:
         fname = fname.fname
     return cached_is_object_by_name(fname)
 
-@lru_cache(maxsize=None)
+@cache
 def cached_is_library_by_name(fname: str) -> bool:
     if soregex.match(fname):
         return True
@@ -596,7 +596,7 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
         return repr_str.format(self.__class__.__name__, self.version,
                                ' '.join(self.exelist))
 
-    @lru_cache(maxsize=None)
+    @cache
     def can_compile(self, src: 'mesonlib.FileOrString') -> bool:
         if isinstance(src, mesonlib.File):
             src = src.fname

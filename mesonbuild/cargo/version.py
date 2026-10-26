@@ -4,7 +4,7 @@
 """Convert Cargo versions into Meson compatible ones."""
 
 from __future__ import annotations
-from functools import lru_cache
+from functools import cache
 import operator
 import re
 import typing as T
@@ -192,7 +192,7 @@ class SemVer:
         return SemVer(v)
 
 
-@lru_cache(maxsize=None)
+@cache
 def cargo_parse(cargo_ver: str) -> T.Callable[[str], bool]:
     """Return a function that checks a Version against a Cargo version
        requirement.

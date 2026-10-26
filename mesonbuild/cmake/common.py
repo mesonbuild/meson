@@ -110,7 +110,7 @@ def _flags_to_list(raw: str) -> T.List[str]:
     res = [r for r in res if len(r) > 0]
     return res
 
-@functools.lru_cache(maxsize=None)
+@functools.cache
 def _cmake_get_generator_args(backend_name: str) -> ImmutableListProtocol[str]:
     assert backend_name in backend_generator_map
     args = ['-G', backend_generator_map[backend_name]]

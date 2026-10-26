@@ -12,7 +12,7 @@ from ..mesonlib import version_compare
 
 import typing as T
 from pathlib import Path
-from functools import lru_cache
+from functools import cache
 import re
 import json
 import textwrap
@@ -28,7 +28,7 @@ class CMakeTraceLine:
         self.args = args
 
     @staticmethod
-    @lru_cache(maxsize=None)
+    @cache
     def _to_path(file_str: str) -> Path:
         return Path(file_str)
 
