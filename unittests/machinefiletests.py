@@ -1210,7 +1210,7 @@ class CrossFileTests(BasePlatformTests):
 
         rustc = shutil.which('rustc')
         assert rustc is not None, 'Should have skipped'
-        build_tuple = subprocess.run([rustc, '--print', 'host-tuple'], universal_newlines=True, check=True, capture_output=True).stdout.strip()
+        build_tuple = subprocess.run([rustc, '--print', 'host-tuple'], text=True, check=True, capture_output=True).stdout.strip()
         host_tuple = 'aarch64-unknown-linux-gnu'
 
         with self.subTest('properties only'):
