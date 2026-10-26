@@ -193,7 +193,7 @@ class CMakeExecutor:
         build_dir.mkdir(parents=True, exist_ok=True)
         cmd = self.cmakebin.get_command() + args
         ret = S.run(cmd, env=env, cwd=str(build_dir), close_fds=False,
-                    stdout=S.PIPE, stderr=S.PIPE, text=False)   # TODO [PYTHON_37]: drop Path conversion
+                    capture_output=True, text=False)   # TODO [PYTHON_37]: drop Path conversion
         rc = ret.returncode
         out = ret.stdout.decode(errors='ignore')
         err = ret.stderr.decode(errors='ignore')
