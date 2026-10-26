@@ -20,7 +20,7 @@ import typing as T
 _T = T.TypeVar('_T')
 
 if T.TYPE_CHECKING:
-    from typing_extensions import Protocol, TypeAlias, TypeIs, Unpack
+    from typing_extensions import Protocol, TypeIs, Unpack
 
     from .. import mparser
     from ..mesonlib import SubProject
@@ -38,13 +38,13 @@ if T.TYPE_CHECKING:
         def __call__(s, self: _TV_IntegerObject, other: _TV_ARG1) -> TYPE_var: ...
     _TV_FN_Operator = T.TypeVar('_TV_FN_Operator', bound=FN_Operator)
 
-    CalleeArgs: TypeAlias = T.Tuple[mparser.BaseNode | None, T.List[TYPE_var], TYPE_kwargs, SubProject]
+    CalleeArgs: T.TypeAlias = T.Tuple[mparser.BaseNode | None, T.List[TYPE_var], TYPE_kwargs, SubProject]
 
     MesonVersionTarget = mesonlib.Range[mesonlib.Version] | mesonlib.NoProjectVersion | None
 
-    _FeatureKey: TypeAlias = _T | 'ContainerTypeInfo' | type | tuple[type, ...]
-    _FeatureValue: TypeAlias = str | tuple[str, str]
-    _FeatureValues: TypeAlias = dict[_FeatureKey, _FeatureValue]
+    _FeatureKey: T.TypeAlias = _T | 'ContainerTypeInfo' | type | tuple[type, ...]
+    _FeatureValue: T.TypeAlias = str | tuple[str, str]
+    _FeatureValues: T.TypeAlias = dict[_FeatureKey, _FeatureValue]
 
     class _KwargInfoKWs(T.TypedDict, T.Generic[_T], total=False):
         name: str

@@ -40,11 +40,10 @@ from .. import mesonlib
 
 if T.TYPE_CHECKING:
     import http.client
-    from typing_extensions import Literal
 
     from ..cargo.manifest import CargoLock
 
-    Method = Literal['meson', 'cmake', 'cargo']
+    Method = T.Literal['meson', 'cmake', 'cargo']
 
 try:
     # Importing is just done to check if SSL exists, so all warnings

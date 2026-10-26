@@ -24,7 +24,6 @@ from ..options import OptionKey
 from ..arglist import CompilerArgs
 
 if T.TYPE_CHECKING:
-    from typing_extensions import Literal, TypeAlias
 
     from .. import build
     from .. import coredata
@@ -38,11 +37,11 @@ if T.TYPE_CHECKING:
     from ..dependencies import Dependency
 
     # See the comment on `lang_suffixes` if modifying this list.
-    Language = Literal[
+    Language = T.Literal[
         'c', 'cpp', 'cuda', 'fortran', 'd', 'objc', 'objcpp', 'rust', 'vala',
         'cs', 'swift', 'java', 'cython', 'nasm', 'masm', 'linearasm'
     ]
-    CompilerDict: TypeAlias = T.Dict[Language, 'Compiler']
+    CompilerDict: T.TypeAlias = T.Dict[Language, 'Compiler']
 
 _T = T.TypeVar('_T')
 

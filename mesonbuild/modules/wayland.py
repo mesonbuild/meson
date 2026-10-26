@@ -12,7 +12,7 @@ from ..interpreterbase import TypedArgs, KwargInfo, FeatureNew
 from ..mesonlib import File, MesonException
 
 if T.TYPE_CHECKING:
-    from typing_extensions import Literal, TypedDict
+    from typing_extensions import TypedDict
 
     from . import ModuleState
     from ..dependencies import Dependency
@@ -29,7 +29,7 @@ if T.TYPE_CHECKING:
 
     class FindProtocol(TypedDict):
 
-        state: Literal['stable', 'staging', 'unstable']
+        state: T.Literal['stable', 'staging', 'unstable']
         version: T.Optional[int]
 
 class WaylandModule(ExtensionModule):
@@ -68,7 +68,7 @@ class WaylandModule(ExtensionModule):
 
         scope = 'public' if kwargs['public'] else 'private'
         # We have to cast because mypy can't deduce these are literals
-        sides = [i for i in T.cast("T.List[Literal['client', 'server']]", ['client', 'server']) if kwargs[i]]
+        sides = [i for i in T.cast("T.List[T.Literal['client', 'server']]", ['client', 'server']) if kwargs[i]]
         if not sides:
             raise MesonException('At least one of client or server keyword argument must be set to true.')
 

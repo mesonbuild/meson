@@ -40,7 +40,7 @@ from ..options import OptionKey
 from ..build import GeneratedList, InvalidArguments
 
 if T.TYPE_CHECKING:
-    from typing_extensions import Literal, TypedDict
+    from typing_extensions import TypedDict
 
     from .._typing import ImmutableListProtocol
     from ..compilers.compilers import Language
@@ -56,7 +56,7 @@ if T.TYPE_CHECKING:
     CommandArgs = T.List[CommandArgTypes]
     FileList = T.List[File] | T.List[str] | T.List[File | str]
     ListifiedStr = str | T.List[str]
-    RUST_EDITIONS = Literal['2015', '2018', '2021', '2024']
+    RUST_EDITIONS = T.Literal['2015', '2018', '2021', '2024']
 
     class NinjaRuleArgs(TypedDict, total=False):
         rspable: bool
@@ -121,7 +121,7 @@ class TargetDependencyScannerInfo:
 
     private_dir: str
     source2object: T.Dict[str, str]
-    sources: T.List[T.Tuple[str, Literal['cpp', 'fortran']]]
+    sources: T.List[T.Tuple[str, T.Literal['cpp', 'fortran']]]
 
 
 @unique
@@ -1253,7 +1253,7 @@ class NinjaBackend(backends.Backend):
         self.add_build(elem)
 
     def select_sources_to_scan(self, compiled_sources: T.List[str],
-                               ) -> T.Iterable[T.Tuple[str, Literal['cpp', 'fortran']]]:
+                               ) -> T.Iterable[T.Tuple[str, T.Literal['cpp', 'fortran']]]:
         # in practice pick up C++ and Fortran files. If some other language
         # requires scanning (possibly Java to deal with inner class files)
         # then add them here.

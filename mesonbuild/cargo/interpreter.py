@@ -37,14 +37,13 @@ from ..wrap.wrap import PackageDefinition, WrapType
 if T.TYPE_CHECKING:
     from . import raw
     from .. import mparser
-    from typing_extensions import Literal
 
     from .manifest import Dependency, Profile
     from ..environment import Environment
     from ..compilers.rust import RustCompiler
     from ..options import ElementaryOptionValues
 
-    RUST_ABI = Literal['rust', 'c', 'proc-macro']
+    RUST_ABI = T.Literal['rust', 'c', 'proc-macro']
 
 def _dependency_name(package_name: str, api: str, suffix: str = '-rs') -> str:
     basename = package_name[:-len(suffix)] if suffix and package_name.endswith(suffix) else package_name

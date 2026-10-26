@@ -26,14 +26,13 @@ from ..environment import Environment, build_filename
 from .. import coredata
 
 if T.TYPE_CHECKING:
-    from typing_extensions import TypeAlias
 
     from ..arglist import CompilerArgs
     from ..compilers.compilers import Language
 
     Project = T.Tuple[str, PurePath, str, MachineChoice]
     FileLike = T.TypeVar('FileLike', bound=File | str)
-    _VSLITE_CTX: TypeAlias = dict[str, dict[str, dict[Language, list[str]]]]
+    _VSLITE_CTX: T.TypeAlias = dict[str, dict[str, dict[Language, list[str]]]]
 
 def autodetect_vs_version(build: T.Optional[build.Build]) -> backends.Backend:
     vs_version = os.getenv('VisualStudioVersion', None)

@@ -20,7 +20,7 @@ from ..programs import ExternalProgram
 from ..options import OptionKey
 
 if T.TYPE_CHECKING:
-    from typing_extensions import Final, TypedDict
+    from typing_extensions import TypedDict
 
     from .factory import DependencyGenerator
     from ..environment import Environment
@@ -78,7 +78,7 @@ class NumPyConfigToolDependency(ConfigToolDependency):
 class PythonBuildConfig:
     """PEP 739 build-details.json config file."""
 
-    IMPLEMENTED_VERSION: Final[str] = '1.0'
+    IMPLEMENTED_VERSION: T.Final[str] = '1.0'
     """Schema version currently implemented."""
     _PATH_KEYS = (
         'base_interpreter',

@@ -25,12 +25,10 @@ if T.TYPE_CHECKING:
     import argparse
     from argparse import ArgumentParser, _FormatterClass
 
-    from typing_extensions import TypeAlias
-
     from .mlog import AnsiDecorator
 
-    RewriterKeysT: TypeAlias = dict[str, tuple[type, object | None, list[str] | None]]
-    RewriterFuncT: TypeAlias = T.Callable[['Rewriter', dict[str, object]], None]
+    RewriterKeysT: T.TypeAlias = dict[str, tuple[type, object | None, list[str] | None]]
+    RewriterFuncT: T.TypeAlias = T.Callable[['Rewriter', dict[str, object]], None]
 
 class RewriterException(MesonException):
     pass

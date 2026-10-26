@@ -22,7 +22,7 @@ from ..options import OptionKey
 #from ..interpreterbase import FeatureDeprecated, FeatureNew
 
 if T.TYPE_CHECKING:
-    from typing_extensions import Literal, Required, Self, TypedDict, TypeAlias
+    from typing_extensions import Required, Self, TypedDict
 
     from ..compilers.compilers import Language, Compiler
     from ..environment import Environment
@@ -33,7 +33,7 @@ if T.TYPE_CHECKING:
     )
     from ..interpreter.type_checking import PkgConfigDefineType
 
-    IncludeType: TypeAlias = Literal['system', 'non-system', 'preserve']
+    IncludeType: T.TypeAlias = T.Literal['system', 'non-system', 'preserve']
 
     class DependencyObjectKWs(TypedDict, total=False):
 

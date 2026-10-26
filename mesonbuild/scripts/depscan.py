@@ -13,7 +13,7 @@ import re
 import typing as T
 
 if T.TYPE_CHECKING:
-    from typing_extensions import Literal, TypedDict, NotRequired
+    from typing_extensions import TypedDict, NotRequired
     from ..backend.ninjabackend import TargetDependencyScannerInfo
 
     Require = TypedDict(
@@ -23,7 +23,7 @@ if T.TYPE_CHECKING:
             'compiled-module-path': NotRequired[str],
             'source-path': NotRequired[str],
             'unique-on-source-path': NotRequired[bool],
-            'lookup-method': NotRequired[Literal['by-name', 'include-angle', 'include-quote']]
+            'lookup-method': NotRequired[T.Literal['by-name', 'include-angle', 'include-quote']]
         },
     )
 
@@ -78,7 +78,7 @@ class DependencyScanner:
         self.imports: collections.defaultdict[str, T.List[str]] = collections.defaultdict(list)
         self.sources_with_exports: T.List[str] = []
 
-    def scan_file(self, fname: str, lang: Literal['cpp', 'fortran']) -> None:
+    def scan_file(self, fname: str, lang: T.Literal['cpp', 'fortran']) -> None:
         if lang == 'fortran':
             self.scan_fortran_file(fname)
         else:
@@ -145,7 +145,7 @@ class DependencyScanner:
                 self.provided_by[exported_module] = fname
                 self.exports[fname] = exported_module
 
-    def module_name_for(self, src: str, lang: Literal['cpp', 'fortran']) -> str:
+    def module_name_for(self, src: str, lang: T.Literal['cpp', 'fortran']) -> str:
         if lang == 'fortran':
             exported = self.exports[src]
             # Module foo:bar goes to a file name foo@bar.smod

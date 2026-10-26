@@ -18,7 +18,6 @@ import shlex
 import typing as T
 
 if T.TYPE_CHECKING:
-    from typing_extensions import Literal
     from .._typing import ImmutableListProtocol
 
     from ..environment import Environment
@@ -30,8 +29,8 @@ class PkgConfigInterface:
     '''Base class wrapping a pkg-config implementation'''
 
     # keyed on machine and extra_paths
-    class_impl: PerMachine[T.Dict[T.Optional[T.Tuple[str, ...]], T.Union[Literal[False], T.Optional[PkgConfigInterface]]]] = PerMachine({}, {})
-    class_cli_impl: PerMachine[T.Dict[T.Optional[T.Tuple[str, ...]], T.Union[Literal[False], T.Optional[PkgConfigCLI]]]] = PerMachine({}, {})
+    class_impl: PerMachine[T.Dict[T.Optional[T.Tuple[str, ...]], T.Union[T.Literal[False], T.Optional[PkgConfigInterface]]]] = PerMachine({}, {})
+    class_cli_impl: PerMachine[T.Dict[T.Optional[T.Tuple[str, ...]], T.Union[T.Literal[False], T.Optional[PkgConfigCLI]]]] = PerMachine({}, {})
     pkg_bin_per_machine: PerMachine[T.Optional[ExternalProgram]] = PerMachine(None, None)
 
     @staticmethod
@@ -64,7 +63,7 @@ class PkgConfigInterface:
         Even when we use another implementation internally, external tools might
         still need the CLI implementation.
         '''
-        impl: T.Union[Literal[False], T.Optional[PkgConfigInterface]] # Help confused mypy
+        impl: T.Union[T.Literal[False], T.Optional[PkgConfigInterface]] # Help confused mypy
         impl = PkgConfigInterface.instance(env, for_machine, silent)
         if impl and not isinstance(impl, PkgConfigCLI):
             extra_paths_key = tuple(extra_paths) if extra_paths is not None else None

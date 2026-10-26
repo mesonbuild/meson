@@ -21,7 +21,6 @@ from .environment import build_filename
 
 if T.TYPE_CHECKING:
     import argparse
-    from typing_extensions import Literal
 
 
 class DefaultConfigParser(ConfigParser):
@@ -162,14 +161,14 @@ class EditorConfig:
 
     # FIXME: these literals are not type-checked
 
-    indent_style: T.Optional[Literal['space', 'tab']] = field(default=None, metadata={'getter': DefaultConfigParser.get})
+    indent_style: T.Optional[T.Literal['space', 'tab']] = field(default=None, metadata={'getter': DefaultConfigParser.get})
     indent_size: T.Optional[int] = field(default=None, metadata={'getter': DefaultConfigParser.getint})
     tab_width: T.Optional[int] = field(default=None, metadata={'getter': DefaultConfigParser.getint})
-    end_of_line: T.Optional[Literal['lf', 'cr', 'crlf']] = field(default=None, metadata={'getter': DefaultConfigParser.get})
-    charset: T.Optional[Literal['latin1', 'utf-8', 'utf-8-bom', 'utf-16be', 'utf-16le']] = field(default=None, metadata={'getter': DefaultConfigParser.get})
+    end_of_line: T.Optional[T.Literal['lf', 'cr', 'crlf']] = field(default=None, metadata={'getter': DefaultConfigParser.get})
+    charset: T.Optional[T.Literal['latin1', 'utf-8', 'utf-8-bom', 'utf-16be', 'utf-16le']] = field(default=None, metadata={'getter': DefaultConfigParser.get})
     trim_trailing_whitespace: T.Optional[bool] = field(default=None, metadata={'getter': DefaultConfigParser.getboolean})
     insert_final_newline: T.Optional[bool] = field(default=None, metadata={'getter': DefaultConfigParser.getboolean})
-    max_line_length: T.Optional[T.Union[Literal['off'], int]] = field(default=None, metadata={'getter': DefaultConfigParser.get})
+    max_line_length: T.Optional[T.Union[T.Literal['off'], int]] = field(default=None, metadata={'getter': DefaultConfigParser.get})
 
 
 @dataclass
@@ -208,7 +207,7 @@ class FormatterConfig:
                   })
 
     # Additional config keys
-    end_of_line: T.Optional[Literal['cr', 'lf', 'crlf', 'native']] = field(
+    end_of_line: T.Optional[T.Literal['cr', 'lf', 'crlf', 'native']] = field(
         default=None,
         metadata={'getter': DefaultConfigParser.getstr,
                   'default': 'native',

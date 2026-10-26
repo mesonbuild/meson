@@ -16,7 +16,7 @@ import typing as T
 
 if T.TYPE_CHECKING:
     from hashlib import _Hash
-    from typing_extensions import Literal, Self
+    from typing_extensions import Self
     from ..mparser import BaseNode
     from .. import programs
     from .universal import SubProject
@@ -63,7 +63,7 @@ class HoldableObject:
 
 class EnvironmentVariables(HoldableObject):
     def __init__(self, values: T.Optional[EnvInitValueType] = None,
-                 init_method: Literal['set', 'prepend', 'append'] = 'set', separator: str = os.pathsep) -> None:
+                 init_method: T.Literal['set', 'prepend', 'append'] = 'set', separator: str = os.pathsep) -> None:
         self.envvars: T.List[T.Tuple[T.Callable[[T.Dict[str, str], str, T.List[str], str, T.Optional[str]], str], str, T.List[str], str]] = []
         # The set of all env vars we have operations for. Only used for self.has_name()
         self.varnames: T.Set[str] = set()

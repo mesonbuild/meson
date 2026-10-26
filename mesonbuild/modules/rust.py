@@ -51,7 +51,7 @@ if T.TYPE_CHECKING:
     from ..interpreter.type_checking import SourcesVarargsType
     from ..utils.universal import FileOrString
 
-    from typing_extensions import Literal, TypedDict
+    from typing_extensions import TypedDict
 
     ArgsType = T.TypeVar('ArgsType')
 
@@ -75,7 +75,7 @@ if T.TYPE_CHECKING:
         output: str
         output_inline_wrapper: str
         dependencies: T.List[T.Union[Dependency, ExternalLibrary]]
-        language: T.Optional[Literal['c', 'cpp']]
+        language: T.Optional[T.Literal['c', 'cpp']]
         bindgen_version: T.List[str]
 
     class FuncCBindgen(TypedDict):

@@ -25,7 +25,7 @@ from ..programs import ExternalProgram
 from ..scripts.gettext import read_linguas
 
 if T.TYPE_CHECKING:
-    from typing_extensions import Literal, TypedDict
+    from typing_extensions import TypedDict
 
     from . import ModuleState
     from ..build import CommandTypes, Target
@@ -46,7 +46,7 @@ if T.TYPE_CHECKING:
         args: T.List[str]
         data_dirs: T.List[str]
         po_dir: str
-        type: Literal['xml', 'desktop']
+        type: T.Literal['xml', 'desktop']
 
     class Gettext(TypedDict):
 
