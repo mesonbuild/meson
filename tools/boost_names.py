@@ -28,7 +28,7 @@ export_modules = False
 
 
 @functools.total_ordering
-class BoostLibrary():
+class BoostLibrary:
     def __init__(self, name: str, shared: T.List[str], static: T.List[str], single: T.List[str], multi: T.List[str]):
         self.name = name
         self.shared = sorted(set(shared))
@@ -52,7 +52,7 @@ class BoostLibrary():
         return hash(self.name)
 
 @functools.total_ordering
-class BoostModule():
+class BoostModule:
     def __init__(self, name: str, key: str, desc: str, libs: T.List[BoostLibrary]):
         self.name = name
         self.key = key

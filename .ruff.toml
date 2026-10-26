@@ -2,7 +2,7 @@ line-length = 100
 target-version = "py310"
 
 [lint]
-  select = ["F", "UP015", "UP021", "UP022", "UP024", "UP031", "UP033", "UP034", "UP035"]
+  select = ["F", "UP015", "UP021", "UP022", "UP024", "UP031", "UP033", "UP034", "UP035", "UP039"]
 
 [lint.per-file-ignores]
   "mesonbuild/mesonlib.py" = ["F403"]

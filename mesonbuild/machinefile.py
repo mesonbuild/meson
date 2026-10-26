@@ -19,7 +19,7 @@ if T.TYPE_CHECKING:
 HOMEDIR = os.path.expanduser('~')
 
 
-class MachineFileParser():
+class MachineFileParser:
     def __init__(self, filenames: T.List[str], sourcedir: str) -> None:
         self.parser = CmdLineFileParser()
         self.constants: T.Dict[str, ElementaryOptionValues] = {'True': True, 'False': False, '~': HOMEDIR}
