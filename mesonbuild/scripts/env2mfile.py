@@ -85,7 +85,7 @@ def locate_path(program: str) -> T.List[str]:
         f = os.path.join(d, program)
         if os.access(f, os.X_OK):
             return [f]
-    raise ValueError("%s not found on $PATH" % program)
+    raise ValueError("{} not found on $PATH".format(program))
 
 def write_args_line(ofile: T.TextIO, name: str, args: T.Union[str, T.List[str]]) -> None:
     if len(args) == 0:
@@ -224,10 +224,10 @@ def dpkg_architecture_to_machine_info(output: str, options: T.Any) -> MachineInf
     deb_compiler_lookup(infos, compilerstems, host_arch, options.gccsuffix)
     if len(infos.compilers) == 0:
         print('Warning: no compilers were detected.')
-    infos.binaries['ar'] = locate_path("%s-ar" % host_arch)
-    infos.binaries['strip'] = locate_path("%s-strip" % host_arch)
-    infos.binaries['objcopy'] = locate_path("%s-objcopy" % host_arch)
-    infos.binaries['ld'] = locate_path("%s-ld" % host_arch)
+    infos.binaries['ar'] = locate_path("{}-ar".format(host_arch))
+    infos.binaries['strip'] = locate_path("{}-strip".format(host_arch))
+    infos.binaries['objcopy'] = locate_path("{}-objcopy".format(host_arch))
+    infos.binaries['ld'] = locate_path("{}-ld".format(host_arch))
     try:
         infos.binaries['cmake'] = locate_path("cmake")
         deb_detect_cmake(infos, data)
@@ -244,21 +244,21 @@ def dpkg_architecture_to_machine_info(output: str, options: T.Any) -> MachineInf
         'vapigen',
     ]:
         try:
-            infos.binaries[tool] = locate_path("%s-%s" % (host_arch, tool))
+            infos.binaries[tool] = locate_path("{}-{}".format(host_arch, tool))
         except ValueError:
             pass    # optional
     for tool, exe in [
         ('exe_wrapper', 'cross-exe-wrapper'),
     ]:
         try:
-            infos.binaries[tool] = locate_path("%s-%s" % (host_arch, exe))
+            infos.binaries[tool] = locate_path("{}-{}".format(host_arch, exe))
         except ValueError:
             pass
     for tool, exe in [
         ('vala', 'valac'),
     ]:
         try:
-            infos.compilers[tool] = locate_path("%s-%s" % (host_arch, exe))
+            infos.compilers[tool] = locate_path("{}-{}".format(host_arch, exe))
         except ValueError:
             pass
     try:

@@ -127,7 +127,7 @@ class ExternalProgram(Program):
             # method, and thus only the found() method of this class is ever executed
             if self.found():  # lgtm [py/init-calls-subclass]
                 mlog.log('Program', mlog.bold(name), 'found:', mlog.green('YES'),
-                         '(%s)' % ' '.join(self.command))
+                         '({})'.format(' '.join(self.command)))
             else:
                 mlog.log('Program', mlog.bold(name), 'found:', mlog.red('NO'))
 

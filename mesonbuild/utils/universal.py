@@ -1620,13 +1620,13 @@ def do_define_meson(regex: T.Pattern[str], line: str, confdata: 'ConfigurationDa
 
     arr = line.split()
     if len(arr) != 2:
-        raise MesonException('#mesondefine does not contain exactly two tokens: %s' % line.strip())
+        raise MesonException('#mesondefine does not contain exactly two tokens: {}'.format(line.strip()))
 
     varname = arr[1]
     try:
         v, _ = confdata.get(varname)
     except KeyError:
-        return '/* #undef %s */\n' % varname
+        return '/* #undef {} */\n'.format(varname)
 
     if isinstance(v, str):
         result = f'#define {varname} {v}'.strip() + '\n'
@@ -1634,13 +1634,13 @@ def do_define_meson(regex: T.Pattern[str], line: str, confdata: 'ConfigurationDa
         return result
     elif isinstance(v, bool):
         if v:
-            return '#define %s\n' % varname
+            return '#define {}\n'.format(varname)
         else:
-            return '#undef %s\n' % varname
+            return '#undef {}\n'.format(varname)
     elif isinstance(v, int):
-        return '#define %s %d\n' % (varname, v)
+        return f'#define {varname} {v}\n'
     else:
-        raise MesonException('#mesondefine argument "%s" is of unknown type.' % varname)
+        raise MesonException('#mesondefine argument "{}" is of unknown type.'.format(varname))
 
 def do_define_cmake(line: str, confdata: 'ConfigurationData', at_only: bool,
                     subproject: T.Optional[SubProject] = None) -> str:
@@ -1673,12 +1673,12 @@ def do_define_cmake(line: str, confdata: 'ConfigurationData', at_only: bool,
         v, _ = confdata.get(varname)
     except KeyError:
         if cmake_bool_define:
-            return '#define %s 0\n' % varname
+            return '#define {} 0\n'.format(varname)
         else:
-            return '/* #undef %s */\n' % varname
+            return '/* #undef {} */\n'.format(varname)
 
     if not cmake_bool_define and not v:
-        return '/* #undef %s */\n' % varname
+        return '/* #undef {} */\n'.format(varname)
 
     result = get_cmake_define(line, confdata)
     result = f'#define {varname} {result}'.strip() + '\n'

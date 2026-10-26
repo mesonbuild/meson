@@ -45,7 +45,7 @@ def run_potgen(src_sub: str, xgettext: str, pkgname: str, datadirs: str, args: T
     if not os.path.exists(listfile):
         listfile = os.path.join(src_sub, 'POTFILES')
         if not os.path.exists(listfile):
-            print('Could not find file POTFILES in %s' % src_sub)
+            print('Could not find file POTFILES in {}'.format(src_sub))
             return 1
 
     child_env = os.environ.copy()

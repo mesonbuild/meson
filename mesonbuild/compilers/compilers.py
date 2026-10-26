@@ -629,8 +629,8 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
     def get_version_string(self) -> str:
         details = [self.id, self.version]
         if self.full_version:
-            details += ['"%s"' % (self.full_version)]
-        return '(%s)' % (' '.join(details))
+            details += ['"{}"'.format(self.full_version)]
+        return '({})'.format(' '.join(details))
 
     def get_language(self) -> Language:
         return self.language
@@ -646,7 +646,7 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
                    extra_args: T.Union[T.List[str], T.Callable[[CompileCheckMode], T.List[str]]],
                    dependencies: T.List['Dependency'],
                    disable_cache: bool = False) -> T.Tuple[str, bool]:
-        raise EnvironmentException('%s does not support get_define ' % self.get_id())
+        raise EnvironmentException('{} does not support get_define '.format(self.get_id()))
 
     def has_define(self, dname: str, prefix: str,
                    extra_args: T.Union[T.List[str], T.Callable[[CompileCheckMode], T.List[str]]],
@@ -659,24 +659,24 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
                     guess: T.Optional[int], prefix: str, *,
                     extra_args: T.Union[None, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]],
                     dependencies: T.Optional[T.List['Dependency']]) -> int:
-        raise EnvironmentException('%s does not support compute_int ' % self.get_id())
+        raise EnvironmentException('{} does not support compute_int '.format(self.get_id()))
 
     def compute_parameters_with_absolute_paths(self, parameter_list: T.List[str],
                                                build_dir: str) -> T.List[str]:
-        raise EnvironmentException('%s does not support compute_parameters_with_absolute_paths ' % self.get_id())
+        raise EnvironmentException('{} does not support compute_parameters_with_absolute_paths '.format(self.get_id()))
 
     def has_members(self, typename: str, membernames: T.List[str], prefix: str, *,
                     extra_args: T.Union[None, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]] = None,
                     dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[bool, bool]:
-        raise EnvironmentException('%s does not support has_member(s) ' % self.get_id())
+        raise EnvironmentException('{} does not support has_member(s) '.format(self.get_id()))
 
     def has_type(self, typename: str, prefix: str,
                  extra_args: T.Union[T.List[str], T.Callable[[CompileCheckMode], T.List[str]]], *,
                  dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[bool, bool]:
-        raise EnvironmentException('%s does not support has_type ' % self.get_id())
+        raise EnvironmentException('{} does not support has_type '.format(self.get_id()))
 
     def symbols_have_underscore_prefix(self) -> bool:
-        raise EnvironmentException('%s does not support symbols_have_underscore_prefix ' % self.get_id())
+        raise EnvironmentException('{} does not support symbols_have_underscore_prefix '.format(self.get_id()))
 
     def get_exelist(self, ccache: bool = True) -> T.List[str]:
         return self.exelist.copy() if ccache else self.exelist_no_ccache.copy()
@@ -704,10 +704,10 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
         return self.linker.get_search_args(dirname)
 
     def get_builtin_define(self, define: str) -> T.Optional[str]:
-        raise EnvironmentException('%s does not support get_builtin_define.' % self.id)
+        raise EnvironmentException('{} does not support get_builtin_define.'.format(self.id))
 
     def has_builtin_define(self, define: str) -> bool:
-        raise EnvironmentException('%s does not support has_builtin_define.' % self.id)
+        raise EnvironmentException('{} does not support has_builtin_define.'.format(self.id))
 
     def get_always_args(self) -> T.List[str]:
         return []
@@ -732,7 +732,7 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
         return []
 
     def gen_export_dynamic_link_args(self) -> T.List[str]:
-        raise MesonException('Language %s does not support export_dynamic.' % self.get_display_language())
+        raise MesonException('Language {} does not support export_dynamic.'.format(self.get_display_language()))
 
     def make_option_name(self, key: OptionKey) -> str:
         return f'{self.language}_{key.name}'
@@ -758,7 +758,7 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
         check succeeded, the second is whether the result was cached (True)
         or run fresh (False).
         """
-        raise EnvironmentException('Language %s does not support header checks.' % self.get_display_language())
+        raise EnvironmentException('Language {} does not support header checks.'.format(self.get_display_language()))
 
     def has_header(self, hname: str, prefix: str, *,
                    extra_args: T.Union[None, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]] = None,
@@ -778,12 +778,12 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
         check succeeded, the second is whether the result was cached (True)
         or run fresh (False).
         """
-        raise EnvironmentException('Language %s does not support header checks.' % self.get_display_language())
+        raise EnvironmentException('Language {} does not support header checks.'.format(self.get_display_language()))
 
     def has_header_symbol(self, hname: str, symbol: str, prefix: str, *,
                           extra_args: T.Union[None, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]] = None,
                           dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[bool, bool]:
-        raise EnvironmentException('Language %s does not support header symbol checks.' % self.get_display_language())
+        raise EnvironmentException('Language {} does not support header symbol checks.'.format(self.get_display_language()))
 
     def run(self, code: 'mesonlib.FileOrString',
             extra_args: T.Union[T.List[str], T.Callable[[CompileCheckMode], T.List[str]], None] = None,
@@ -842,12 +842,12 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
     def sizeof(self, typename: str, prefix: str, *,
                extra_args: T.Union[None, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]] = None,
                dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[int, bool]:
-        raise EnvironmentException('Language %s does not support sizeof checks.' % self.get_display_language())
+        raise EnvironmentException('Language {} does not support sizeof checks.'.format(self.get_display_language()))
 
     def alignment(self, typename: str, prefix: str, *,
                   extra_args: T.Optional[T.List[str]] = None,
                   dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[int, bool]:
-        raise EnvironmentException('Language %s does not support alignment checks.' % self.get_display_language())
+        raise EnvironmentException('Language {} does not support alignment checks.'.format(self.get_display_language()))
 
     def has_function(self, funcname: str, prefix: str, *,
                      extra_args: T.Optional[T.List[str]] = None,
@@ -858,7 +858,7 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
         check succeeded, the second is whether the result was cached (True)
         or run fresh (False).
         """
-        raise EnvironmentException('Language %s does not support function checks.' % self.get_display_language())
+        raise EnvironmentException('Language {} does not support function checks.'.format(self.get_display_language()))
 
     @classmethod
     def _unix_args_to_native(cls, args: T.List[str], info: MachineInfo) -> T.List[str]:
@@ -1094,7 +1094,7 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
         return self.linker.thread_flags()
 
     def openmp_flags(self) -> T.List[str]:
-        raise EnvironmentException('Language %s does not support OpenMP flags.' % self.get_display_language())
+        raise EnvironmentException('Language {} does not support OpenMP flags.'.format(self.get_display_language()))
 
     def openmp_link_flags(self) -> T.List[str]:
         return self.openmp_flags()
@@ -1140,11 +1140,11 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
 
     def get_profile_generate_args(self) -> T.List[str]:
         raise EnvironmentException(
-            '%s does not support get_profile_generate_args ' % self.get_id())
+            '{} does not support get_profile_generate_args '.format(self.get_id()))
 
     def get_profile_use_args(self) -> T.List[str]:
         raise EnvironmentException(
-            '%s does not support get_profile_use_args ' % self.get_id())
+            '{} does not support get_profile_use_args '.format(self.get_id()))
 
     def remove_linkerlike_args(self, args: T.List[str]) -> T.List[str]:
         rm_exact = ('-headerpad_max_install_names',)

@@ -757,8 +757,7 @@ class LinuxlikeTests(BasePlatformTests):
             f = os.path.join(self.installdir, 'usr', *fsobj.split('/'))
             found_mode = stat.filemode(os.stat(f).st_mode)
             self.assertEqual(want_mode, found_mode,
-                             msg=('Expected file %s to have mode %s but found %s instead.' %
-                                  (fsobj, want_mode, found_mode)))
+                             msg=('Expected file {} to have mode {} but found {} instead.'.format(fsobj, want_mode, found_mode)))
         # Ensure that introspect --installed works on all types of files
         # FIXME: also verify the files list
         self.introspect('--installed')
@@ -798,8 +797,7 @@ class LinuxlikeTests(BasePlatformTests):
             found_mode = stat.filemode(os.stat(f).st_mode)
             want_mode = '-rwxr-xr-x'
             self.assertEqual(want_mode, found_mode,
-                             msg=('Expected file %s to have mode %s but found %s instead.' %
-                                  (executable, want_mode, found_mode)))
+                             msg=('Expected file {} to have mode {} but found {} instead.'.format(executable, want_mode, found_mode)))
 
         for directory in [
                 'usr',
@@ -814,8 +812,7 @@ class LinuxlikeTests(BasePlatformTests):
             found_mode = stat.filemode(os.stat(f).st_mode)
             want_mode = 'drwxr-xr-x'
             self.assertEqual(want_mode, found_mode,
-                             msg=('Expected directory %s to have mode %s but found %s instead.' %
-                                  (directory, want_mode, found_mode)))
+                             msg=('Expected directory {} to have mode {} but found {} instead.'.format(directory, want_mode, found_mode)))
 
         for datafile in [
                 'include/sample.h',
@@ -828,8 +825,7 @@ class LinuxlikeTests(BasePlatformTests):
             found_mode = stat.filemode(os.stat(f).st_mode)
             want_mode = '-rw-r--r--'
             self.assertEqual(want_mode, found_mode,
-                             msg=('Expected file %s to have mode %s but found %s instead.' %
-                                  (datafile, want_mode, found_mode)))
+                             msg=('Expected file {} to have mode {} but found {} instead.'.format(datafile, want_mode, found_mode)))
 
     def test_cpp_std_override(self):
         testdir = os.path.join(self.unit_test_dir, '6 std override')

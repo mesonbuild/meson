@@ -55,10 +55,10 @@ int {}_in_src(void);
 '''.format(funcname, funcname, funcname))
 
 with open(tmpc, 'w', encoding='utf-8') as f:
-    f.write('''int %s_in_obj(void) {
+    f.write('''int {}_in_obj(void) {{
   return 0;
-}
-''' % funcname)
+}}
+'''.format(funcname))
 
 if is_vs:
     subprocess.check_call(compiler + ['/nologo', '/c', buildtype_args, '/Fo' + outo, tmpc])
@@ -66,10 +66,10 @@ else:
     subprocess.check_call(compiler + ['-c', '-o', outo, tmpc])
 
 with open(tmpc, 'w', encoding='utf-8') as f:
-    f.write('''int %s_in_lib() {
+    f.write('''int {}_in_lib() {{
   return 0;
-}
-''' % funcname)
+}}
+'''.format(funcname))
 
 if is_vs:
     subprocess.check_call(compiler + ['/nologo', '/c', '/Fo' + tmpo, tmpc])
