@@ -33,7 +33,7 @@ def main() -> None:
     parser.add_argument('--replace', action='append', required=True, dest='replacements', type=split_arg)
     args = T.cast('Arguments', parser.parse_args())
 
-    with open(args.input, 'r', encoding='utf-8') as f:
+    with open(args.input, encoding='utf-8') as f:
         content = f.read()
 
     content = process(content, args.replacements)

@@ -295,7 +295,7 @@ class PackageDefinition:
             else:
                 mlog.deprecation(f'WrapDB v1 is deprecated, updated using `meson wrap update {name}`')
 
-        with open(filename, 'r', encoding='utf-8') as file:
+        with open(filename, encoding='utf-8') as file:
             wrap.wrapfile_hash = hashlib.sha256(file.read().encode('utf-8')).hexdigest()
 
         return wrap
@@ -781,7 +781,7 @@ class Resolver:
         # Retrieve original hash, if it exists.
         hashfile = self.wrap.get_hashfile(self.dirname)
         if os.path.isfile(hashfile):
-            with open(hashfile, 'r', encoding='utf-8') as file:
+            with open(hashfile, encoding='utf-8') as file:
                 expected_hash = file.read().strip()
         else:
             # If stored hash doesn't exist then don't warn.

@@ -1150,7 +1150,7 @@ class TestRunGTest(TestRunExitCode):
             filename = os.path.join(self.test.workdir, filename)
 
         try:
-            with open(filename, 'r', encoding='utf8', errors='replace') as f:
+            with open(filename, encoding='utf8', errors='replace') as f:
                 self.junit = et.parse(f)
         except FileNotFoundError:
             # This can happen if the test fails to run or complete for some
