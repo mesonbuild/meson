@@ -1198,7 +1198,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                                 kwargs: 'TYPE_kwargs') -> build.ConfigurationData:
         return build.ConfigurationData(args[0])
 
-    @functools.lru_cache(None)
+    @functools.cache
     def set_backend(self) -> None:
         from ..backend import backends
 

@@ -436,7 +436,7 @@ class GnuLikeCompiler(Compiler, metaclass=mesonlib.SimpleABC):
 
         return parameter_list
 
-    @functools.lru_cache()
+    @functools.cache
     def _get_search_dirs(self) -> str:
         extra_args = ['--print-search-dirs']
         with self._build_wrapper('', extra_args=extra_args,
