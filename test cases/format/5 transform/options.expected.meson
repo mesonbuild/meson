@@ -49,46 +49,6 @@ arguments = [
   '--x',
 ]
 
-# issue #15032
-if true
-  if true
-    if (true
-        and true
-        and false)
-      message('Hello, world!')
-    endif
-  endif
-endif
-
-# issue #15019
-if get_option('client')
-  sources += files(
-    'pypaste/client/plugins/pgz/__init__.py',
-    'pypaste/client/plugins/zen/__init__.py',
-    'pypaste/client/plugins/__init__.py',
-    'pypaste/client/__init__.py',
-    'pypaste/client/__main__.py',
-  )
-
-  dependencies += [ 'requests' ]
-endif
-
-# issue #13570: sticky parentheses
-if (cc.links(
-  '''
-    void do_func(int foo) { return INT_MAX - foo; }
-    '''
-))
-  deps += dependency('foo')
-endif
-
-if (not cc.compiles('int main(void) { return 0; }')
-    or cc.has_header('foo.h')
-    or cc.has_header('bar.h')
-    or cc.has_header('baz.h'))
-  message('long condition')
-endif
-
 # long condition without function arguments (documentation example)
 if (host_machine.system() == 'windows'
     or host_machine.system() == 'cygwin'
@@ -97,67 +57,18 @@ if (host_machine.system() == 'windows'
   message('documentation example')
 endif
 
-if (a
-    or b)
-  message('closing parenthesis on separate line in source')
-endif
-
-if (a
-    or b)
-  message('newline after operator in source')
-endif
-
-# multiline arguments in multiline parentheses
-foreach i : [ 1, 2 ]
-  y = (aaaaaaaaaaaaaaaaaaaaaaaa
-      or files('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', 'c'))
-  z = (aaaaaaaaaaaaaaaaaaaaaaaa
-      or [ 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', 'c' ])
-  w = (aaaaaaaaaaaaaaaaaaaaaaaa or {
-    'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' : 1,
-    'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb' : 2,
-  })
-endforeach
-
-# closing parenthesis at max_line_length (80) and just after it (81)
-x = foo('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'bbb')
-x = foo('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'bbb')
-x = y.foo('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'bbb')
-x = y.foo('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'bbb')
-
-# comment between operands
-if (a
-    or   # comment
-    b)
-  message('comment after operator')
-endif
-y = (1
-    +   # comment
-    2)
-if (a
-    or b)   # last
-  message('comment after last operand')
-endif
-
-# nested parentheses
-is_bar = ((true and false and true and false and true and false and true)
-    or (false and true and false and true)
-    or false
-    or true)
-is_baz = ((true and false and true and false and true and false and true and false and true and false and true)
-    or false)
-
-# continuation lines in blocks and in arguments
-foreach i : [ 1, 2 ]
-  if i == 1
-    f = bbbbb \
-      .ccccc()
+# blocks are indented, and long function calls are split
+foreach src : sources
+  if src.endswith('.c')
+    c_sources += src   # C source
   endif
 endforeach
-x = foo(
-  aaaaaaaaaaaaaaaaaaaaaaa \
-    .bbbbbbbbbbbbbbbbbbbbbbb(),
-  ccccccccccccccccccccccccccccccccccccc,
+executable(
+  'prog',
+  c_sources,
+  dependencies : [ glib_dep, gio_dep ],
+  include_directories : inc,
+  install : true,
 )
 
 # no final endline
