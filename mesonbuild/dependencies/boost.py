@@ -83,7 +83,7 @@ class UnknownFileException(Exception):
     path: Path
 
 @functools.total_ordering
-class BoostIncludeDir():
+class BoostIncludeDir:
     def __init__(self, path: Path, version_int: int):
         self.path = path
         self.version_int = version_int
@@ -102,7 +102,7 @@ class BoostIncludeDir():
         return NotImplemented
 
 @functools.total_ordering
-class BoostLibraryFile():
+class BoostLibraryFile:
     # Python libraries are special because of the included
     # minor version in the module name.
     boost_python_libs = ['boost_python', 'boost_numpy']
@@ -811,7 +811,7 @@ boost_arch_map = {
 #  - libraries found: 43
 #
 
-class BoostLibrary():
+class BoostLibrary:
     def __init__(self, name: str, shared: T.List[str], static: T.List[str], single: T.List[str], multi: T.List[str]):
         self.name = name
         self.shared = shared
@@ -819,7 +819,7 @@ class BoostLibrary():
         self.single = single
         self.multi = multi
 
-class BoostModule():
+class BoostModule:
     def __init__(self, name: str, key: str, desc: str, libs: T.List[str]):
         self.name = name
         self.key = key
