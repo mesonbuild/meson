@@ -184,7 +184,7 @@ class ExternalProgram(Program):
         return cls.from_entry(name, command)
 
     @staticmethod
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def _windows_sanitize_path(path: str) -> str:
         # Ensure that we use USERPROFILE even when inside MSYS, MSYS2, Cygwin, etc.
         if 'USERPROFILE' not in os.environ:

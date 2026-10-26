@@ -11,7 +11,7 @@ import typing as T
 from ...mesonlib import MesonException
 
 
-@functools.lru_cache(maxsize=None)
+@functools.cache
 def _get_libomp_prefix() -> T.Optional[str]:
     """Call `brew --prefix libomp` once and cache it. Returns None if unavailable."""
     try:

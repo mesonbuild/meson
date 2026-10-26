@@ -299,7 +299,7 @@ class XCodeBackend(backends.Backend):
     def gen_id(self) -> str:
         return str(uuid.uuid4()).upper().replace('-', '')[:24]
 
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def get_target_dir_cached(self, target: build.Target) -> str:
         dirname = os.path.join(target.get_subdir(), T.cast('str', self.environment.coredata.optstore.get_value_for(OptionKey('buildtype'))))
         return dirname

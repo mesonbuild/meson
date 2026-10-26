@@ -60,7 +60,7 @@ class ElbrusCompiler(GnuLikeCompiler):
                 return [os.path.realpath(p) for p in libstr.split(':')]
         return []
 
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def get_default_include_dirs(self) -> T.List[str]:
         os_env = os.environ.copy()
         os_env['LC_ALL'] = 'C'

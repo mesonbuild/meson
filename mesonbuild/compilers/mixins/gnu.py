@@ -315,7 +315,7 @@ gnu_lang_map = {
     'objcpp': 'objective-c++'
 }
 
-@functools.lru_cache(maxsize=None)
+@functools.cache
 def gnulike_default_include_dirs(compiler: T.Tuple[str, ...], lang: str, verbosity_arg: str = '-v') -> 'ImmutableListProtocol[str]':
     if lang not in gnu_lang_map:
         return []

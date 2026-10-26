@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from collections import deque
 from dataclasses import dataclass, InitVar
-from functools import lru_cache
+from functools import cache
 from itertools import chain
 from pathlib import Path
 import copy
@@ -389,7 +389,7 @@ class Backend:
                 return None
         raise AssertionError(f'BUG: Tried to link to {target!r} which is not linkable')
 
-    @lru_cache(maxsize=None)
+    @cache
     def get_target_dir_cached(self, target: build.Target) -> str:
         if isinstance(target, build.RunTarget):
             # this produces no output, only a dummy top-level name
@@ -427,7 +427,7 @@ class Backend:
     def get_target_private_dir_abs(self, target: build.BuildTargetProto) -> str:
         return os.path.join(self.environment.get_build_dir(), self.get_target_private_dir(target))
 
-    @lru_cache(maxsize=None)
+    @cache
     def get_target_generated_dir(
             self, target: build.BuildTargetProto,
             gensrc: build.GeneratedTypes,
@@ -884,7 +884,7 @@ class Backend:
         return l, stdlib_args
 
     @staticmethod
-    @lru_cache(maxsize=None)
+    @cache
     def canonicalize_filename(fname: str) -> str:
         if os.path.altsep is not None:
             fname = fname.replace(os.path.altsep, os.path.sep)
@@ -935,7 +935,7 @@ class Backend:
             return os.path.join(targetdir, ret)
         return ret
 
-    @lru_cache(maxsize=None)
+    @cache
     def _determine_ext_objs(self, extobj: 'build.ExtractedObjects') -> T.List[str]:
         result: T.List[str] = []
 
@@ -1205,7 +1205,7 @@ class Backend:
         return list(paths)
 
     @staticmethod
-    @lru_cache(maxsize=None)
+    @cache
     def search_dll_path(link_arg: str) -> T.Optional[str]:
         if link_arg.startswith(('-l', '-L')):
             link_arg = link_arg[2:]
@@ -1233,7 +1233,7 @@ class Backend:
         return None
 
     @classmethod
-    @lru_cache(maxsize=None)
+    @cache
     def extract_dll_paths(cls, target: build.BuildTarget) -> T.Set[str]:
         """Find paths to all DLLs needed for a given target, since
         we link against import libs, and we don't know the actual
@@ -1547,7 +1547,7 @@ class Backend:
                 else:
                     yield dep
 
-    @lru_cache(maxsize=None)
+    @cache
     def get_custom_target_provided_by_generated_source(self, generated_source: build.CustomTarget) -> 'ImmutableListProtocol[str]':
         libs: T.List[str] = []
         for f in generated_source.get_outputs():
@@ -1555,7 +1555,7 @@ class Backend:
                 libs.append(os.path.join(self.get_target_dir(generated_source), f))
         return libs
 
-    @lru_cache(maxsize=None)
+    @cache
     def get_custom_target_provided_libraries(self, target: build.BuildTargetProto) -> 'ImmutableListProtocol[str]':
         libs: T.List[str] = []
         for t in target.get_generated_sources():
@@ -1630,7 +1630,7 @@ class Backend:
         # ${BUILDDIR}/${BUILDTYPE} instead, this becomes unnecessary.
         return self.get_target_dir(target)
 
-    @lru_cache(maxsize=None)
+    @cache
     def get_normpath_target(self, source: str) -> str:
         return os.path.normpath(source)
 

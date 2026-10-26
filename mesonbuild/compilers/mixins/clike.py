@@ -119,7 +119,7 @@ class CLikeCompilerArgs(arglist.CompilerArgs):
         return self.compiler.unix_args_to_native(new._container)
 
     @staticmethod
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def _cached_realpath(arg: str) -> str:
         return os.path.realpath(arg)
 
@@ -1391,7 +1391,7 @@ class CLikeCompiler(Compiler):
             return ['-DNDEBUG']
         return []
 
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def can_compile(self, src: 'mesonlib.FileOrString') -> bool:
         # Files we preprocess can be anything, e.g. .in
         if self.mode == 'PREPROCESSOR':

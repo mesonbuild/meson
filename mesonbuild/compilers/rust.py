@@ -254,19 +254,19 @@ class RustCompiler(Compiler):
     def get_output_args(self, outputname: str) -> T.List[str]:
         return ['--emit', f'link={outputname}']
 
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def get_sysroot(self) -> str:
         cmd = self.get_exelist(ccache=False) + ['--print', 'sysroot']
         p, stdo, stde = Popen_safe_logged(cmd)
         return stdo.split('\n', maxsplit=1)[0]
 
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def get_target_libdir(self) -> str:
         cmd = self.get_exelist(ccache=False) + ['--print', 'target-libdir']
         p, stdo, stde = Popen_safe_logged(cmd)
         return stdo.split('\n', maxsplit=1)[0]
 
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def _get_cfgs(self, extra_args: T.Tuple[str, ...] = ()) -> T.List[str]:
         cmd = [*self.get_exelist(ccache=False), *extra_args, '--print', 'cfg']
         p, stdo, stde = Popen_safe_logged(cmd)
@@ -281,7 +281,7 @@ class RustCompiler(Compiler):
             args = tuple(extra_args)
         return self._get_cfgs(args)
 
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def get_target_triple(self) -> str:
         # First check if --target is explicitly set in the compiler command
         target = parse_target(self.get_exe_args())
@@ -295,7 +295,7 @@ class RustCompiler(Compiler):
                 return line.split(':', 1)[1].strip()
         raise EnvironmentException('Could not determine Rust target triple')
 
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def get_crt_static(self) -> bool:
         return 'target_feature="crt-static"' in self._get_cfgs()
 
@@ -319,7 +319,7 @@ class RustCompiler(Compiler):
                         darwin_versions: T.Tuple[str, str]) -> T.List[str]:
         return rustc_link_args(super().get_soname_args(prefix, shlib_name, suffix, soversion, darwin_versions))
 
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def has_verbatim(self) -> bool:
         if version_compare(self.version, '< 1.67.0'):
             return False
@@ -526,7 +526,7 @@ class RustCompiler(Compiler):
     def get_external_link_args(self) -> T.List[str]:
         return rustc_link_args(super().get_external_link_args())
 
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def get_linker_always_args(self) -> T.List[str]:
         return rustc_link_args(super().get_linker_always_args()) + ['-Cdefault-linker-libraries']
 
@@ -574,22 +574,22 @@ class RustCompiler(Compiler):
     def get_profile_use_args(self) -> T.List[str]:
         return ['-C', 'profile-use']
 
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def get_asneeded_args(self) -> T.List[str]:
         return rustc_link_args(super().get_asneeded_args())
 
     def bitcode_args(self) -> T.List[str]:
         return ['-C', 'embed-bitcode=yes']
 
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def headerpad_args(self) -> T.List[str]:
         return rustc_link_args(super().headerpad_args())
 
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def get_linker_fatal_warnings(self) -> T.List[str]:
         return rustc_link_args(super().get_linker_fatal_warnings())
 
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def get_allow_undefined_link_args(self) -> T.List[str]:
         return rustc_link_args(super().get_allow_undefined_link_args())
 
@@ -672,7 +672,7 @@ class RustCompiler(Compiler):
         args = rustc_link_args(self.linker.fatal_warnings()) + args
         return self.compiles('fn main() { std::process::exit(0) }\n', extra_args=args, mode=CompileCheckMode.LINK)
 
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def get_rustdoc(self) -> T.Optional[RustdocTestCompiler]:
         exelist = self.get_rust_tool('rustdoc')
         if not exelist:
@@ -708,15 +708,15 @@ class RustdocTestCompiler(RustCompiler):
                          env, full_version, linker)
         self.rustc = rustc
 
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def get_sysroot(self) -> str:
         return self.rustc.get_sysroot()
 
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def get_target_libdir(self) -> str:
         return self.rustc.get_target_libdir()
 
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def _get_cfgs(self, extra_args: T.Tuple[str, ...] = ()) -> T.List[str]:
         return self.rustc._get_cfgs(extra_args)
 

@@ -835,7 +835,7 @@ class GnomeModule(ExtensionModule):
         except MesonException:
             return False
 
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def _gir_has_option(self, option: str) -> bool:
         exe = self.giscanner
         if isinstance(exe, LocalProgram):

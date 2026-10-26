@@ -4,7 +4,7 @@
 from __future__ import annotations
 from collections import defaultdict, deque, OrderedDict
 from dataclasses import dataclass, field
-from functools import lru_cache
+from functools import cache
 import abc
 import copy
 import hashlib
@@ -258,7 +258,7 @@ def _process_install_tag(install_tag: T.Optional[T.List[T.Optional[str]]],
     return _install_tag
 
 
-@lru_cache(maxsize=None)
+@cache
 def get_target_macos_dylib_install_name(ld: SharedLibrary) -> str:
     name = ['@rpath/', ld.prefix, ld.name]
     if ld.soversion is not None:
@@ -1522,7 +1522,7 @@ class BuildTarget(Target, BuildTargetProto):
         return ExtractedObjects(self, self.sources, self.generated, self.objects,
                                 recursive, pch=True)
 
-    @lru_cache(maxsize=None)
+    @cache
     def get_all_link_deps(self) -> ImmutableListProtocol[BuildTargetProto]:
         """ Get all shared libraries dependencies
         This returns all shared libraries in the entire dependency tree. Those
@@ -1552,7 +1552,7 @@ class BuildTarget(Target, BuildTargetProto):
     def get_link_deps_mapping(self, prefix: str) -> T.Mapping[str, str]:
         return self.get_transitive_link_deps_mapping(prefix)
 
-    @lru_cache(maxsize=None)
+    @cache
     def get_transitive_link_deps_mapping(self, prefix: str) -> T.Mapping[str, str]:
         result: T.Dict[str, str] = {}
         for i in itertools.chain(self.link_targets, self.link_whole_targets):
@@ -1564,7 +1564,7 @@ class BuildTarget(Target, BuildTargetProto):
             result = result_tmp
         return result
 
-    @lru_cache(maxsize=None)
+    @cache
     def get_link_dep_subdirs(self) -> T.AbstractSet[str]:
         result: OrderedSet[str] = OrderedSet()
         for i in self.link_targets:
@@ -1668,7 +1668,7 @@ class BuildTarget(Target, BuildTargetProto):
     def get_extra_args(self, language: Language) -> T.List[str]:
         return self.extra_args[language]
 
-    @lru_cache(maxsize=None)
+    @cache
     def get_dependencies(self) -> T.Iterable[BuildTargetProto]:
         # Get all targets needed for linking. This includes all link_with and
         # link_whole targets, and also all dependencies of static libraries
@@ -1765,7 +1765,7 @@ class BuildTarget(Target, BuildTargetProto):
             self.check_can_link_together(t)
             self.link_whole_targets.append(t)
 
-    @lru_cache(maxsize=None)
+    @cache
     def get_internal_static_libraries(self) -> OrderedSet[StaticTargetProto]:
         result: OrderedSet[StaticTargetProto] = OrderedSet()
         self.get_internal_static_libraries_recurse(result)
@@ -2036,7 +2036,7 @@ class BuildTarget(Target, BuildTargetProto):
         self.rpath_dirs_to_remove.update([d.encode('utf-8') for d in result])
         return tuple(result)
 
-    @lru_cache(maxsize=None)
+    @cache
     def rpaths_for_non_system_absolute_shared_libraries(self, exclude_system: bool = True) -> ImmutableListProtocol[str]:
         paths: OrderedSet[str] = OrderedSet()
         srcdir = self.environment.get_source_dir()

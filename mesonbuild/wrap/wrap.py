@@ -27,7 +27,7 @@ from base64 import b64encode
 from enum import Enum
 from netrc import netrc
 from pathlib import Path
-from functools import lru_cache
+from functools import cache
 
 from . import WrapMode
 from .. import coredata
@@ -61,7 +61,7 @@ if sys.version_info >= (3, 14):
     import tarfile
     tarfile.TarFile.extraction_filter = staticmethod(tarfile.fully_trusted_filter)
 
-@lru_cache(maxsize=None)
+@cache
 def patch_command() -> T.Optional[str]:
     if mesonlib.is_windows():
         from ..programs import ExternalProgram
@@ -90,7 +90,7 @@ truststore_message = '''
     correct SSL certificates, install https://truststore.readthedocs.io/ and
     try again.'''
 
-@lru_cache(maxsize=None)
+@cache
 def ssl_truststore() -> T.Optional[ssl.SSLContext]:
     """ Provide a default context=None for urlopen, but use truststore if installed. """
     try:
@@ -166,7 +166,7 @@ def get_releases_data(allow_insecure: bool) -> bytes:
     url = open_wrapdburl('https://wrapdb.mesonbuild.com/v2/releases.json', allow_insecure, True, True)
     return read_and_decompress(url)
 
-@lru_cache(maxsize=None)
+@cache
 def get_releases(allow_insecure: bool) -> T.Dict[str, T.Any]:
     data = get_releases_data(allow_insecure)
     return T.cast('T.Dict[str, T.Any]', json.loads(data.decode()))

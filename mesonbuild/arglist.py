@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 
-from functools import lru_cache
+from functools import cache
 import collections
 import enum
 import os
@@ -195,7 +195,7 @@ class CompilerArgs(T.MutableSequence[str]):
         return type(self)(self.compiler, self._container.copy())
 
     @classmethod
-    @lru_cache(maxsize=None)
+    @cache
     def _can_dedup(cls, arg: str) -> Dedup:
         """Returns whether the argument can be safely de-duped.
 
@@ -227,7 +227,7 @@ class CompilerArgs(T.MutableSequence[str]):
         return Dedup.NO_DEDUP
 
     @classmethod
-    @lru_cache(maxsize=None)
+    @cache
     def _should_prepend(cls, arg: str) -> bool:
         return arg.startswith(cls.prepend_prefixes)
 

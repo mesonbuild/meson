@@ -7,7 +7,7 @@ from __future__ import annotations
 from collections import defaultdict, OrderedDict
 from dataclasses import dataclass
 from enum import Enum, unique
-from functools import lru_cache
+from functools import cache
 from pathlib import PurePath, Path
 from textwrap import dedent
 import dataclasses
@@ -3099,7 +3099,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         self.add_build(element)
         return (rel_obj, rel_src)
 
-    @lru_cache(maxsize=None)
+    @cache
     def generate_inc_dir(self, compiler: 'Compiler', d: str, basedir: str, is_system: bool
                          ) -> T.Tuple[ImmutableListProtocol[str], ImmutableListProtocol[str]]:
         expdir = os.path.normpath(os.path.join(basedir, d))
@@ -3122,7 +3122,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         commands += self._generate_single_compile_target_args(target, compiler)
         return commands
 
-    @lru_cache(maxsize=None)
+    @cache
     def _generate_single_compile_target_args(self, target: build.BuildTarget, compiler: Compiler) -> ImmutableListProtocol[str]:
         # Add compiler args and include paths from several sources; defaults,
         # build options, external dependencies, etc.
@@ -3717,7 +3717,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             target_args = self.build_target_link_arguments(linker, target.link_whole_targets)
             return linker.get_link_whole_for(target_args) if target_args else []
 
-    @lru_cache(maxsize=None)
+    @cache
     def guess_library_absolute_path(self, linker: Compiler, libname: str, search_dirs: T.Tuple[str, ...], patterns: T.Tuple[str, ...]) -> T.Optional[Path]:
         from ..compilers.c import CCompiler
         for d in search_dirs:

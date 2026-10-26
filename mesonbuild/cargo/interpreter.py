@@ -828,7 +828,7 @@ class Interpreter:
             else:
                 self._enable_feature(pkg, f, machine)
 
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def _get_cfgs(self, machine: MachineChoice, subproject: SubProject) -> T.Dict[str, str]:
         rustc = T.cast('RustCompiler', self.environment.coredata.compilers[machine]['rust'])
         cfgs = rustc.get_cfgs().copy()

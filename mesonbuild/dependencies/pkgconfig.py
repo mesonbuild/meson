@@ -11,7 +11,7 @@ from ..programs import find_external_program, ExternalProgram
 from .. import mlog
 from enum import Enum
 from pathlib import PurePath
-from functools import lru_cache
+from functools import cache
 import re
 import os
 import shlex
@@ -148,7 +148,7 @@ class PkgConfigCLI(PkgConfigInterface):
     def found(self) -> bool:
         return bool(self.pkgbin)
 
-    @lru_cache(maxsize=None)
+    @cache
     def version(self, name: str) -> T.Optional[str]:
         mlog.debug(f'Determining dependency {name!r} with pkg-config executable {self.pkgbin.get_path()!r}')
         ret, version, _ = self._call_pkgbin(['--modversion', name])
@@ -162,7 +162,7 @@ class PkgConfigCLI(PkgConfigInterface):
                 ret.append('--define-variable=' + '='.join(pair))
         return ret
 
-    @lru_cache(maxsize=None)
+    @cache
     def cflags(self, name: str, static: bool = False, allow_system: bool = False,
                define_variable: PkgConfigDefineType = None) -> ImmutableListProtocol[str]:
         env = None
@@ -179,7 +179,7 @@ class PkgConfigCLI(PkgConfigInterface):
             raise DependencyException(f'Could not generate cflags for {name}:\n{err}\n')
         return self._split_args(out)
 
-    @lru_cache(maxsize=None)
+    @cache
     def libs(self, name: str, static: bool = False, allow_system: bool = False,
              define_variable: PkgConfigDefineType = None) -> ImmutableListProtocol[str]:
         env = None
@@ -196,7 +196,7 @@ class PkgConfigCLI(PkgConfigInterface):
             raise DependencyException(f'Could not generate libs for {name}:\n{err}\n')
         return self._split_args(out)
 
-    @lru_cache(maxsize=None)
+    @cache
     def variable(self, name: str, variable_name: str,
                  define_variable: PkgConfigDefineType) -> T.Optional[str]:
         args: T.List[str] = []
@@ -215,7 +215,7 @@ class PkgConfigCLI(PkgConfigInterface):
         mlog.debug(f'Got pkg-config variable {variable_name} : {variable}')
         return variable
 
-    @lru_cache(maxsize=None)
+    @cache
     def list_all(self) -> ImmutableListProtocol[str]:
         ret, out, err = self._call_pkgbin(['--list-all'])
         if ret != 0:
