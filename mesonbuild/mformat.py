@@ -1251,7 +1251,7 @@ def run(options: argparse.Namespace) -> int:
                 code = sys.stdin.read()
             else:
                 code = src_file.read_text(encoding='utf-8')
-        except IOError as e:
+        except OSError as e:
             raise MesonException(f'Unable to read from {src_file}') from e
 
         formatted = formatter.format(code, src_file)
@@ -1262,7 +1262,7 @@ def run(options: argparse.Namespace) -> int:
             try:
                 with src_file.open('w', encoding='utf-8', newline=formatter.current_config.newline) as sf:
                     sf.write(formatted)
-            except IOError as e:
+            except OSError as e:
                 raise MesonException(f'Unable to write to {src_file}') from e
         elif options.check_only or options.check_diff:
             if code != formatted:
@@ -1279,7 +1279,7 @@ def run(options: argparse.Namespace) -> int:
             try:
                 with options.output.open('w', encoding='utf-8', newline=formatter.current_config.newline) as of:
                     of.write(formatted)
-            except IOError as e:
+            except OSError as e:
                 raise MesonException(f'Unable to write to {options.output}') from e
         else:
             print(formatted, end='')
