@@ -7,7 +7,7 @@ import sys
 
 # Check python version before importing anything else, we might have an older
 # Python that would error on f-string syntax for example.
-if sys.version_info < (3, 10):
+if sys.version_info < (3, 10):  # noqa: UP036
     print('Meson works correctly only with python 3.10+.')
     print('You have python {}.'.format(sys.version))
     print('Please update your environment')
