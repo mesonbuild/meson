@@ -13,3 +13,28 @@ arguments = [
     'again',
     '--x',
 ]
+
+mixed = [
+    '--opt_a', function_returning_str(),
+    '--opt_b', var,
+    '--opt_c', f'@var@',
+    '--opt_d', obj.method('arg1', 'arg2'),
+    '-x',
+    'y',
+    '--flag',
+    '--last', some_function_with_a_long_name(
+        argument_one,
+        argument_two,
+        argument_three,
+    ),
+]
+
+fstrings = [
+    'argument_a',
+    f'--@key@', value,
+    f'--@k@=@v@', 'b',
+    '--',
+    'argument_c',
+    f'-@x@',
+    'argument_d',
+]

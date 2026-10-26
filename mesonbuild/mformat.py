@@ -1077,7 +1077,8 @@ class ArgumentFormatter(FullAstVisitor):
                     group_args = False
                     if isinstance(arg, mparser.StringNode) and arg.value.startswith('--') and arg.value != '--':
                         next_arg = node.arguments[arg_index + 1]
-                        if isinstance(next_arg, mparser.StringNode) and not next_arg.value.startswith('--'):
+                        # any node is a value, except strings starting with '-' (another option)
+                        if not (isinstance(next_arg, mparser.StringNode) and next_arg.value.startswith('-')):
                             group_args = True
                     if group_args:
                         # keep '--arg', 'value' on same line
