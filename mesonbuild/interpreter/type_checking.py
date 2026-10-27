@@ -1086,12 +1086,12 @@ def _pkgconfig_define_convertor(x: T.List[str]) -> PkgConfigDefineType:
     return None
 
 def _pkgconfig_define_validator(x: T.List[str]) -> T.Optional[str]:
-    if x:
-        keys = itertools.islice(x, 0, None, 2)
-        vals = itertools.islice(x, 1, None, 2)
-        for key, val in zip(keys, vals):
-            if not val:
-                return f'Variable {key!r} in pkgconfig_define must have a non-empty value'
+    if len(x) % 2 != 0:
+        return 'pkgconfig_define requires an even number of elements'
+    keys = itertools.islice(x, 0, None, 2)
+    vals = itertools.islice(x, 1, None, 2)
+    if any(not val for _, val in zip(keys, vals)):
+        return 'pkgconfig_define values must not be empty'
     return None
 
 def _pkgconfig_define_feature_validator(x: list[str]) -> T.Iterable[FeatureCheckBase]:

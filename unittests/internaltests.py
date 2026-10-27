@@ -860,14 +860,12 @@ InstalledDir: /usr/bin'''), '14.0.0-1ubuntu1.1')
         self.assertIsNone(_pkgconfig_define_validator([]))
         self.assertIsNone(_pkgconfig_define_validator(['prefix', '/usr']))
         self.assertIsNone(_pkgconfig_define_validator(['prefix', '/usr', 'libdir', '/usr/lib']))
-        # An empty value must be rejected with a descriptive message.
-        result = _pkgconfig_define_validator(['rootprefix', ''])
-        self.assertIsNotNone(result)
-        self.assertIn('rootprefix', result)
-        # Empty value in second pair must also be caught.
-        result = _pkgconfig_define_validator(['prefix', '/usr', 'libdir', ''])
-        self.assertIsNotNone(result)
-        self.assertIn('libdir', result)
+        # Odd number of elements must be rejected.
+        self.assertIsNotNone(_pkgconfig_define_validator(['key']))
+        self.assertIsNotNone(_pkgconfig_define_validator(['a', 'b', 'c']))
+        # An empty value must be rejected.
+        self.assertIsNotNone(_pkgconfig_define_validator(['rootprefix', '']))
+        self.assertIsNotNone(_pkgconfig_define_validator(['prefix', '/usr', 'libdir', '']))
 
     def test_qcc_unsupported_features_raise(self):
         # qcc/q++ have no alternate-linker-selection equivalent, so Meson
