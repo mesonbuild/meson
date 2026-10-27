@@ -296,14 +296,7 @@ class MesonApp:
                 captured_compile_args = intr.backend.generate(capture, vslite_ctx)
 
             build.save(b, dumpfile)
-            if env.first_invocation:
-                # Use path resolved by coredata because they could have been
-                # read from a pipe and wrote into a private file.
-                self.options.cross_file = env.coredata.cross_files
-                self.options.native_file = env.coredata.config_files
-                cmdline.write_cmd_line_file(self.build_dir, self.options)
-            else:
-                cmdline.update_cmd_line_file(self.build_dir, self.options)
+            cmdline.write_cmd_line_file(env)
 
             # Generate an IDE introspection file with the same syntax as the already existing API
             if self.options.profile:
