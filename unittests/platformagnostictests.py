@@ -620,6 +620,13 @@ class PlatformAgnosticTests(BasePlatformTests):
         self.setconf(['-U', 'sub:plain'])
         self.assertEqual(self.getconf('sub:plain'), 'project')
 
+    def test_unknown_build_option_native(self) -> None:
+        """Unknown build-machine options are an error when building natively too."""
+        testdir = os.path.join(self.unit_test_dir, '140 unset project options')
+        self.init(testdir)
+        with self.assertRaises(subprocess.CalledProcessError):
+            self.setconf('-Dbuild.nonexistent=1', will_build=False)
+
     def test_configure_options_file_deleted(self) -> None:
         """Deleting all option files should make seting a project option an error."""
         testdir = self.copy_srcdir(os.path.join(self.common_test_dir, '40 options'))
