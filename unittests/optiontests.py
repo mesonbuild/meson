@@ -184,14 +184,14 @@ class OptionTests(unittest.TestCase):
         cmd_line = { OptionKey(name): top_value, OptionKey(name, subp): sub_value }
 
         vo = UserStringOption(name, 'A top level option', 'default1')
-        optstore.add_project_option(OptionKey(name, ''), vo)
         optstore.set_user_options(cmd_line)
+        optstore.update_project_options({OptionKey(name, ''): vo}, '')
         optstore.initialize_from_top_level_project_call({})
         self.assertEqual(optstore.get_value_for(name, ''), top_value)
         self.assertEqual(num_options(optstore), 1)
 
         vo2 = UserStringOption(name, 'A subproject option', 'default2', True)
-        optstore.add_project_option(OptionKey(name, 'subp'), vo2)
+        optstore.update_project_options({OptionKey(name, 'subp'): vo2}, 'subp')
         self.assertEqual(optstore.get_value_for(name, ''), top_value)
         self.assertEqual(optstore.get_value_for(name, subp), top_value)
         self.assertEqual(num_options(optstore), 2)
@@ -366,16 +366,15 @@ class OptionTests(unittest.TestCase):
         optstore = OptionStore(False)
         prefix = UserStringOption('prefix', 'This is needed by OptionStore', '/usr')
         optstore.add_system_option('prefix', prefix)
-        o = UserBooleanOption(name, 'Tests', False)
-        optstore.add_project_option(OptionKey(name, subproject=''), o)
-        o = UserBooleanOption(name, 'Tests', True)
-        optstore.add_project_option(OptionKey(name, subproject=subp), o)
-
         cmd_line = {OptionKey(name): True}
         spcall = {OptionKey(name): False}
 
         optstore.set_user_options(cmd_line)
+        o = UserBooleanOption(name, 'Tests', False)
+        optstore.update_project_options({OptionKey(name, subproject=''): o}, '')
         optstore.initialize_from_top_level_project_call({})
+        o = UserBooleanOption(name, 'Tests', True)
+        optstore.update_project_options({OptionKey(name, subproject=subp): o}, subp)
         optstore.initialize_from_subproject_call(subp, spcall, {})
         self.assertEqual(optstore.get_value_for(name, ''), True)
         self.assertEqual(optstore.get_value_for(name, subp), False)

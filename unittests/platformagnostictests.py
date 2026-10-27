@@ -698,6 +698,39 @@ class PlatformAgnosticTests(BasePlatformTests):
         with self.assertRaises(subprocess.CalledProcessError):
             self.setconf('-Dbuild.nonexistent=1', will_build=False)
 
+    def test_project_option_spellings(self) -> None:
+        testdir = os.path.join(self.unit_test_dir, '140 unset project options')
+        self.init(testdir, extra_args=['-D:yielding=one'])
+        self.assertEqual(self.getconf('yielding'), 'one')
+
+        self.setconf('-Dyielding=two')
+        self.assertEqual(self.getconf('yielding'), 'two')
+
+        self.setconf('-U:yielding')
+        self.assertEqual(self.getconf('yielding'), 'toplevel')
+
+    def test_wipe_option_spellings(self) -> None:
+        """The options from cmd_line.txt can use the other spelling of a project
+           option than the command line, and the command line wins."""
+        testdir = os.path.join(self.unit_test_dir, '140 unset project options')
+        for file_spelling, cmd_spelling in (('yielding', ':yielding'), (':yielding', 'yielding')):
+            with self.subTest(file=file_spelling, cmd_line=cmd_spelling):
+                self.new_builddir()
+                cmd_line_file = os.path.join(self.builddir, 'meson-private', 'cmd_line.txt')
+                self.init(testdir)
+                with open(cmd_line_file, 'w', encoding='utf-8') as f:
+                    f.write(f'[options]\n{file_spelling} = file\n\n[properties]\n')
+                self.init(testdir, extra_args=['--wipe', f'-D{cmd_spelling}=cmdline'])
+                self.assertEqual(self.getconf('yielding'), 'cmdline')
+                with open(cmd_line_file, 'r', encoding='utf-8') as f:
+                    self.assertEqual(f.read().count('yielding'), 1)
+
+                # Only the options in the file.
+                with open(cmd_line_file, 'w', encoding='utf-8') as f:
+                    f.write(f'[options]\n{file_spelling} = file\n\n[properties]\n')
+                self.init(testdir, extra_args=['--wipe'])
+                self.assertEqual(self.getconf('yielding'), 'file')
+
     def test_configure_options_file_deleted(self) -> None:
         """Deleting all option files should make seting a project option an error."""
         testdir = self.copy_srcdir(os.path.join(self.common_test_dir, '40 options'))

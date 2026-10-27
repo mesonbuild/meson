@@ -1179,11 +1179,20 @@ class OptionStore:
             old_value = self.pending_options.get(o, None)
             self.pending_options[o] = new_value
             return old_value is None or str(old_value) != new_value
-        elif o.subproject is None:
-            o = o.as_root()
-            return self.set_option(o, new_value, first_invocation)
         else:
             raise MesonException(f'Unknown option: "{o}".')
+
+    def _canonical_key(self, key: OptionKey) -> OptionKey:
+        """Return the key of a toplevel project option with its subproject set to
+           the empty string, so that "foo" and ":foo" refer to the same option."""
+        if key.subproject is None and self.is_project_option(key.as_root()):
+            return key.as_root()
+        return key
+
+    def _canonical_keys(self, options: OptionDict) -> OptionDict:
+        """Apply _canonical_key() to all keys.  If both spellings are present,
+           the last one wins."""
+        return {self._canonical_key(k): v for k, v in options.items()}
 
     def set_from_configure_command(self, D_args: T.Dict[OptionKey, T.Optional[str]]) -> bool:
         """Update the options from the command line.  Return whether anything
@@ -1191,6 +1200,7 @@ class OptionStore:
            with resolve_configured() or by configuring the project."""
         dirty = False
         for key, valstr in D_args.items():
+            key = self._canonical_key(key)
             try:
                 opt: T.Optional[AnyOptionType] = self.resolve_option(key)
             except KeyError:
@@ -1348,8 +1358,7 @@ class OptionStore:
            which then wins over the subproject's own project() default_options."""
         global_key = key.evolve(subproject=None)
         return (global_key in self.all_options[OptionSource.MACHINE_FILE] or
-                global_key in self.all_options[OptionSource.COMMAND_LINE]) and \
-            not self.is_project_option(global_key.as_root())
+                global_key in self.all_options[OptionSource.COMMAND_LINE])
 
     @staticmethod
     def _buildtype_first(options: OptionDict) -> OptionDict:
@@ -1414,7 +1423,7 @@ class OptionStore:
                 # should arguably be a hard error; the default
                 # value of project option should be set in the option
                 # file, not in the project call.
-                self.all_options[OptionSource.PROJECT][key] = valstr
+                self.all_options[OptionSource.PROJECT][self._canonical_key(key)] = valstr
 
         self._resolve_toplevel()
 
@@ -1554,6 +1563,13 @@ class OptionStore:
                 except MesonException:
                     mlog.warning(f'Old value(s) of {key} are no longer valid, resetting to default ({value.default}).',
                                  fatal=False)
+
+        if subproject == '':
+            # The keys of the user's values were stored before the project options
+            # were known, so "foo" could not be told apart from a global option.
+            # Rename the keys of the toplevel project options now.
+            for source in (OptionSource.MACHINE_FILE, OptionSource.COMMAND_LINE):
+                self.all_options[source] = self._canonical_keys(self.all_options[source])
 
         # Find any extranious keys for this project and remove them
         potential_removed_keys = self.options.keys() - project_options.keys()

@@ -1531,7 +1531,12 @@ class Interpreter(InterpreterBase, HoldableObject):
                 values['Native files'] = self.user_defined_options.native_file
 
             sorted_options = sorted(self.user_defined_options.cmd_line_options.items(), key=lambda x: x[0].name)
-            values.update({str(k): v for k, v in sorted_options})
+            for k, v in sorted_options:
+                # Omit the empty subproject of project options, but not of augments
+                # of global options such as ":werror".
+                if k.subproject == '' and self.coredata.optstore.is_project_option(k):
+                    k = k.evolve(subproject=None)
+                values[str(k)] = v
             if values:
                 self.summary_impl('User defined options', values, bool_yn=False, list_sep=None)
         # Print all summaries, main project last.
