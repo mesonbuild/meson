@@ -1165,6 +1165,11 @@ class OptionStore:
             dirty = True
         return dirty
 
+    def get_command_line_options(self) -> OptionDict:
+        """Return the options that the user set on the command line, in the
+           current run or in a previous one."""
+        return dict(self.all_options[OptionSource.COMMAND_LINE])
+
     def resolve_configured(self) -> None:
         """Resolve again the options of the toplevel project and of the subprojects
            that were configured, for example after set_from_configure_command()."""
