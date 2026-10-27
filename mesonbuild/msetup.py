@@ -210,6 +210,8 @@ class MesonApp:
         for m in MachineChoice:
             known_subprojects.update((name for name, obj in all_subprojects[m].items() if obj.found()))
         for opt in cmd_line_options:
+            # "foo=true" may also refer to toplevel project option ":foo"
+            opt = coredata.optstore._canonical_key(opt)
             # Accept options that exist or could appear in subsequent reconfigurations,
             # including options for subprojects that were not used
             if opt in coredata.optstore or \
@@ -217,9 +219,6 @@ class MesonApp:
                     coredata.optstore.accept_as_pending_option(opt):
                 continue
             if opt.subproject and opt.subproject not in known_subprojects:
-                continue
-            # "foo=true" may also refer to toplevel project option ":foo"
-            if opt.subproject is None and coredata.optstore.is_project_option(opt.as_root()):
                 continue
             errlist.append(f'"{opt}"')
         if errlist:
