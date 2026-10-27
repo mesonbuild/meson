@@ -1138,10 +1138,6 @@ class OptionStore:
            with resolve_configured() or by configuring the project."""
         dirty = False
         for key, valstr in D_args.items():
-            # Due to backwards compatibility we ignore all build-machine options
-            # when building natively.
-            if not self.is_cross and key.is_for_build():
-                continue
             try:
                 opt: T.Optional[AnyOptionType] = self.resolve_option(key)
             except KeyError:
@@ -1154,6 +1150,11 @@ class OptionStore:
                         raise MesonException(f"Unknown option: {key}")
                     continue
             else:
+                # Build-machine options are not resolved when building natively,
+                # so unknown options would be recorded without an error.
+                if opt is None and not self.is_cross and key.is_for_build() and \
+                        not self.accept_as_pending_option(key):
+                    raise MesonException(f'Unknown option: "{key}".')
                 if opt is not None and opt.readonly and opt.validate_value(valstr) != self.get_value_for(key):
                     raise MesonException(f'Tried to modify read only option "{key}"')
                 old_value = self.all_options[OptionSource.COMMAND_LINE].get(key)
@@ -1172,10 +1173,7 @@ class OptionStore:
             self._resolve_subproject(subproject, first_invocation=False)
 
     def _user_options(self, user_options: T.Mapping[OptionKey, T.Optional[ElementaryOptionValues]]) -> OptionDict:
-        # Due to backwards compatibility we ignore all build-machine options
-        # when building natively.
-        return {key: valstr for key, valstr in user_options.items()
-                if valstr is not None and (self.is_cross or not key.is_for_build())}
+        return {key: valstr for key, valstr in user_options.items() if valstr is not None}
 
     def set_machine_file_options(self, machine_file_options: OptionDict) -> None:
         """Store the options from the machine file and environment variables.
@@ -1316,6 +1314,10 @@ class OptionStore:
                 # Only look at the options of this project; for the toplevel
                 # project, global options are included too.
                 if key.subproject != subproject and not (toplevel and key.subproject is None):
+                    continue
+                # Due to backwards compatibility we ignore all build-machine options
+                # when building natively.  The sources still contain them.
+                if not self.is_cross and key.is_for_build():
                     continue
                 # A subproject's own default_options do not override a global
                 # option that was set in a machine file or on the command line.
