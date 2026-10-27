@@ -1958,7 +1958,13 @@ class Backend:
                         for output, tag in zip(t.get_outputs(), t.install_tag):
                             tag = tag or self.guess_install_tag(output, first_outdir)
                             f = os.path.join(self.get_target_dir(t), output)
-                            i = TargetInstallData(f, first_outdir, first_outdir_name,
+                            if out_subdir := os.path.dirname(output):
+                                outdir = os.path.join(first_outdir, out_subdir)
+                                outdir_name = os.path.join(first_outdir_name, out_subdir) if first_outdir_name is not None else None
+                            else:
+                                outdir = first_outdir
+                                outdir_name = first_outdir_name
+                            i = TargetInstallData(f, outdir, outdir_name,
                                                   False, {}, set(), None, install_mode,
                                                   t.subproject, optional=not t.build_by_default,
                                                   tag=tag,
@@ -1971,6 +1977,10 @@ class Backend:
                             continue
                         tag = tag or self.guess_install_tag(output, outdir)
                         f = os.path.join(self.get_target_dir(t), output)
+                        if out_subdir := os.path.dirname(output):
+                            outdir = os.path.join(outdir, out_subdir)
+                            if outdir_name is not None:
+                                outdir_name = os.path.join(outdir_name, out_subdir)
                         i = TargetInstallData(f, outdir, outdir_name,
                                               False, {}, set(), None, install_mode,
                                               t.subproject, optional=not t.build_by_default,
