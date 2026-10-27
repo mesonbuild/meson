@@ -101,6 +101,7 @@ It takes the following keyword arguments
 - `bindgen_version`: a list of string version values. When set the found bindgen binary must conform to these constraints. *(since 1.4.0)*
 - `allowlist`: A dictionary of options to pass to pass as `--allowlist-*` options. See below. *(since 1.13.0)*
 - `blocklist`: A dictionary of options to pass to pass as `--blocklist-*` options. See below. *(since 1.13.0)*
+- `clang_macro_fallback`: Set the `--clang-macro-fallback` argument, as well as the `--clang-macro-fallback-build-dir`
 
 ```meson
 rust = import('unstable-rust')

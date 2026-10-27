@@ -10,3 +10,6 @@ rust.bindgen(
   allowlist : {'var': ['pub_*']}
 )
 ```
+
+Additionally, a wrapper for `--clang-macro-fallback` has been added which also
+sets the build dir to the target's private directory.

@@ -86,6 +86,7 @@ if T.TYPE_CHECKING:
         bindgen_version: T.List[str]
         allowlist: _BindgenList
         blocklist: _BindgenList
+        clang_macro_fallback: bool
 
 
     class FuncCBindgen(TypedDict):
@@ -913,6 +914,7 @@ class RustModule(ExtensionModule):
             DEPENDENCIES_KW.evolve(since='1.0.0'),
             _BINDGEN_ALLOWLIST,
             _BINDGEN_ALLOWLIST.evolve(name='blocklist'),
+            KwargInfo('clang_macro_fallback', bool, default=False, since='1.13.0'),
         ],
     )
     def bindgen(self, state: ModuleState, args: T.List, kwargs: FuncBindgen) -> ModuleReturnValue:
@@ -1066,6 +1068,13 @@ class RustModule(ExtensionModule):
                 '--wrap-static-fns-path', os.path.join(state.environment.build_dir, '@OUTPUT1@')
             ]
 
+        if mesonlib.version_compare(state.environment.coredata.version, '>= 1.13.0'):
+            if '--clang-macro-fallback' in kwargs['args']:
+                mlog.warning('Consider using the clang_macro_fallback keyword '
+                             'argument instead of passing --clang-macro-fallback in args. ',
+                             'It handles corner cases such as setting --clang-macro-fallback-build-dir.',
+                             fatal=False, location=state.current_node)
+
         cmd = self._bindgen_bin.get_command() + \
             [
                 '@INPUT@', '--output',
@@ -1089,6 +1098,11 @@ class RustModule(ExtensionModule):
                 # Neither mypy nor pyright can figure out that value is a list[str]
                 for v in T.cast('list[str]', value):
                     cmd.extend([f'--{b}-{key}', v])
+
+        # Set up clang macro fallback if requested, also set the private directory
+        if kwargs['clang_macro_fallback']:
+            cmd.extend(['--clang-macro-fallback',
+                        '--clang-macro-fallback-build-dir', '@PRIVATE_DIR@'])
 
         cmd.append('--')
         cmd.extend(kwargs['c_args'])
