@@ -795,10 +795,12 @@ class ConverterCustomTarget:
         mlog.log('  -- depends:      ', mlog.bold(str(self.depends)))
 
 class CMakeInterpreter:
-    def __init__(self, subdir: Path, env: 'Environment', backend: 'Backend', for_machine: MachineChoice):
-        self.subdir = subdir
-        self.src_dir = Path(env.get_source_dir(), subdir)
-        self.build_dir_rel = subdir / '__CMake_build'
+    def __init__(self, subdir: str, env: 'Environment', backend: 'Backend', for_machine: MachineChoice):
+        self.subdir = Path(subdir)
+        # This must be the same as BuildProject.prefix
+        prefix = 'build.' if for_machine is MachineChoice.BUILD else ''
+        self.build_dir_rel = Path(prefix + subdir) / '__CMake_build'
+        self.src_dir = Path(env.get_source_dir()) / subdir
         self.build_dir = Path(env.get_build_dir()) / self.build_dir_rel
         self.install_prefix = Path(T.cast('str', env.coredata.optstore.get_value_for(OptionKey('prefix'))))
         self.env = env

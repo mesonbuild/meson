@@ -485,6 +485,7 @@ class BuildProject:
 
     @lazy_property
     def prefix(self) -> str:
+        # This must be the same as CMakeInterpreter.__init__
         return 'build.' if self.for_machine is MachineChoice.BUILD else ''
 
     @lazy_property
