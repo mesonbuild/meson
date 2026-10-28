@@ -36,6 +36,15 @@ cc.has_function('open_memstream', prefix : '#include <stdio.h>')
 Without the header, the check lacks the availability information and incorrectly reports the
 function as available.
 
+## AIX and IBM i
+
+Meson supports AIX with the GCC and OpenXL compilers.  IBM i is supported in the PASE
+environment, which uses the AIX user space.  On both, `host_machine.system()` returns `'aix'`.
+`host_machine.kernel()` returns `'aix'` or `'os400'` to tell them apart.
+
+The AIX linker always links the whole contents of static libraries, so `link_with` is accepted
+but has the same effect as `link_whole`.
+
 ## QNX
 
 Meson can detect and use `qcc` and `q++`, the C and C++ compiler drivers shipped with the QNX
