@@ -895,7 +895,8 @@ class OptionStore:
     def _derive_value(self, key: OptionKey, value: ElementaryOptionValues) -> ElementaryOptionValues:
         """Compute the value of an option that depends on other options.  The
            build type is the one that matches "debug" and "optimization", or
-           "custom".  An explicit "custom" is not changed."""
+           "custom".  An explicit "custom" is not changed.  "if-release" for
+           b_ndebug means "true" if debug is false."""
         if key.name == 'buildtype' and value != 'custom':
             debug_key = key.evolve(name='debug')
             optimization_key = key.evolve(name='optimization')
@@ -909,6 +910,11 @@ class OptionStore:
                 if dependents == expected:
                     return buildtype
             return 'custom'
+        if key.name == 'b_ndebug' and value == 'if-release':
+            debug_key = key.evolve(name='debug')
+            if debug_key.evolve(subproject=None) not in self.options:
+                return value
+            return 'false' if self.get_value_for(debug_key) else 'true'
         return value
 
     def _add_extra_args_from_env(self, key: OptionKey, value: ElementaryOptionValues) -> ElementaryOptionValues:

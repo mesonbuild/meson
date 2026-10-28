@@ -543,6 +543,31 @@ class OptionTests(unittest.TestCase):
                 optstore = self._configure_buildtype(cmd_line, {}, {})
                 self.assertEqual(optstore.get_value_for('buildtype'), expected)
 
+    def test_b_ndebug_derived(self):
+        """b_ndebug=if-release is computed from debug."""
+        cases = [
+            ({'b_ndebug': 'if-release'}, 'false'),
+            ({'b_ndebug': 'if-release', 'buildtype': 'release'}, 'true'),
+            ({'b_ndebug': 'if-release', 'buildtype': 'plain'}, 'true'),
+            ({'b_ndebug': 'if-release', 'buildtype': 'debugoptimized'}, 'false'),
+            ({'b_ndebug': 'if-release', 'buildtype': 'minsize'}, 'false'),
+            ({'b_ndebug': 'if-release', 'debug': 'false'}, 'true'),
+            ({'b_ndebug': 'if-release', 'buildtype': 'custom', 'debug': 'false'}, 'true'),
+            ({'b_ndebug': 'true'}, 'true'),
+            ({'b_ndebug': 'false', 'buildtype': 'release'}, 'false'),
+        ]
+        for cmd_line, expected in cases:
+            with self.subTest(cmd_line=cmd_line):
+                optstore = OptionStore(False)
+                optstore.init_builtins()
+                optstore.add_system_option('b_ndebug', UserComboOption('b_ndebug', 'Disable asserts', 'false',
+                                                                      choices=['true', 'false', 'if-release']))
+                optstore.set_user_options({OptionKey.from_string(k): v for k, v in cmd_line.items()})
+                optstore.initialize_from_top_level_project_call({})
+                self.assertEqual(optstore.get_value_for('b_ndebug'), expected)
+                self.assertEqual(optstore.get_option_and_value_for(OptionKey('b_ndebug'), raw=True)[1],
+                                 cmd_line['b_ndebug'])
+
     def test_buildtype_derived_raw(self):
         """The stored value of buildtype is not changed by computing it."""
         optstore = self._configure_buildtype({'debug': 'false'}, {}, {})
@@ -556,7 +581,7 @@ class OptionTests(unittest.TestCase):
         sub = {'buildtype': 'release', 'optimization': '2'}
         cases = [
             ({'sub:buildtype': 'debug'}, ('debug', '0', True)),
-            ({'buildtype': 'debug'}, ('debug', '2', True)),
+            ({'buildtype': 'debug'}, ('debugoptimized', '2', True)),
         ]
         for cmd_line, expected in cases:
             with self.subTest(cmd_line=cmd_line):

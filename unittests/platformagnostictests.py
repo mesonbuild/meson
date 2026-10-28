@@ -683,6 +683,14 @@ class PlatformAgnosticTests(BasePlatformTests):
         self.assertEqual(self._get_option_message('buildtype', ['-Ddebug=false', '-Doptimization=3']),
                          'release')
 
+    def test_get_option_b_ndebug_derived(self) -> None:
+        """get_option('b_ndebug') returns the computed value of if-release."""
+        self.assertEqual(self._get_option_message('b_ndebug', ['-Db_ndebug=if-release']), 'false')
+        self.assertEqual(self._get_option_message('b_ndebug', ['-Db_ndebug=if-release', '-Dbuildtype=release']),
+                         'true')
+        self.assertEqual(self._get_option_message('b_ndebug', ['-Db_ndebug=if-release', '-Ddebug=false']),
+                         'true')
+
     def test_unknown_build_option_native(self) -> None:
         """Unknown build-machine options are an error when building natively too."""
         testdir = os.path.join(self.unit_test_dir, '140 unset project options')
