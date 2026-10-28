@@ -10,11 +10,12 @@ import subprocess
 import tempfile
 import textwrap
 import shutil
+import sys
 from unittest import skipIf, SkipTest
 from pathlib import Path
 
 from .baseplatformtests import BasePlatformTests
-from .helpers import skip_if_not_language, IS_CI
+from .helpers import skip_if_not_language, skip_if_no_cmake, IS_CI
 from mesonbuild.mesonlib import EnvironmentVariables, ExecutableSerialisation, MesonException, is_linux, python_command, windows_proof_rmtree
 from mesonbuild.mformat import Formatter, match_path
 from mesonbuild.interpreterbase import InvalidArguments
@@ -328,6 +329,20 @@ class PlatformAgnosticTests(BasePlatformTests):
         self.meson_native_files.append(os.path.join(testdir, 'nativefile.ini'))
         out = self.init(testdir, allow_fail=True)
         self.assertNotIn('Unhandled python exception', out)
+
+    @skip_if_no_cmake
+    def test_cmake_native_subproject_ctgt(self):
+        """Issue #16314"""
+        testdir = os.path.join(self.unit_test_dir, '144 cmake native subproject ctgt')
+        wrapper = os.path.join(testdir, 'wrapper.py')
+        with tempfile.TemporaryDirectory() as d:
+            overlay = os.path.join(d, 'wrapper.txt')
+            with open(overlay, 'w', encoding='utf-8') as f:
+                f.write(f"[binaries]\nexe_wrapper = {[sys.executable, wrapper]!r}\n")
+            self.meson_cross_files = [os.path.join(self.src_root, 'cross', 'linux-mingw-w64-64bit.txt'),
+                                      overlay]
+            self.init(testdir)
+            self.build()
 
     def test_editorconfig_match_path(self):
         '''match_path function used to parse editorconfig in meson format'''

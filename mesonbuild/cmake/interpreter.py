@@ -706,7 +706,8 @@ class ConverterCustomTarget:
                 target = output_target_map.executable(j)
                 if target:
                     # When cross compiling, binaries have to be executed with an exe_wrapper (for instance wine for mingw-w64)
-                    if self.env.exe_wrapper is not None and self.env.properties[self.for_machine].get_cmake_use_exe_wrapper():
+                    if not self.env.can_run_binaries(self.for_machine) and \
+                            self.env.properties[self.for_machine].get_cmake_use_exe_wrapper():
                         assert isinstance(self.env.exe_wrapper, ExternalProgram)
                         cmd += self.env.exe_wrapper.get_command()
                     cmd += [target]
