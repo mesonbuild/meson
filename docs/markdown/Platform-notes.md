@@ -45,6 +45,60 @@ environment, which uses the AIX user space.  On both, `host_machine.system()` re
 The AIX linker always links the whole contents of static libraries, so `link_with` is accepted
 but has the same effect as `link_whole`.
 
+## Windows
+
+### MinGW, UCRT and MSVC
+
+On Windows, Meson uses the compiler that it finds first in the environment, so the shell used
+to run Meson selects the toolchain.  With MSYS2, this is the environment that was started
+(`MINGW64`, `UCRT64`, `CLANG64`, and so on).
+
+- `MINGW64` links to the old `msvcrt.dll` C runtime.
+- `UCRT64` and `CLANG64` link to the Universal C Runtime (UCRT), which is the runtime used by
+  current versions of MSVC.
+- MSVC and clang-cl link to the UCRT as well, and `b_vscrt` selects between the dynamic (`/MD`)
+  and the static (`/MT`) version.
+
+Libraries built with MinGW and with MSVC can be mixed as long as they use the same C runtime,
+for example UCRT64 with MSVC.  Mixing runtimes is likely to cause crashes, because each
+runtime has its own heap and file descriptor table.
+
+The two toolchains differ in how they name and export libraries.  See
+[Library file names](#library-file-names) for the names, and the
+[FAQ](FAQ.md#my-project-works-fine-on-linux-and-mingw-but-fails-to-link-with-msvc-due-to-a-missing-lib-file-fatal-error-lnk1181-why)
+for the exported symbols.
+
+### Search path for DLLs
+
+Windows has no equivalent of an rpath or of `LD_LIBRARY_PATH`.  A program finds its DLLs in its
+own directory and in the directories listed in `PATH`.  When Meson runs a program from the build
+tree, it adds to `PATH` the directories of the DLLs that the program needs.  This applies to:
+
+- tests and benchmarks, including the programs and targets listed in their `depends`;
+- `meson devenv`, for the executables of the project;
+- custom targets and generators that run an executable from the build tree.
+
+The directories are:
+
+- the directories of the `shared_library()` targets that the program links to, directly or
+  transitively.  The output of a `custom_target()` is not included, even if it is a DLL;
+- the directories of DLLs that the program links to outside the build tree, for example when
+  they are found with `find_library()`;
+- when cross compiling with MinGW, the `bin` directory of the toolchain and of the `sys_root`
+  and `root` of the cross file, and the program and library directories of the compilers.
+
+#### Wine
+
+When running Windows executables on another operating system, `PATH` is not used to find DLLs.
+Meson sets `WINEPATH` with the same directories in `meson devenv`, when the host machine is
+Windows and the build machine is not.  `meson test` does the same for tests whose command is
+`wine`, for example through an `exe_wrapper`.  The directories of the executables are added as
+well, so that `wine foo.exe` works.
+
+Wine limits the size of `WINEPATH` to 1024 bytes.  Meson shortens the paths if necessary, using
+paths relative to the working directory and Windows short names, and prints a warning if the
+result is still too long.
+
 ## QNX
 
 Meson can detect and use `qcc` and `q++`, the C and C++ compiler drivers shipped with the QNX
