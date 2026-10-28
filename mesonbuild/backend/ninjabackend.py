@@ -3597,6 +3597,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             # Explicitly compile pch headers as C++. If Clang is invoked in C++ mode, it actually warns if
             # this option is not set, and for gcc it also makes sense to use it.
             commands += ['-x', 'c++-header']
+        commands += compiler.get_pch_create_args()
         dst = os.path.join(self.get_target_private_dir(target),
                            os.path.basename(pch) + '.' + compiler.get_pch_suffix())
         dep = dst + '.' + compiler.get_depfile_suffix()

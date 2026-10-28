@@ -123,6 +123,12 @@ class ClangCompiler(GnuLikeCompiler):
         # so it might change semantics at any time.
         return ['-include-pch', os.path.join(pch_dir, self.get_pch_name(header))]
 
+    def get_pch_create_args(self) -> T.List[str]:
+        if self.exelist == self.exelist_no_ccache:
+            return []
+        # Header modification times recorded in the PCH make compiler caches miss
+        return ['-Xclang', '-fno-pch-timestamp']
+
     def get_compiler_check_args(self, mode: CompileCheckMode) -> T.List[str]:
         # Clang is different than GCC, it will return True when a symbol isn't
         # defined in a header. Specifically this is caused by a functionality
