@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from mesonbuild.options import (
     OptionStore, OptionKey, UserStringOption, UserStringArrayOption,
-    UserComboOption, UserBooleanOption,
+    UserComboOption, UserBooleanOption, MSCRT_VALS,
 )
 from mesonbuild.envconfig import MachineInfo
 from mesonbuild.utils.universal import MesonException, MachineChoice
@@ -567,6 +567,47 @@ class OptionTests(unittest.TestCase):
                 self.assertEqual(optstore.get_value_for('b_ndebug'), expected)
                 self.assertEqual(optstore.get_option_and_value_for(OptionKey('b_ndebug'), raw=True)[1],
                                  cmd_line['b_ndebug'])
+
+    def test_b_vscrt_derived(self):
+        """b_vscrt=from_buildtype is computed from debug and optimization,
+           unless buildtype is custom."""
+        cases = [
+            # cmd_line, value of b_vscrt for from_buildtype and static_from_buildtype
+            ({}, ('mdd', 'mtd')),
+            ({'buildtype': 'plain'}, ('none', 'none')),
+            ({'buildtype': 'debug'}, ('mdd', 'mtd')),
+            ({'buildtype': 'debugoptimized'}, ('md', 'mt')),
+            ({'buildtype': 'release'}, ('md', 'mt')),
+            ({'buildtype': 'minsize'}, ('md', 'mt')),
+            ({'debug': 'false'}, ('md', 'mt')),
+            ({'debug': 'true', 'optimization': 'g'}, ('mdd', 'mtd')),
+            ({'debug': 'true', 'optimization': '3'}, ('md', 'mt')),
+            ({'buildtype': 'custom'}, ('from_buildtype', 'static_from_buildtype')),
+            ({'buildtype': 'custom', 'debug': 'false'}, ('from_buildtype', 'static_from_buildtype')),
+        ]
+        for cmd_line, expected in cases:
+            for value, expected_value in zip(('from_buildtype', 'static_from_buildtype'), expected):
+                with self.subTest(cmd_line=cmd_line, value=value):
+                    optstore = OptionStore(False)
+                    optstore.init_builtins()
+                    optstore.add_system_option('b_vscrt', UserComboOption(
+                        'b_vscrt', 'VS run-time library type to use.', 'from_buildtype',
+                        choices=MSCRT_VALS + ['from_buildtype', 'static_from_buildtype']))
+                    optstore.set_user_options({OptionKey.from_string(k): v for k, v in cmd_line.items()}
+                                              | {OptionKey('b_vscrt'): value})
+                    optstore.initialize_from_top_level_project_call({})
+                    self.assertEqual(optstore.get_value_for('b_vscrt'), expected_value)
+
+    def test_b_vscrt_explicit(self):
+        """An explicit run-time library is not changed."""
+        optstore = OptionStore(False)
+        optstore.init_builtins()
+        optstore.add_system_option('b_vscrt', UserComboOption(
+            'b_vscrt', 'VS run-time library type to use.', 'from_buildtype',
+            choices=MSCRT_VALS + ['from_buildtype', 'static_from_buildtype']))
+        optstore.set_user_options({OptionKey('b_vscrt'): 'mt', OptionKey('buildtype'): 'debug'})
+        optstore.initialize_from_top_level_project_call({})
+        self.assertEqual(optstore.get_value_for('b_vscrt'), 'mt')
 
     def test_buildtype_derived_raw(self):
         """The stored value of buildtype is not changed by computing it."""

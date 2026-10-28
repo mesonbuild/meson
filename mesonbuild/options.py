@@ -896,7 +896,10 @@ class OptionStore:
         """Compute the value of an option that depends on other options.  The
            build type is the one that matches "debug" and "optimization", or
            "custom".  An explicit "custom" is not changed.  "if-release" for
-           b_ndebug means "true" if debug is false."""
+           b_ndebug means "true" if debug is false.  "from_buildtype" and
+           "static_from_buildtype" for b_vscrt are replaced by the run-time
+           library that corresponds to debug and optimization, unless the
+           build type is explicitly "custom"."""
         if key.name == 'buildtype' and value != 'custom':
             debug_key = key.evolve(name='debug')
             optimization_key = key.evolve(name='optimization')
@@ -915,6 +918,23 @@ class OptionStore:
             if debug_key.evolve(subproject=None) not in self.options:
                 return value
             return 'false' if self.get_value_for(debug_key) else 'true'
+        if key.name == 'b_vscrt' and value in {'from_buildtype', 'static_from_buildtype'}:
+            debug_key = key.evolve(name='debug')
+            optimization_key = key.evolve(name='optimization')
+            buildtype_key = key.evolve(name='buildtype')
+            if any(k.evolve(subproject=None) not in self.options
+                   for k in (debug_key, optimization_key, buildtype_key)):
+                return value
+            if self.get_option_and_value_for(buildtype_key, raw=True)[1] == 'custom':
+                return value
+            debug = self.get_value_for(debug_key)
+            optimization = self.get_value_for(optimization_key)
+            static = value == 'static_from_buildtype'
+            if optimization == 'plain' and not debug:
+                return 'none'
+            if debug and optimization in {'0', 'g'}:
+                return 'mtd' if static else 'mdd'
+            return 'mt' if static else 'md'
         return value
 
     def _add_extra_args_from_env(self, key: OptionKey, value: ElementaryOptionValues) -> ElementaryOptionValues:
