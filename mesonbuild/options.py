@@ -902,7 +902,9 @@ class OptionStore:
             if debug_key.evolve(subproject=None) not in self.options or \
                     optimization_key.evolve(subproject=None) not in self.options:
                 return value
-            dependents = (self.get_value_for(optimization_key), self.get_value_for(debug_key))
+            optimization = self.get_value_for(optimization_key)
+            # "g" optimizes for debugging, like the "0" of the debug build type.
+            dependents = ('0' if optimization == 'g' else optimization, self.get_value_for(debug_key))
             for buildtype, expected in self.DEFAULT_DEPENDENTS.items():
                 if dependents == expected:
                     return buildtype

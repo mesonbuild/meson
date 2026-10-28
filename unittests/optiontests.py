@@ -531,6 +531,8 @@ class OptionTests(unittest.TestCase):
             ({'debug': 'true', 'optimization': '2'}, 'debugoptimized'),
             ({'debug': 'false', 'optimization': 'plain'}, 'plain'),
             ({'debug': 'true', 'optimization': 's'}, 'minsize'),
+            ({'debug': 'true', 'optimization': 'g'}, 'debug'),
+            ({'debug': 'false', 'optimization': 'g'}, 'custom'),
             ({'debug': 'false'}, 'custom'),
             ({'buildtype': 'release', 'debug': 'true'}, 'custom'),
             ({'buildtype': 'custom'}, 'custom'),
