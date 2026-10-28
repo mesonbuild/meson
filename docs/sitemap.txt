@@ -77,6 +77,7 @@ index.md
 		Project-templates.md
 	@REFMAN_PLACEHOLDER@
 	Reference-tables.md
+	Platform-notes.md
 	Style-guide.md
 	Rewriter.md
 	FAQ.md
