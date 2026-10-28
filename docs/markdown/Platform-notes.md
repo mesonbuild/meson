@@ -6,6 +6,36 @@ short-description: Notes and known issues for specific platforms
 
 This page collects information that is specific to a platform or to a toolchain.
 
+## macOS deployment target
+
+Programs can be compiled for older macOS versions than the one they are compiled on.  The
+version of the build machine therefore does not tell which functions are available when the
+program runs.
+
+The deployment target is chosen by the compiler.  Either set the `MACOSX_DEPLOYMENT_TARGET`
+environment variable before running Meson, or pass `-mmacosx-version-min` in both the compile
+and the link arguments, for example in a native file:
+
+```ini
+[built-in options]
+c_args = ['-mmacosx-version-min=10.11']
+c_link_args = ['-mmacosx-version-min=10.11']
+```
+
+The checks that Meson runs use the same arguments, so they see the deployment target.
+
+When detecting a function with `compiler.has_function()`, specify the header that declares it
+in the `prefix` argument.  For example, `open_memstream` was introduced in macOS 10.13.  When
+building on macOS 10.13 for macOS 10.11, the following check correctly reports the function as
+missing:
+
+```meson
+cc.has_function('open_memstream', prefix : '#include <stdio.h>')
+```
+
+Without the header, the check lacks the availability information and incorrectly reports the
+function as available.
+
 ## QNX
 
 Meson can detect and use `qcc` and `q++`, the C and C++ compiler drivers shipped with the QNX
