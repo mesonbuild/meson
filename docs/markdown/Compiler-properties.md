@@ -179,20 +179,8 @@ if [[#compiler.has_function]]('open_memstream', prefix : '#include <stdio.h>')
 endif
 ```
 
-Note that, on macOS programs can be compiled targeting older macOS
-versions than the one that the program is compiled on. It can't be
-assumed that the OS version that is compiled on matches the OS version
-that the binary will run on.
-
-Therefore when detecting function availability with [[compiler.has_function]], it
-is important to specify the correct header in the prefix argument.
-
-In the example above, the function `open_memstream` is detected, which
-was introduced in macOS 10.13. When the user builds on macOS 10.13,
-but targeting macOS 10.11 (`-mmacosx-version-min=10.11`), this will
-correctly report the function as missing. Without the header however,
-it would lack the necessary availability information and incorrectly
-report the function as available.
+When targeting macOS, the header in the prefix argument is also what makes the check
+respect the deployment target.  See [Platform notes](Platform-notes.md#macos-deployment-target).
 
 ## Is a macro defined?
 
