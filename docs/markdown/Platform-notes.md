@@ -99,6 +99,42 @@ Wine limits the size of `WINEPATH` to 1024 bytes.  Meson shortens the paths if n
 paths relative to the working directory and Windows short names, and prints a warning if the
 result is still too long.
 
+## Emscripten
+
+Meson can use `emcc` and `em++` from Emscripten 1.39.19 or newer to build WebAssembly.  They can
+only be used for cross compilation.  A minimal cross file is:
+
+```ini
+[binaries]
+c = 'emcc'
+cpp = 'em++'
+ar = 'emar'
+
+[host_machine]
+system = 'emscripten'
+cpu_family = 'wasm32'
+cpu = 'wasm32'
+endian = 'little'
+```
+
+The following behavior is specific to Emscripten:
+
+- Executables have the `.js` suffix.  If a `.wasm` file is produced next to it, `meson install`
+  installs it as well.
+- The linker is detected as `ld.wasm`, the name that Meson uses for `wasm-ld`.
+- The `c_thread_count` and `cpp_thread_count` options set `-sPTHREAD_POOL_SIZE` when a target
+  uses threads.  The default is 4, and 0 does not pass the option.
+- `compiler.find_library()` can look up JavaScript libraries.  The name must end with `.js`, and
+  either be an absolute path or be searched in the directories passed with `dirs`.
+
+```meson
+glue_lib = cc.find_library('gluefuncs.js', dirs: meson.current_source_dir())
+executable('prog', 'prog.c', dependencies: glue_lib)
+```
+
+Running the output requires `exe_wrapper`, for example `node`.  See
+[running target programs](Cross-compilation.md#running-target-programs).
+
 ## QNX
 
 Meson can detect and use `qcc` and `q++`, the C and C++ compiler drivers shipped with the QNX
