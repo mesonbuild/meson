@@ -1356,6 +1356,10 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
     def get_pch_use_args(self, pch_dir: str, header: str) -> T.List[str]:
         raise EnvironmentException(f'{self.id} does not support pre compiled headers')
 
+    def get_pch_create_args(self) -> T.List[str]:
+        """Arguments for building the precompiled header, not for sources that use it."""
+        return []
+
     def get_has_func_attribute_extra_args(self, name: str) -> T.List[str]:
         raise EnvironmentException(f'{self.id} does not support function attributes')
 
