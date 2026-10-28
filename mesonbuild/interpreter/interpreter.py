@@ -1618,10 +1618,14 @@ class Interpreter(InterpreterBase, HoldableObject):
         langs.update(args)
 
         # Some languages are added only as implementation details of other
-        # languages. When that happens, we don't want to add those languages to
-        # the project enabled languages, as they are implementation details, not
-        # something the user explicitly asked for, and we don't want to be
-        # forced to keep them forever if the implementation changes.
+        # languages. When that happens, args is modified in place, so make
+        # a copy.
+        args = list(args)
+
+        # We don't want to add those languages to the project enabled languages,
+        # as they are implementation details, not something the user explicitly
+        # asked for, and we don't want to be forced to keep them forever
+        # if the implementation changes.
         internal: T.Set[Language] = set()
 
         if 'vala' in langs and 'c' not in langs:
