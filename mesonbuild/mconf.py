@@ -242,7 +242,11 @@ class Conf:
         if title:
             self.add_title(title)
         for k, o in sorted(opts.items()):
-            printable_value = o.printable_value(self.coredata.optstore.get_value_for(k))
+            _, raw_value = self.coredata.optstore.get_option_and_value_for(k, raw=True)
+            value = self.coredata.optstore.get_value_for(k)
+            printable_value = o.printable_value(value)
+            if value != raw_value:
+                printable_value = f'{printable_value} (computed)'
             #root = k.as_root()
             #if o.yielding and k.subproject and root in self.coredata.options:
             #    printable_value = '<inherited from main project>'

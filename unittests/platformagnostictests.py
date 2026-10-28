@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 import json
+import typing as T
 import os
 import pickle
 import subprocess
@@ -648,6 +649,40 @@ class PlatformAgnosticTests(BasePlatformTests):
         self.setconf(['-U', 'sub:plain'])
         self.assertEqual(self.getconf('sub:plain'), 'project')
 
+    def test_buildtype_derived(self) -> None:
+        """buildtype follows debug and optimization, also after meson configure."""
+        testdir = os.path.join(self.unit_test_dir, '140 unset project options')
+        self.init(testdir, extra_args=['-Ddebug=false', '-Doptimization=3'])
+        self.assertEqual(self.getconf('buildtype'), 'release')
+
+        self.setconf('-Ddebug=true', will_build=False)
+        self.assertEqual(self.getconf('buildtype'), 'custom')
+
+        self.setconf(['-Udebug', '-Uoptimization', '-Dbuildtype=minsize'], will_build=False)
+        self.assertEqual(self.getconf('buildtype'), 'minsize')
+        self.assertEqual(self.getconf('optimization'), 's')
+
+        self.setconf(['-Dbuildtype=custom', '-Doptimization=3'], will_build=False)
+        self.assertEqual(self.getconf('buildtype'), 'custom')
+
+    def _get_option_message(self, name: str, extra_args: T.List[str]) -> str:
+        self.new_builddir()
+        with tempfile.TemporaryDirectory() as testdir:
+            with open(os.path.join(testdir, 'meson.build'), 'w', encoding='utf-8') as f:
+                f.write(f"project('get_option', 'c')\nmessage('value=' + get_option('{name}'))\n")
+            out = self.init(testdir, extra_args=extra_args)
+        for line in out.splitlines():
+            if line.startswith('Message: value='):
+                return line[len('Message: value='):]
+        self.fail('message not found')
+
+    def test_get_option_buildtype_derived(self) -> None:
+        """get_option('buildtype') returns the computed value."""
+        self.assertEqual(self._get_option_message('buildtype', []), 'debug')
+        self.assertEqual(self._get_option_message('buildtype', ['-Ddebug=false']), 'custom')
+        self.assertEqual(self._get_option_message('buildtype', ['-Ddebug=false', '-Doptimization=3']),
+                         'release')
+
     def test_unknown_build_option_native(self) -> None:
         """Unknown build-machine options are an error when building natively too."""
         testdir = os.path.join(self.unit_test_dir, '140 unset project options')
@@ -717,7 +752,7 @@ class PlatformAgnosticTests(BasePlatformTests):
                 self.new_builddir()
                 self.init(testdir, extra_args=extra_args)
                 opts = self.introspect('--buildoptions')
-                self.assertEqual(self.getconf('buildtype', opts), 'release')
+                self.assertEqual(self.getconf('buildtype', opts), 'custom')
                 self.assertEqual(self.getconf('debug', opts), True)
                 self.assertEqual(self.getconf('optimization', opts), '3')
 
@@ -729,7 +764,7 @@ class PlatformAgnosticTests(BasePlatformTests):
                 self.new_builddir()
                 self.init(testdir, extra_args=extra_args)
                 opts = self.introspect('--buildoptions')
-                self.assertEqual(self.getconf('buildtype', opts), 'debug')
+                self.assertEqual(self.getconf('buildtype', opts), 'custom')
                 self.assertEqual(self.getconf('debug', opts), True)
                 self.assertEqual(self.getconf('optimization', opts), '3')
 

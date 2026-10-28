@@ -508,12 +508,12 @@ class OptionTests(unittest.TestCase):
            they are overridden by buildtype."""
         cases = [
             # cmd_line, machine_file, toplevel, (buildtype, optimization, debug)
-            ({'debug': 'true', 'buildtype': 'release'}, {}, {}, ('release', '3', True)),
-            ({'optimization': '2', 'buildtype': 'release'}, {}, {}, ('release', '2', False)),
-            ({}, {'debug': 'true', 'buildtype': 'release'}, {}, ('release', '3', True)),
-            ({}, {}, {'optimization': '2', 'buildtype': 'release'}, ('release', '2', False)),
+            ({'debug': 'true', 'buildtype': 'release'}, {}, {}, ('custom', '3', True)),
+            ({'optimization': '2', 'buildtype': 'release'}, {}, {}, ('custom', '2', False)),
+            ({}, {'debug': 'true', 'buildtype': 'release'}, {}, ('custom', '3', True)),
+            ({}, {}, {'optimization': '2', 'buildtype': 'release'}, ('custom', '2', False)),
             ({'buildtype': 'debug'}, {}, {'buildtype': 'release', 'optimization': '2'}, ('debug', '0', True)),
-            ({'optimization': '2'}, {'buildtype': 'release'}, {'optimization': '1'}, ('release', '2', False)),
+            ({'optimization': '2'}, {'buildtype': 'release'}, {'optimization': '1'}, ('custom', '2', False)),
         ]
         for cmd_line, machine_file, toplevel, expected in cases:
             with self.subTest(cmd_line=cmd_line, machine_file=machine_file, toplevel=toplevel):
@@ -521,6 +521,32 @@ class OptionTests(unittest.TestCase):
                 self.assertEqual((optstore.get_value_for('buildtype'),
                                   optstore.get_value_for('optimization'),
                                   optstore.get_value_for('debug')), expected)
+
+    def test_buildtype_derived(self):
+        """buildtype is computed from debug and optimization, unless it is
+           explicitly custom."""
+        cases = [
+            ({}, 'debug'),
+            ({'debug': 'false', 'optimization': '3'}, 'release'),
+            ({'debug': 'true', 'optimization': '2'}, 'debugoptimized'),
+            ({'debug': 'false', 'optimization': 'plain'}, 'plain'),
+            ({'debug': 'true', 'optimization': 's'}, 'minsize'),
+            ({'debug': 'false'}, 'custom'),
+            ({'buildtype': 'release', 'debug': 'true'}, 'custom'),
+            ({'buildtype': 'custom'}, 'custom'),
+            ({'buildtype': 'custom', 'debug': 'false', 'optimization': '3'}, 'custom'),
+        ]
+        for cmd_line, expected in cases:
+            with self.subTest(cmd_line=cmd_line):
+                optstore = self._configure_buildtype(cmd_line, {}, {})
+                self.assertEqual(optstore.get_value_for('buildtype'), expected)
+
+    def test_buildtype_derived_raw(self):
+        """The stored value of buildtype is not changed by computing it."""
+        optstore = self._configure_buildtype({'debug': 'false'}, {}, {})
+        self.assertEqual(optstore.get_value_for('buildtype'), 'custom')
+        _, raw = optstore.get_option_and_value_for(OptionKey('buildtype'), raw=True)
+        self.assertEqual(raw, 'debug')
 
     def test_buildtype_subproject(self):
         """buildtype for a subproject overrides the subproject's own default_options

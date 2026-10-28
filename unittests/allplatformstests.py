@@ -3327,12 +3327,12 @@ class AllPlatformTests(BasePlatformTests):
         self.setconf('-Ddebug=false')
         opts = self.get_opts_as_dict()
         self.assertEqual(opts['debug'], False)
-        self.assertEqual(opts['buildtype'], 'debug')
+        self.assertEqual(opts['buildtype'], 'custom')
         self.assertEqual(opts['optimization'], '0')
         self.setconf('-Doptimization=g')
         opts = self.get_opts_as_dict()
         self.assertEqual(opts['debug'], False)
-        self.assertEqual(opts['buildtype'], 'debug')
+        self.assertEqual(opts['buildtype'], 'custom')
         self.assertEqual(opts['optimization'], 'g')
 
     @skipIfNoPkgconfig

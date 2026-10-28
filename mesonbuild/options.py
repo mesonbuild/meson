@@ -874,7 +874,10 @@ class OptionStore:
                 return self.options[parent_key]
         return potential
 
-    def get_option_and_value_for(self, key: OptionKey) -> T.Tuple[AnyOptionType, ElementaryOptionValues]:
+    def get_option_and_value_for(self, key: OptionKey,
+                                 raw: bool = False) -> T.Tuple[AnyOptionType, ElementaryOptionValues]:
+        """Return the option object and its value.  If raw is true, the value
+           of an option that is computed from other options is not computed."""
         key = self.ensure_and_validate_key(key)
         option_object = self.resolve_option(key)
         if key in self.augments:
@@ -884,7 +887,27 @@ class OptionStore:
             computed_value = self.get_value_for(key.as_root())
         else:
             computed_value = self.globals.get(key.evolve(subproject=None), option_object.default)
-        return (option_object, self._add_extra_args_from_env(key, computed_value))
+        computed_value = self._add_extra_args_from_env(key, computed_value)
+        if not raw:
+            computed_value = self._derive_value(key, computed_value)
+        return (option_object, computed_value)
+
+    def _derive_value(self, key: OptionKey, value: ElementaryOptionValues) -> ElementaryOptionValues:
+        """Compute the value of an option that depends on other options.  The
+           build type is the one that matches "debug" and "optimization", or
+           "custom".  An explicit "custom" is not changed."""
+        if key.name == 'buildtype' and value != 'custom':
+            debug_key = key.evolve(name='debug')
+            optimization_key = key.evolve(name='optimization')
+            if debug_key.evolve(subproject=None) not in self.options or \
+                    optimization_key.evolve(subproject=None) not in self.options:
+                return value
+            dependents = (self.get_value_for(optimization_key), self.get_value_for(debug_key))
+            for buildtype, expected in self.DEFAULT_DEPENDENTS.items():
+                if dependents == expected:
+                    return buildtype
+            return 'custom'
+        return value
 
     def _add_extra_args_from_env(self, key: OptionKey, value: ElementaryOptionValues) -> ElementaryOptionValues:
         """Add to value the arguments from environment variables that
@@ -899,7 +922,7 @@ class OptionStore:
         return value
 
     def option_has_value(self, key: OptionKey, value: ElementaryOptionValues) -> bool:
-        option_object, current_value = self.get_option_and_value_for(key)
+        option_object, current_value = self.get_option_and_value_for(key, raw=True)
         return option_object.validate_value(value) == current_value
 
     def get_value_for(self, name: 'T.Union[OptionKey, str]', subproject: T.Optional[str] = None) -> ElementaryOptionValues:
