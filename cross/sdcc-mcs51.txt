@@ -2,7 +2,9 @@
 # to the environment(PATH) variable, so that Meson can find
 # sdcc and sdar while building.
 [binaries]
-c = 'sdcc'
+# SDCC selects the target port with '-m'; it must be passed when
+# compiling and when linking, so put it in the compiler command.
+c = ['sdcc', '-mmcs51']
 ar = 'sdar'
 
 [host_machine]
@@ -13,9 +15,3 @@ endian = 'little'
 
 [properties]
 needs_exe_wrapper = true
-
-[built-in options]
-# SDCC selects the target port with '-m'; it must be passed when
-# compiling and when linking.
-c_args = ['-mmcs51']
-c_link_args = ['-mmcs51']
