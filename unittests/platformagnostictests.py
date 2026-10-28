@@ -112,6 +112,18 @@ class PlatformAgnosticTests(BasePlatformTests):
             except FileNotFoundError:
                 self.skipTest('Current backend does not produce introspection data')
 
+    def test_dependency_extra_files_introspection(self):
+        '''
+        Test that extra_files of an internal dependency are exposed together with the target's own.
+        https://github.com/mesonbuild/meson/issues/15863
+        '''
+        testdir = os.path.join(self.unit_test_dir, '145 dependency extra files')
+        self.init(testdir)
+        targets = self.introspect('--targets')
+        self.assertEqual(len(targets), 1)
+        names = sorted(os.path.basename(f) for f in targets[0]['extra_files'])
+        self.assertEqual(names, ['dep.txt', 'own.txt'])
+
     def test_debug_function_outputs_to_meson_log(self):
         testdir = os.path.join(self.unit_test_dir, '104 debug function')
         log_msg = 'This is an example debug output, should only end up in debug log'

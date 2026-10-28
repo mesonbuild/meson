@@ -1119,6 +1119,7 @@ class BuildTarget(Target, BuildTargetProto):
                     This will become a hard error in a future Meson release.
                 '''))
         self.link_early_args = kwargs.get('link_early_args', [])
+        self.extra_files = list(kwargs.get('extra_files', []))
         # Target-specific include dirs must be added BEFORE include dirs from
         # internal deps (added inside self.add_deps()) to override them.
         self.add_include_dirs(kwargs.get('include_directories', []))
@@ -1136,7 +1137,6 @@ class BuildTarget(Target, BuildTargetProto):
         self.install_dir: T.List[T.Union[str, T.Literal[False]]] = [install_dir]
         self.install_mode = kwargs.get('install_mode', None)
         self.install_tag: T.List[T.Optional[str]] = kwargs.get('install_tag') or [None]
-        self.extra_files = kwargs.get('extra_files', [])
         self.install_rpath: str = kwargs.get('install_rpath', '')
         self.build_rpath = kwargs.get('build_rpath', '')
         self.resources = kwargs.get('resources', [])
