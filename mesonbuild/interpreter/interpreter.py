@@ -1101,7 +1101,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             from ..modules.cmake import CMakeSubprojectOptions
             kw_opts = kwargs.get('options') or CMakeSubprojectOptions()
             cmake_options = kwargs.get('cmake_options', []) + kw_opts.cmake_options
-            cm_int = CMakeInterpreter(Path(subdir), self.build.environment, self.backend, for_machine)
+            cm_int = CMakeInterpreter(subdir, self.build.environment, self.backend, for_machine)
             cm_int.initialise(cmake_options)
             cm_int.analyse()
 
