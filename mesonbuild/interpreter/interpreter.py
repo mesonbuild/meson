@@ -1416,7 +1416,6 @@ class Interpreter(InterpreterBase, HoldableObject):
                 mlog.log('Compiler for language', mlog.bold(lang), 'skipped: feature', mlog.bold(feature), 'disabled')
             return False
         if for_machine is not None:
-            for_machine = self.build.machine_map[for_machine]
             return self.add_languages(langs, required, for_machine)
         else:
             # absent 'native' means 'both' for backwards compatibility
@@ -1600,9 +1599,8 @@ class Interpreter(InterpreterBase, HoldableObject):
         return ExpectErrorObject(args[0], kwargs['how'], self.subproject)
 
     def add_languages(self, args: T.List[Language], required: bool, for_machine: MachineChoice) -> bool:
-        success = self.add_languages_for(args, required, for_machine)
-        self._redetect_machines()
-        return success
+        for_machine = self.build.machine_map[for_machine]
+        return self.add_languages_for(args, required, for_machine)
 
     def should_skip_sanity_check(self, for_machine: MachineChoice) -> bool:
         should = self.environment.properties.host.get('skip_sanity_check', False)
@@ -1703,6 +1701,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             if lang not in internal:
                 self.compilers[for_machine][lang] = comp
 
+        self._redetect_machines()
         return success
 
     def program_from_file_for(self, for_machine: MachineChoice, prognames: T.List[mesonlib.FileOrString]
@@ -3646,7 +3645,7 @@ class Interpreter(InterpreterBase, HoldableObject):
 
         if isinstance(tobj, build.BuildTarget):
             # add_languages mutates the `args` parameter, so we need to copy here
-            self.add_languages(tobj.missing_languages.copy(), True, tobj.for_machine)
+            self.add_languages_for(tobj.missing_languages.copy(), True, tobj.for_machine)
             tobj.process_compilers_late()
             self.add_stdlib_info(tobj)
 
