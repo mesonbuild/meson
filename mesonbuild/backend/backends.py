@@ -226,10 +226,6 @@ class TestSerialisation:
     # Path of the test program itself.
     exe_fname: str
 
-    def __post_init__(self) -> None:
-        if self.exe_wrapper is not None:
-            assert isinstance(self.exe_wrapper, programs.ExternalProgram)
-
     @property
     def cmd_has_interpreter(self) -> bool:
         return self.fname[0] != self.exe_fname
@@ -2047,11 +2043,9 @@ class Backend:
         srcdir = self.environment.get_source_dir()
         builddir = self.environment.get_build_dir()
         for de in data:
-            assert isinstance(de, build.Data)
             subdir = de.install_dir
             subdir_name = de.install_dir_name
             for src_file, dst_name in zip(de.sources, de.rename):
-                assert isinstance(src_file, mesonlib.File)
                 dst_abs = os.path.join(subdir, dst_name)
                 dstdir_name = os.path.join(subdir_name, dst_name)
                 tag = de.install_tag or self.guess_install_tag(dst_abs)
@@ -2063,7 +2057,6 @@ class Backend:
     def generate_symlink_install(self, d: InstallData) -> None:
         links: T.List[build.SymlinkData] = self.build.get_symlinks()
         for l in links:
-            assert isinstance(l, build.SymlinkData)
             install_dir = l.install_dir
             name_abs = os.path.join(install_dir, l.name)
             tag = l.install_tag or self.guess_install_tag(name_abs)
