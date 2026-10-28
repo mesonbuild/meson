@@ -1839,6 +1839,25 @@ class Backend:
         mlog.debug('Failed to guess install tag for', dest_path)
         return None
 
+    def _generate_custom_target_install_data(self, target: build.CustomTarget, tag: str | None,
+                                             output: str, outdir: str, outdir_name: str | None,
+                                             install_mode: FileMode) -> TargetInstallData:
+        tag = tag or self.guess_install_tag(output, outdir)
+        fname = os.path.join(self.get_target_dir(target), output)
+        out_subdir = os.path.dirname(output)
+        if target.output_install_root:
+            if not mesonlib.is_parent_path(target.output_install_root, out_subdir):
+                raise MesonBugException(f'Output {output!r} of target {target.name!r} is not under output_install_root {target.output_install_root!r}')
+            out_subdir = mesonlib.relpath(out_subdir, target.output_install_root)
+        if out_subdir and out_subdir != '.':
+            outdir = os.path.join(outdir, out_subdir)
+            outdir_name = os.path.join(outdir_name, out_subdir) if outdir_name is not None else None
+        return TargetInstallData(fname, outdir, outdir_name,
+                                 False, {}, set(), None, install_mode,
+                                 target.subproject, optional=not target.build_by_default,
+                                 tag=tag,
+                                 system=self.environment.machines[target.for_machine].system)
+
     def generate_target_install(self, d: InstallData) -> None:
         for t in self.build.get_targets().values():
             if not t.should_install():
@@ -1956,37 +1975,16 @@ class Backend:
                 if num_outdirs == 1 and num_out > 1:
                     if first_outdir is not False:
                         for output, tag in zip(t.get_outputs(), t.install_tag):
-                            tag = tag or self.guess_install_tag(output, first_outdir)
-                            f = os.path.join(self.get_target_dir(t), output)
-                            if out_subdir := os.path.dirname(output):
-                                outdir = os.path.join(first_outdir, out_subdir)
-                                outdir_name = os.path.join(first_outdir_name, out_subdir) if first_outdir_name is not None else None
-                            else:
-                                outdir = first_outdir
-                                outdir_name = first_outdir_name
-                            i = TargetInstallData(f, outdir, outdir_name,
-                                                  False, {}, set(), None, install_mode,
-                                                  t.subproject, optional=not t.build_by_default,
-                                                  tag=tag,
-                                                  system=self.environment.machines[t.for_machine].system)
-                            d.targets.append(i)
+                            install_data = self._generate_custom_target_install_data(
+                                t, tag, output, first_outdir, first_outdir_name, install_mode)
+                            d.targets.append(install_data)
                 else:
                     for output, outdir, outdir_name, tag in zip(t.get_outputs(), outdirs, install_dir_names, t.install_tag):
                         # User requested that we not install this output
                         if outdir is False:
                             continue
-                        tag = tag or self.guess_install_tag(output, outdir)
-                        f = os.path.join(self.get_target_dir(t), output)
-                        if out_subdir := os.path.dirname(output):
-                            outdir = os.path.join(outdir, out_subdir)
-                            if outdir_name is not None:
-                                outdir_name = os.path.join(outdir_name, out_subdir)
-                        i = TargetInstallData(f, outdir, outdir_name,
-                                              False, {}, set(), None, install_mode,
-                                              t.subproject, optional=not t.build_by_default,
-                                              tag=tag,
-                                              system=self.environment.machines[t.for_machine].system)
-                        d.targets.append(i)
+                        install_data = self._generate_custom_target_install_data(t, tag, output, outdir, outdir_name, install_mode)
+                        d.targets.append(install_data)
 
     def generate_custom_install_script(self, d: InstallData) -> None:
         d.install_scripts = self.build.install_scripts
