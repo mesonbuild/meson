@@ -1,0 +1,13 @@
+{
+  "installed": [
+    { "type": "file", "file": "usr/include/toplevel.pb.h" },
+    { "type": "file", "file": "usr/include/nested/nested.pb.h" },
+    { "type": "file", "file": "usr/include/configured.pb.h" },
+    { "type": "file", "file": "usr/include/imported.pb.h" },
+    { "type": "file", "file": "usr/include/generated/imported_generated.pb.h" },
+    { "type": "file", "file": "usr/include/import_dir/import_dir.pb.h" },
+    { "type": "file", "file": "usr/include/custom.pb.h" },
+    { "type": "file", "file": "usr/include/generated/multi_b.pb.h" }
+  ],
+  "expect_skip_on_jobname": ["azure", "cygwin", "msys2", "windows"]
+}

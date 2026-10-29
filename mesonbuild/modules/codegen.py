@@ -3,20 +3,29 @@
 
 from __future__ import annotations
 import dataclasses
+import itertools
 import os
 import typing as T
 
 from . import ExtensionModule, ModuleInfo
-from ..build import CustomTarget, CustomTargetIndex, GeneratedList
+from ..build import CustomTarget, CustomTargetIndex, GeneratedList, IncludeDirs
 from ..compilers.compilers import lang_suffixes
+from ..dependencies import Dependency, InternalDependency
 from ..interpreter.decorators import apply_machine_map
 from ..interpreter.interpreterobjects import extract_required_kwarg
-from ..interpreter.type_checking import NoneType, REQUIRED_KW, DISABLER_KW, NATIVE_KW
+from ..interpreter.type_checking import (
+    NoneType, REQUIRED_KW, DISABLER_KW, NATIVE_KW, INCLUDE_DIRECTORIES, INSTALL_KW, INSTALL_DIR_KW,
+    in_set_validator,
+)
 from ..interpreterbase import (
     ContainerTypeInfo, ObjectHolder, KwargInfo, TypedArgs,
-    disablerIfNotFound, InterpreterObject, PosArgInfo,
+    disablerIfNotFound, InterpreterObject, PosArgInfo, VarArgInfo,
+    FeatureNew,
 )
-from ..mesonlib import File, MesonException, Popen_safe, version_compare
+from ..mesonlib import (
+    File, OrderedSet, MesonException, MesonBugException, Popen_safe,
+    is_parent_path, relpath, version_compare,
+)
 from ..programs import Program, ExternalProgram, NonExistingExternalProgram
 from ..utils.core import HoldableObject
 from .. import mlog
@@ -69,8 +78,43 @@ if T.TYPE_CHECKING:
         implementations: T.List[YaccImpls]
         native: MachineChoice
 
+    class ProtocGenerateKwargs(TypedDict):
 
+        language: str
+        import_dirs: list[IncludeDirs | str]
+        imports: list[ProtocOutput]
+        args: list[str]
+        install: bool
+        install_dir: str | None
+
+    class FindProtocKwargs(ExtractRequired):
+
+        dependency: Dependency | None
+        import_dirs: list[IncludeDirs | str]
+        version: list[str]
+        args: list[str]
+        native: MachineChoice
+
+
+_IMPORT_DIRS_KW = INCLUDE_DIRECTORIES.evolve(name='import_dirs')
 _SRC_PARG = PosArgInfo((str, File, GeneratedList, CustomTarget, CustomTargetIndex))
+
+def _describe_proto_file(f: File | CustomTargetIndex) -> str:
+    if isinstance(f, CustomTargetIndex):
+        kind = 'custom target'
+        name = f.get_filename()
+    else:
+        kind = 'generated' if f.is_built else 'source'
+        name = f.relative_name()
+    return f'{kind} file {name!r}'
+
+
+def _validate_protoc_source(value: str | File | CustomTarget | CustomTargetIndex) -> str | None:
+    if isinstance(value, CustomTargetIndex):
+        if not isinstance(value.target, CustomTarget):
+            return 'comes from a CompileTarget. It cannot be used as protoc source.'
+    return None
+
 
 def is_subset_validator(choices: T.Set[str]) -> T.Callable[[T.List[str]], T.Optional[str]]:
 
@@ -269,6 +313,208 @@ class YaccHolder(ObjectHolder[YaccGenerator]):
         return target
 
 
+@dataclasses.dataclass
+class ProtocOutput(HoldableObject):
+
+    language: str
+    import_dir: IncludeDirs
+    sources: list[CustomTargetIndex] = dataclasses.field(default_factory=list)
+    headers: list[CustomTargetIndex] = dataclasses.field(default_factory=list)
+    dependency: InternalDependency | None = None
+    extra_depends: OrderedSet[CustomTarget] = dataclasses.field(default_factory=OrderedSet)
+
+
+class ProtocOutputHolder(ObjectHolder[ProtocOutput]):
+
+    @TypedArgs('codegen.protoc.output.sources')
+    @InterpreterObject.method('sources')
+    def sources_method(self, args: list[TYPE_var], kwargs: TYPE_kwargs) -> list[CustomTargetIndex]:
+        return self.held_object.sources
+
+    @TypedArgs('codegen.protoc.output.headers')
+    @InterpreterObject.method('headers')
+    def headers_method(self, args: list[TYPE_var], kwargs: TYPE_kwargs) -> list[CustomTargetIndex]:
+        return self.held_object.headers
+
+    @TypedArgs('codegen.protoc.output.dependency')
+    @InterpreterObject.method('dependency')
+    def dependency_method(self, args: list[TYPE_var], kwargs: TYPE_kwargs) -> InternalDependency:
+        if self.held_object.language != 'cpp':
+            raise MesonException(f'`dependency` method is not available for {self.held_object.language!r} language.')
+        if self.held_object.dependency is None:
+            raise MesonBugException('`generate` did not return the dependency')
+        return self.held_object.dependency
+
+
+@dataclasses.dataclass
+class ProtocGenerator(_CodeGenerator):
+
+    dependency: Dependency | None = None
+    import_dirs: list[IncludeDirs] = dataclasses.field(default_factory=list)
+
+
+class ProtocHolder(ObjectHolder[ProtocGenerator]):
+
+    @TypedArgs('codegen.protoc.found')
+    @InterpreterObject.method('found')
+    def found_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> bool:
+        return self.held_object.found()
+
+    @TypedArgs('codegen.protoc.version')
+    @InterpreterObject.method('version')
+    def version_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
+        if not self.held_object.found():
+            raise MesonException('Unable to get the version of a not-found external program')
+        try:
+            return self.held_object.program.get_version(self.interpreter)
+        except MesonException:
+            return 'unknown'
+
+    @TypedArgs(
+        'codegen.protoc.generate',
+        var_types=VarArgInfo((str, File, CustomTarget, CustomTargetIndex), min_args=1, validator=_validate_protoc_source),
+        kw_types=[
+            KwargInfo('language', str, default='cpp', validator=in_set_validator({'cpp'})),
+            _IMPORT_DIRS_KW,
+            KwargInfo('imports', ContainerTypeInfo(list, ProtocOutput), default=[], listify=True),
+            KwargInfo('args', ContainerTypeInfo(list, str), default=[], listify=True),
+            INSTALL_KW,
+            INSTALL_DIR_KW,
+        ],
+    )
+    @InterpreterObject.method('generate')
+    def generate_method(self, args: tuple[list[str | File | CustomTarget | CustomTargetIndex]], kwargs: ProtocGenerateKwargs) -> ProtocOutput:
+        if not self.held_object.found():
+            raise MesonException('Attempted to call generate without finding a protoc implementation')
+
+        arguments: list[str] = []
+        language = kwargs['language']
+        build_project = self.interpreter.current_build_project()
+
+        arguments.append('--proto_path=@CURRENT_SOURCE_DIR@')
+        arguments.append('--proto_path=' + os.path.join('@BUILD_ROOT@', self.interpreter.current_build_dir()))  # for generated files
+        arguments.append('--dependency_out=@DEPFILE@')
+
+        if language == 'cpp':
+            protobuf_dep = self.held_object.dependency
+            if protobuf_dep is None or not protobuf_dep.found():
+                raise MesonException('protoc.generate requires protobuf "dependency".')
+
+            arguments.append('--cpp_out=' + os.path.join('@BUILD_ROOT@', self.interpreter.current_build_dir(), 'meson-protoc'))
+
+        extra_deps: OrderedSet[CustomTarget] = OrderedSet()
+
+        for imp_gen in kwargs['imports']:
+            extra_deps.update(imp_gen.extra_depends)
+        for import_dir in itertools.chain(
+                self.held_object.import_dirs,
+                self.interpreter.extract_incdirs(kwargs['import_dirs']),
+                (imp_gen.import_dir for imp_gen in kwargs['imports'])):
+            arguments.extend('-I' + path for path in import_dir.abs_string_list('@SOURCE_ROOT@', '@BUILD_ROOT@'))
+
+        arguments.extend(kwargs['args'])
+        arguments.append('@INPUT@')
+
+        command = self.held_object.command() + arguments
+
+        if language == 'cpp':
+            includedir = self.interpreter.environment.get_includedir()
+            install_dirs: list[str | Literal[False]] = [False, kwargs['install_dir'] or includedir]
+
+        proto_paths: dict[str, File | CustomTargetIndex] = {}
+
+        def _verify_proto_file(proto_file: File | CustomTargetIndex) -> None:
+            if isinstance(proto_file, CustomTargetIndex):
+                is_built = True
+                relative_name = os.path.join(proto_file.get_builddir(), proto_file.get_filename())
+            else:
+                is_built = proto_file.is_built
+                relative_name = proto_file.relative_name()
+            parent_dir = self.interpreter.current_build_dir() if is_built else self.interpreter.subdir
+
+            if not is_parent_path(parent_dir, relative_name):
+                raise MesonException(f'{proto_file!s} file must reside inside {parent_dir!r}')
+            proto_rel_path = relpath(relative_name, parent_dir)
+
+            if old_file := proto_paths.get(proto_rel_path):
+                if old_file == proto_file:
+                    return
+                raise MesonException(
+                    f'protoc.generate: {_describe_proto_file(old_file)} and {_describe_proto_file(proto_file)} '
+                    f'have the same import name {proto_rel_path!r}. Rename one of them.')
+            if is_built:
+                src_path = os.path.join(self.interpreter.subdir, proto_rel_path)
+                if os.path.isfile(os.path.join(self.interpreter.source_root, src_path)):
+                    raise MesonException(
+                        f'protoc.generate: {_describe_proto_file(proto_file)} shadows source file {src_path!r}: '
+                        f'both have the import name {proto_rel_path!r}. Rename one of them.')
+            proto_paths[proto_rel_path] = proto_file
+
+        for proto_source in self.interpreter.source_strings_to_files(args[0]):
+            if isinstance(proto_source, File):
+                _verify_proto_file(proto_source)
+
+            elif isinstance(proto_source, CustomTargetIndex):
+                extra_deps.add(T.cast(CustomTarget, proto_source.target))
+                _verify_proto_file(proto_source)
+
+            elif isinstance(proto_source, CustomTarget):
+                extra_deps.add(proto_source)
+                for proto_source_index in proto_source:
+                    _verify_proto_file(proto_source_index)
+
+            else:
+                raise MesonBugException(f'Unsupported source type {type(proto_source)} in protoc.generate()')
+
+        targets: list[CustomTarget] = []
+        for proto_rel_path, proto_file in proto_paths.items():
+            name, _ = os.path.splitext(f'codegen-protoc-{proto_rel_path}'.replace('/', '@').replace(os.path.sep, '@'))
+
+            if language == 'cpp':
+                rel_output = os.path.join('meson-protoc', os.path.dirname(proto_rel_path))
+                outputs = [os.path.join(rel_output, '@BASENAME@.pb.cc'), os.path.join(rel_output, '@BASENAME@.pb.h')]
+
+            ct = CustomTarget(
+                name,
+                self.interpreter.subdir,
+                self.interpreter.environment,
+                command,
+                [proto_file],
+                outputs,
+                build_project,
+
+                depfile=f'{name}.dep',
+                extra_depends=list(extra_deps),
+                install=kwargs['install'],
+                install_dir=install_dirs,
+                description=f'Generating protobuf for {proto_rel_path}',
+                output_install_root='meson-protoc',
+            )
+
+            self.interpreter.add_target(ct.name, ct)
+            targets.append(ct)
+
+        if language == 'cpp':
+            sources = [ct[0] for ct in targets]
+            headers = [ct[1] for ct in targets]
+            ext_deps: list[Dependency] = [d for i in kwargs['imports'] if (d := i.dependency) is not None]
+            ext_deps.append(protobuf_dep)
+            dependency = InternalDependency(
+                protobuf_dep.get_version(),
+                ext_deps = ext_deps,
+                incdirs = [IncludeDirs(self.interpreter.subdir, [], False, build_project, extra_build_dirs=['meson-protoc'])],
+                sources = targets,
+            )
+
+        else:
+            sources = []
+            headers = []
+            dependency = None
+
+        return ProtocOutput(language, IncludeDirs(self.interpreter.subdir, ['.'], False, build_project),
+                            sources, headers, dependency, extra_deps)
+
+
 class CodeGenModule(ExtensionModule):
 
     """Module with helpers for codegen wrappers."""
@@ -280,6 +526,7 @@ class CodeGenModule(ExtensionModule):
         self.methods.update({
             'lex': self.lex_method,
             'yacc': self.yacc_method,
+            'protoc': self.protoc_method,
         })
 
     @TypedArgs(
@@ -441,8 +688,43 @@ class CodeGenModule(ExtensionModule):
         yacc_args.extend(['-o', '@OUTPUT0@', '@INPUT@'])
         return YaccGenerator(name, bin, kwargs['native'], T.cast('ImmutableListProtocol[str]', yacc_args))
 
+    @FeatureNew('codegen.protoc', '1.14.0')
+    @TypedArgs(
+        'codegen.protoc',
+        kw_types=[
+            KwargInfo('dependency', (Dependency, NoneType), default=None),
+            _IMPORT_DIRS_KW,
+            KwargInfo('version', ContainerTypeInfo(list, str), default=[], listify=True),
+            KwargInfo('args', ContainerTypeInfo(list, str), default=[], listify=True),
+            NATIVE_KW,
+            REQUIRED_KW,
+            DISABLER_KW,
+        ],
+    )
+    @apply_machine_map
+    @disablerIfNotFound
+    def protoc_method(self, state: ModuleState, args: T.Tuple, kwargs: FindProtocKwargs) -> ProtocGenerator:
+        name = 'protoc'
+
+        disabled, required, feature = extract_required_kwarg(kwargs, state.subproject)
+        if disabled:
+            mlog.log('generator protoc skipped: feature', mlog.bold(feature), 'disabled')
+            return ProtocGenerator(name, NonExistingExternalProgram(name), kwargs['native'])
+
+        bin = state.find_program(name, wanted=kwargs['version'], for_machine=kwargs['native'], required=False)
+        if not bin.found() and required:
+            raise MesonException.from_node(
+                'Could not find a protoc binary', node=state.current_node)
+
+        dependency = kwargs['dependency']
+        import_dirs = self.interpreter.extract_incdirs(kwargs['import_dirs'])
+
+        return ProtocGenerator(name, bin, kwargs['native'], kwargs['args'], dependency, import_dirs)
+
 
 def initialize(interpreter: Interpreter) -> CodeGenModule:
     interpreter.append_holder_map(LexGenerator, LexHolder)
     interpreter.append_holder_map(YaccGenerator, YaccHolder)
+    interpreter.append_holder_map(ProtocGenerator, ProtocHolder)
+    interpreter.append_holder_map(ProtocOutput, ProtocOutputHolder)
     return CodeGenModule(interpreter)
