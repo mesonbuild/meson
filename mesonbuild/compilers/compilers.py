@@ -740,13 +740,13 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
     def get_options(self) -> 'MutableKeyedOptionDictType':
         return {}
 
-    def get_option_compile_args(self, target: 'BuildTarget', subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_compile_args(self, target: T.Optional[BuildTarget], subproject: T.Optional[str] = None) -> T.List[str]:
         return []
 
-    def get_option_std_args(self, target: BuildTarget, subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_std_args(self, target: T.Optional[BuildTarget], subproject: T.Optional[str] = None) -> T.List[str]:
         return []
 
-    def get_option_link_args(self, target: 'BuildTarget', subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_link_args(self, target: T.Optional[BuildTarget], subproject: T.Optional[str] = None) -> T.List[str]:
         return self.linker.get_option_link_args(target, subproject)
 
     def check_header(self, hname: str, prefix: str, *,

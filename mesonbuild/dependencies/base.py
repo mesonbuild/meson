@@ -543,7 +543,7 @@ class ExternalLibrary(ExternalDependency):
 
     type_name = DependencyTypeName('library')
 
-    def __init__(self, name: str, link_args: T.List[str], environment: 'Environment',
+    def __init__(self, name: str, link_args: T.List[str] | None, environment: 'Environment',
                  language: Language, for_machine: MachineChoice, silent: bool = False) -> None:
         super().__init__(name, environment, {'language': language, 'native': for_machine})
         self.is_found = False

@@ -468,7 +468,7 @@ class RustCompiler(Compiler):
         # provided by the linker flags.
         return []
 
-    def get_option_std_args(self, target: BuildTarget, subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_std_args(self, target: T.Optional[BuildTarget], subproject: T.Optional[str] = None) -> T.List[str]:
         args = []
         std = self.get_compileropt_value('std', target, subproject)
         assert isinstance(std, str)
@@ -476,7 +476,7 @@ class RustCompiler(Compiler):
             args.append('--edition=' + std)
         return args
 
-    def get_option_compile_args(self, target: BuildTarget, subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_compile_args(self, target: T.Optional[BuildTarget], subproject: T.Optional[str] = None) -> T.List[str]:
         args: T.List[str] = []
 
         panic = self.get_compileropt_value('panic', target, subproject)
