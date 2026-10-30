@@ -147,7 +147,7 @@ if T.TYPE_CHECKING:
         extra_args: T.List[str]
         method: DependencyMethods
         install: bool
-        install_dir: T.Optional[str]
+        install_dir: str
 
     class MocJsonCollectKwArgs(TypedDict):
 
@@ -702,6 +702,7 @@ class QtBaseModule(ExtensionModule):
         ts_files = kwargs['ts_files']
         if kwargs['install'] and not kwargs['install_dir']:
             raise MesonException('qt.compile_translations: "install_dir" keyword argument must be set when "install" is true.')
+        install_dir: T.List[T.Union[str, Literal[False]]] = [] if kwargs['install_dir'] is None else [kwargs['install_dir']]
         qresource = kwargs['qresource']
         if qresource:
             if ts_files:
@@ -753,7 +754,7 @@ class QtBaseModule(ExtensionModule):
                 ['@BASENAME@.qm'],
                 state.current_build_project,
                 install=kwargs['install'],
-                install_dir=[kwargs['install_dir']],
+                install_dir=install_dir,
                 install_tag=['i18n'],
                 build_by_default=kwargs['build_by_default'],
                 description='Compiling Qt translations {}',
