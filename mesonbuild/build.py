@@ -3708,7 +3708,7 @@ class ConfigurationData(HoldableObject):
         return self.values.keys()
 
 class LocalProgram(programs.Program):
-    def __init__(self, program: T.Union[programs.ExternalProgram, Executable, CustomTarget, CustomTargetIndex], version: str,
+    def __init__(self, program: T.Union[programs.ExternalProgram, BuildTargetProto], version: str,
                  file: T.Optional[File] = None) -> None:
         super().__init__()
         if isinstance(program, CustomTarget):
@@ -3717,7 +3717,10 @@ class LocalProgram(programs.Program):
         if isinstance(program, programs.ExternalProgram):
             if not file:
                 raise MesonBugException('ExternalProgram used as LocalProgram must be a file from the project')
-        self.name = program.name
+            self.name = program.name
+        else:
+            self.name = program.get_basename()
+
         self.file = file
         self.for_machine = program.for_machine
         self.program = program
@@ -3755,7 +3758,7 @@ class LocalProgram(programs.Program):
         # Only the backend knows the actual path to the build program.
         raise MesonBugException('Cannot call get_path() on program that is a build target.')
 
-    def get_target(self) -> T.Union[File, Executable, CustomTarget, CustomTargetIndex]:
+    def get_target(self) -> T.Union[File, BuildTargetProto]:
         if self.file:
             return self.file
         assert not isinstance(self.program, programs.ExternalProgram)

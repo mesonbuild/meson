@@ -691,39 +691,39 @@ class Backend(_BackendState):
         exe, *raw_cmd_args = cmd
         if isinstance(exe, build.LocalProgram):
             exe = exe.program
-        if isinstance(exe, programs.Program):
+        if isinstance(exe, str):
+            exe_cmd = [exe]
+            exe_for_machine = MachineChoice.BUILD
+        elif isinstance(exe, programs.Program):
             exe_cmd = exe.get_command()
             exe_for_machine = exe.for_machine
-        elif isinstance(exe, build.BuildTarget):
-            exe_cmd = [self.get_target_filename_abs(exe)]
-            exe_for_machine = exe.for_machine
-        elif isinstance(exe, (build.CustomTarget, build.CustomTargetIndex)):
-            # The output of a custom target can either be directly runnable
-            # or not, that is, a script, a native binary or a cross compiled
-            # binary when exe wrapper is available and when it is not.
-            # This implementation is not exhaustive but it works in the
-            # common cases.
-            exe_cmd = [self.get_target_filename_abs(exe)]
-            exe_for_machine = MachineChoice.BUILD
         elif isinstance(exe, mesonlib.File):
             exe_cmd = [exe.rel_to_builddir(self.environment.source_dir)]
             exe_for_machine = MachineChoice.BUILD
         else:
-            exe_cmd = [exe]
-            exe_for_machine = MachineChoice.BUILD
+            exe_cmd = [self.get_target_filename_abs(exe)]
+            if isinstance(exe, (build.CustomTarget, build.CustomTargetIndex)):
+                # The output of a custom target can either be directly runnable
+                # or not, that is, a script, a native binary or a cross compiled
+                # binary when exe wrapper is available and when it is not.
+                # This implementation is not exhaustive but it works in the
+                # common cases.
+                exe_for_machine = MachineChoice.BUILD
+            else:
+                exe_for_machine = exe.for_machine
 
         cmd_args: T.List[str] = []
         for c in raw_cmd_args:
             if isinstance(c, build.LocalProgram):
                 c = c.program
-            if isinstance(c, programs.Program):
+            if isinstance(c, str):
+                cmd_args.append(c)
+            elif isinstance(c, programs.Program):
                 cmd_args += c.get_command()
-            elif isinstance(c, (build.BuildTarget, build.CustomTarget, build.CustomTargetIndex)):
-                cmd_args.append(self.get_target_filename_abs(c))
             elif isinstance(c, mesonlib.File):
                 cmd_args.append(c.rel_to_builddir(self.environment.source_dir))
             else:
-                cmd_args.append(c)
+                cmd_args.append(self.get_target_filename_abs(c))
 
         machine = self.environment.machines[exe_for_machine]
         if machine.is_windows() or machine.is_cygwin():
@@ -1317,10 +1317,10 @@ class Backend(_BackendState):
             exe = t.get_exe()
             if isinstance(exe, build.LocalProgram):
                 exe = exe.program
-            if isinstance(exe, (build.BuildTarget, build.CustomTarget, build.CustomTargetIndex)):
-                cmd = [os.path.join(self.environment.get_build_dir(), self.get_target_filename(exe))]
-            else:
+            if isinstance(exe, programs.Program):
                 cmd = exe.get_command()
+            else:
+                cmd = [os.path.join(self.environment.get_build_dir(), self.get_target_filename(exe))]
 
             if isinstance(exe, (build.BuildTarget, programs.ExternalProgram)):
                 test_for_machine = exe.for_machine
@@ -1582,20 +1582,20 @@ class Backend(_BackendState):
         for i in target.get_sources():
             if isinstance(i, build.LocalProgram):
                 i = i.program
-            if isinstance(i, build.BuildTarget):
-                fname = [self.get_target_filename(i)]
-            elif isinstance(i, (build.CustomTarget, build.CustomTargetIndex)):
-                fname = [os.path.join(self.get_custom_target_output_dir(i), p) for p in i.get_outputs()]
+            if isinstance(i, programs.Program):
+                assert i.found(), "This shouldn't be possible"
+                fname = [mesonlib.unwrap(i.get_path())]
             elif isinstance(i, build.GeneratedList):
                 assert isinstance(target, build.CustomTarget)
                 fname = [os.path.join(self.get_target_private_dir(target), p) for p in i.get_outputs()]
             elif isinstance(i, build.ExtractedObjects):
                 fname = self.determine_ext_objs(i)
-            elif isinstance(i, programs.Program):
-                assert i.found(), "This shouldn't be possible"
-                fname = [mesonlib.unwrap(i.get_path())]
-            else:
+            elif isinstance(i, File):
                 fname = [i.rel_to_builddir(self.build_to_src)]
+            elif isinstance(i, (build.CustomTarget, build.CustomTargetIndex)):
+                fname = [os.path.join(self.get_custom_target_output_dir(i), p) for p in i.get_outputs()]
+            else:
+                fname = [self.get_target_filename(i)]
             if target.absolute_paths:
                 fname = [os.path.join(self.environment.get_build_dir(), f) for f in fname]
             srcs += fname
