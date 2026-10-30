@@ -3092,19 +3092,20 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         return (rel_obj, rel_src)
 
     @lru_cache(maxsize=None)
-    def generate_inc_dir(self, compiler: 'Compiler', d: str, basedir: str, is_system: bool
+    def generate_inc_dir(self, compiler: Compiler, d: str, inc_dir: build.IncludeDirs
                          ) -> T.Tuple[ImmutableListProtocol[str], ImmutableListProtocol[str]]:
-        expdir = os.path.normpath(os.path.join(basedir, d))
+        expdir = os.path.join(inc_dir.curdir, d)
         srctreedir = os.path.normpath(os.path.join(self.build_to_src, expdir))
-        sargs = compiler.get_include_args(srctreedir, is_system)
+        sargs = compiler.get_include_args(srctreedir, inc_dir.is_system)
         # There may be include dirs where a build directory has not been
         # created for some source dir. For example if someone does this:
         #
         # inc = include_directories('foo/bar/baz')
         #
         # But never subdir()s into the actual dir.
-        if os.path.isdir(os.path.join(self.environment.get_build_dir(), expdir)):
-            bargs = compiler.get_include_args(expdir, is_system)
+        build_subdir = os.path.normpath(inc_dir.build_project.prefix + expdir)
+        if os.path.isdir(os.path.join(self.environment.get_build_dir(), build_subdir)):
+            bargs = compiler.get_include_args(build_subdir, inc_dir.is_system)
         else:
             bargs = []
         return (sargs, bargs)
@@ -3134,7 +3135,6 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         # external deps and must maintain the order in which they are specified.
         # Hence, we must reverse the list so that the order is preserved.
         for i in reversed(target.get_include_dirs()):
-            basedir = i.curdir
             # Each directory must be added to CompilerArgs individually
             # via a separate ``commands +=`` call, in reversed order.
             #
@@ -3159,11 +3159,11 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             # appended at once in the original (unreversed) order, making
             # the *first*-listed directory appear first instead of last.
             for d in reversed(i.incdirs):
-                sargs, bargs = self.generate_inc_dir(compiler, d, basedir, i.is_system)
+                sargs, bargs = self.generate_inc_dir(compiler, d, i)
                 commands += sargs
                 commands += bargs
             for d in i.extra_build_dirs:
-                commands += compiler.get_include_args(d, i.is_system)
+                commands += compiler.get_include_args(os.path.normpath(os.path.join(i.curdir, d)), i.is_system)
 
         # Add any embed search dir arguments
         for i in target.embed_dirs:
