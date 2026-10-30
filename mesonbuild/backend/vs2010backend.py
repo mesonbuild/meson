@@ -1749,7 +1749,8 @@ class Vs2010Backend(backends.Backend):
 
         previous_sources: list[str] = []
         if len(sources) + len(gen_src) + len(pch_sources) > 0:
-            if self.gen_lite:
+            if primary_src_lang:
+                assert vslite_ctx is not None
                 # Get data to fill in intellisense fields for sources that can't reference the project-wide values
                 defs_paths_opts_per_lang_and_buildtype = get_non_primary_lang_intellisense_fields(
                     vslite_ctx,
