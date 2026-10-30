@@ -64,7 +64,7 @@ class WaylandModule(ExtensionModule):
             # libraries from HOST machine.
             dep = state.dependency('wayland-client')
             self.scanner_bin = state.find_tool('wayland-scanner', 'wayland-scanner', 'wayland_scanner',
-                                               wanted=dep.version)
+                                               wanted=dep.version or '')
 
         scope = 'public' if kwargs['public'] else 'private'
         # We have to cast because mypy can't deduce these are literals
