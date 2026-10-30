@@ -1781,7 +1781,7 @@ class XCodeBackend(backends.Backend):
             opt_flag = OPT2XCODEOPT[opt]
             if opt_flag is not None:
                 settings_dict.add_item('GCC_OPTIMIZATION_LEVEL', opt_flag)
-            if target.has_pch:
+            if target.has_pch():
                 # Xcode uses GCC_PREFIX_HEADER which only allows one file per target/executable. Precompiling various header files and
                 # applying a particular pch to each source file will require custom scripts (as a build phase) and build flags per each
                 # file. Since Xcode itself already discourages precompiled headers in favor of modules we don't try much harder here.
