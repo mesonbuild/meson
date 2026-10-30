@@ -512,7 +512,7 @@ class Build:
         self.version = coredata.version
         self._def_files: T.Optional[T.List[str]] = None
         self.project_name = 'name of master project'
-        self.project_version: T.Optional[str] = None
+        self.project_version = 'undefined'
         self.environment = environment
         self.projects: PerMachine[T.Dict[SubProject, BuildProject]] = PerMachine({}, {})
         self.targets: dict[str, Target] = {}

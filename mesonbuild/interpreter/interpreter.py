@@ -1301,8 +1301,6 @@ class Interpreter(InterpreterBase, HoldableObject):
             mesonlib.setup_vsenv(force_vsenv)
         self.set_backend()
 
-        if not self.is_subproject():
-            self.build.project_name = proj_name
         self.active_projectname = proj_name
 
         version = kwargs['version']
@@ -1323,7 +1321,8 @@ class Interpreter(InterpreterBase, HoldableObject):
         else:
             self.project_version = version
 
-        if self.build.project_version is None:
+        if not self.is_subproject():
+            self.build.project_name = proj_name
             self.build.project_version = self.project_version
 
         if kwargs['license'] is None:
