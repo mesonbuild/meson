@@ -39,7 +39,7 @@ from .rspfile import RSPFileSyntax, rsp_file_contents, rsp_file_flag
 if T.TYPE_CHECKING:
     from .._typing import ImmutableListProtocol
     from ..arglist import CompilerArgs
-    from ..build import ExtractedObjects, TargetSources
+    from ..build import Build, ExtractedObjects, TargetSources
     from ..compilers.compilers import Compiler, Language
     from ..environment import Environment
     from ..interpreter import Test
@@ -278,22 +278,33 @@ def get_genvslite_backend(genvsname: str, build: T.Optional[build.Build] = None)
         return vs2026backend.Vs2026Backend(build, gen_lite = True)
     raise MesonException(f'Unknown genvslite backend {genvsname}')
 
+# make it a separate class because annotations on `def` lines look
+# at the class scope (but not base classes), and any reference to `build.Xyz`
+# would pick the `build` property below if it was declared in Backend
+# itself.  The alternative is to import everything by name from the build
+# module.
+class _BackendState:
+    build: mesonlib.late_property[Build] = mesonlib.late_property()
+    environment: mesonlib.late_property[Environment] = mesonlib.late_property()
+    build_dir: mesonlib.late_property[str] = mesonlib.late_property()
+    source_dir: mesonlib.late_property[str] = mesonlib.late_property()
+    build_to_src: mesonlib.late_property[str] = mesonlib.late_property()
+    src_to_build: mesonlib.late_property[str] = mesonlib.late_property()
+
 # This class contains the basic functionality that is needed by all backends.
 # Feel free to move stuff in and out of it as you see fit.
-class Backend:
+class Backend(_BackendState):
 
-    environment: T.Optional['Environment']
     name = '<UNKNOWN>'
 
     def __init__(self, build: T.Optional[build.Build]):
+        self.processed_targets: T.Set[str] = set()
         # Make it possible to construct a dummy backend
         # This is used for introspection without a build directory
         if build is None:
-            self.environment = None
             return
         self.build = build
         self.environment = build.environment
-        self.processed_targets: T.Set[str] = set()
         self.build_dir = self.environment.get_build_dir()
         self.source_dir = self.environment.get_source_dir()
         self.build_to_src = mesonlib.relpath(self.environment.get_source_dir(),
