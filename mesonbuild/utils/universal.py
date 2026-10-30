@@ -174,6 +174,7 @@ __all__ = [
     'unique_list',
     'unwrap',
     'unwrap_err',
+    'unwrap_property',
     'verbose_git',
     'version_check_to_range',
     'version_compare',
@@ -2754,6 +2755,45 @@ class late_property(T.Generic[_T]):
 
     def __get__(self, instance: T.Any, cls: type) -> _T:
         raise MesonBugException(f'Attempted to access attribute {self.__name} before it is set')
+
+
+class unwrap_property(T.Generic[_T]):
+    """Descriptor that allows setting a property to None and raises an error
+    if it is accessed while None.
+
+    This allows a more ergonomically typed equivalent of
+    self.value: T | None = None, since you then don't need to worry about
+    whether self.value is None.  It is less efficient than late_property,
+    but it allows writing None back to the property.
+    """
+
+    def __init__(self) -> None:
+        self.__name: str | None = None
+        self.__key: str | None = None
+
+    def __set_name__(self, owner: object, name: str) -> None:
+        if self.__name is None:
+            self.__name = name
+            self.__key = f'_unwrap_property__{name}'
+        else:
+            assert self.__name == name
+
+    @T.overload
+    def __get__(self, instance: None, cls: type) -> unwrap_property[_T]: ...
+
+    @T.overload
+    def __get__(self, instance: object, cls: type) -> _T: ...
+
+    def __get__(self, instance: T.Optional[object], cls: type) -> T.Union[unwrap_property[_T], _T]:
+        if instance is None:
+            return self
+        value: T.Optional[_T] = instance.__dict__.get(T.cast('str', self.__key))
+        if value is None:
+            raise MesonBugException(f'Attempted to access unset attribute {self.__name}')
+        return value
+
+    def __set__(self, instance: object, value: T.Optional[_T]) -> None:
+        instance.__dict__[T.cast('str', self.__key)] = value
 
 
 def get_subproject_dir(directory: str = '.') -> T.Optional[str]:

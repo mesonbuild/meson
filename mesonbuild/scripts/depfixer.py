@@ -13,7 +13,11 @@ import subprocess
 import typing as T
 import zipfile
 
-from ..mesonlib import OrderedSet, generate_list, Popen_safe
+from .. import mesonlib
+from ..mesonlib import OrderedSet, generate_list, Popen_safe, unwrap
+
+if T.TYPE_CHECKING:
+    from io import BufferedRandom
 
 SHT_STRTAB = 3
 DT_NEEDED = 1
@@ -404,6 +408,10 @@ class SectionHeader(DataSizes):
             self.sh_entsize = struct.unpack(self.Word, ifile.read(self.WordSize))[0]
 
 class Elf(DataSizes):
+    opened: bool = False
+    bf: mesonlib.unwrap_property[BufferedRandom] = mesonlib.unwrap_property()
+    bf_perms: int | None = None
+
     def __init__(self, bfile: str, verbose: bool = True) -> None:
         self.bfile = bfile
         self.verbose = verbose
@@ -425,8 +433,7 @@ class Elf(DataSizes):
             raise
 
     def open_bf(self, bfile: str) -> None:
-        self.bf = None
-        self.bf_perms = None
+        assert not self.opened
         try:
             self.bf = open(bfile, 'r+b')
         except PermissionError as e:
@@ -438,14 +445,16 @@ class Elf(DataSizes):
                 os.chmod(bfile, self.bf_perms)
                 self.bf_perms = None
                 raise e
+        self.opened = True
 
     def close_bf(self) -> None:
-        if self.bf is not None:
+        if self.opened:
             if self.bf_perms is not None:
                 os.chmod(self.bf.fileno(), self.bf_perms)
                 self.bf_perms = None
             self.bf.close()
             self.bf = None
+            self.opened = False
 
     def __enter__(self) -> 'Elf':
         return self
@@ -569,6 +578,8 @@ class Elf(DataSizes):
 
     def get_entry_offset(self, entrynum: int) -> T.Optional[int]:
         sec = self.find_section(b'.dynstr')
+        if sec is None:
+            return None
         for i in self.dynamic:
             if i.d_tag == entrynum:
                 res = sec.sh_offset + i.val
@@ -593,6 +604,8 @@ class Elf(DataSizes):
     @generate_list
     def get_deps(self) -> T.Generator[str, None, None]:
         sec = self.find_section(b'.dynstr')
+        if sec is None:
+            return
         for i in self.dynamic:
             if i.d_tag == DT_NEEDED:
                 offset = sec.sh_offset + i.val
@@ -601,6 +614,8 @@ class Elf(DataSizes):
 
     def fix_deps(self, prefix: bytes) -> None:
         sec = self.find_section(b'.dynstr')
+        if sec is None:
+            return
         deps = [i for i in self.dynamic if i.d_tag == DT_NEEDED]
         for i in deps:
             offset = sec.sh_offset + i.val
@@ -667,7 +682,7 @@ class Elf(DataSizes):
 
     def clean_rpath_entry_string(self, entrynum: int) -> None:
         # Get the rpath string
-        offset = self.get_entry_offset(entrynum)
+        offset = unwrap(self.get_entry_offset(entrynum))
         self.bf.seek(offset)
         rpath_string = self.read_str().decode()
         reused_str = ''
