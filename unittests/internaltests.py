@@ -860,9 +860,9 @@ InstalledDir: /usr/bin'''), '14.0.0-1ubuntu1.1')
         self.assertIsNone(_pkgconfig_define_validator([]))
         self.assertIsNone(_pkgconfig_define_validator(['prefix', '/usr']))
         self.assertIsNone(_pkgconfig_define_validator(['prefix', '/usr', 'libdir', '/usr/lib']))
-        # Odd number of elements must be rejected.
-        self.assertIsNotNone(_pkgconfig_define_validator(['key']))
-        self.assertIsNotNone(_pkgconfig_define_validator(['a', 'b', 'c']))
+        # Odd number of elements issues a warning but is not an error.
+        self.assertIsNone(_pkgconfig_define_validator(['key']))
+        self.assertIsNone(_pkgconfig_define_validator(['a', 'b', 'c']))
         # An empty value must be rejected.
         self.assertIsNotNone(_pkgconfig_define_validator(['rootprefix', '']))
         self.assertIsNotNone(_pkgconfig_define_validator(['prefix', '/usr', 'libdir', '']))

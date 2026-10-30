@@ -7,6 +7,8 @@ from __future__ import annotations
 import itertools, os, re
 import typing as T
 
+from .. import mlog
+
 from .. import compilers
 from ..build import (CustomTarget, BuildTarget,
                      CustomTargetIndex, ExtractedObjects, GeneratedList, IncludeDirs, LocalProgram,
@@ -1087,7 +1089,7 @@ def _pkgconfig_define_convertor(x: T.List[str]) -> PkgConfigDefineType:
 
 def _pkgconfig_define_validator(x: T.List[str]) -> T.Optional[str]:
     if len(x) % 2 != 0:
-        return 'pkgconfig_define requires an even number of elements'
+        mlog.warning('pkgconfig_define has an odd number of elements; the last one will be ignored')
     keys = itertools.islice(x, 0, None, 2)
     vals = itertools.islice(x, 1, None, 2)
     if any(not val for _, val in zip(keys, vals)):
