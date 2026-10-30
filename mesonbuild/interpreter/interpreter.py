@@ -611,8 +611,8 @@ class Interpreter(InterpreterBase, HoldableObject):
     def func_import(self, node: mparser.BaseNode, args: T.Tuple[str],
                     kwargs: 'kwtypes.FuncImportModule') -> T.Union[ExtensionModule, NewExtensionModule, NotFoundExtensionModule]:
         modname = args[0]
-        disabled, required, _ = extract_required_kwarg(kwargs, self.subproject)
-        if disabled:
+        required, disabled_by_feature = extract_required_kwarg(kwargs, self.subproject)
+        if disabled_by_feature:
             return NotFoundExtensionModule(modname)
 
         # Always report implementation detail modules don't exist
@@ -915,16 +915,16 @@ class Interpreter(InterpreterBase, HoldableObject):
 
     def do_subproject(self, subp_name: SubProject, kwargs: kwtypes.DoSubproject, force_method: T.Optional[wrap.Method] = None,
                       forced_options: T.Optional[OptionDict] = None) -> SubprojectHolder:
-        disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
+        required, disabled_by_feature = extract_required_kwarg(kwargs, self.subproject)
         # kwargs['for_machine'] is used to choose between Build.copy() and
         # Build.copy_for_build_machine(), while for_machine is used to
         # look up and register the subproject.
         kwargs.setdefault('for_machine', MachineChoice.HOST)
         for_machine = self.build.machine_map[kwargs['for_machine']]
 
-        if disabled:
-            mlog.log('Subproject', mlog.bold(subp_name), ':', 'skipped: feature', mlog.bold(feature), 'disabled')
-            return self.disabled_subproject(subp_name, for_machine, disabled_feature=feature)
+        if disabled_by_feature:
+            mlog.log('Subproject', mlog.bold(subp_name), ':', 'skipped: feature', mlog.bold(disabled_by_feature), 'disabled')
+            return self.disabled_subproject(subp_name, for_machine, disabled_feature=disabled_by_feature)
 
         default_options = kwargs['default_options']
 
@@ -1402,14 +1402,14 @@ class Interpreter(InterpreterBase, HoldableObject):
         ],
     )
     def func_add_languages(self, node: mparser.FunctionNode, args: T.Tuple[T.List[str]], kwargs: 'kwtypes.FuncAddLanguages') -> bool:
-        disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
+        required, disabled_by_feature = extract_required_kwarg(kwargs, self.subproject)
         for_machine = kwargs['native']
 
         langs = self._validate_languages(args[0], required, node)
 
-        if disabled:
+        if disabled_by_feature:
             for lang in sorted(langs, key=compilers.sort_clink):
-                mlog.log('Compiler for language', mlog.bold(lang), 'skipped: feature', mlog.bold(feature), 'disabled')
+                mlog.log('Compiler for language', mlog.bold(lang), 'skipped: feature', mlog.bold(disabled_by_feature), 'disabled')
             return False
         if for_machine is not None:
             return self.add_languages(langs, required, for_machine)
@@ -1942,9 +1942,9 @@ class Interpreter(InterpreterBase, HoldableObject):
     def func_find_program(self, node: mparser.BaseNode, args: T.Tuple[T.List[mesonlib.FileOrString]],
                           kwargs: 'kwtypes.FindProgram',
                           ) -> Program:
-        disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
-        if disabled:
-            mlog.log('Program', mlog.bold(' '.join(str(a) for a in args[0])), 'skipped: feature', mlog.bold(feature), 'disabled')
+        required, disabled_by_feature = extract_required_kwarg(kwargs, self.subproject)
+        if disabled_by_feature:
+            mlog.log('Program', mlog.bold(' '.join(str(a) for a in args[0])), 'skipped: feature', mlog.bold(disabled_by_feature), 'disabled')
             return self.notfound_program(args[0])
 
         search_dirs = extract_search_dirs(kwargs)
@@ -1972,14 +1972,14 @@ class Interpreter(InterpreterBase, HoldableObject):
         df.set_fallback(kwargs['fallback'])
         not_found_message = kwargs['not_found_message']
 
-        disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
-        if disabled:
+        required, disabled_by_feature = extract_required_kwarg(kwargs, self.subproject)
+        if disabled_by_feature:
             name = names[0]
             if kwargs['modules']:
                 name = name + '(modules: {})'.format(', '.join(kwargs['modules']))
             mlog.log('Dependency', mlog.bold(name),
                      'for', mlog.bold(for_machine.get_lower_case_name()), 'machine',
-                     'skipped: feature', mlog.bold(feature), 'disabled')
+                     'skipped: feature', mlog.bold(disabled_by_feature), 'disabled')
             return dependencies.NotFoundDependency(names[0], self.environment)
 
         nkwargs = T.cast('dependencies.base.DependencyObjectKWs', kwargs.copy())

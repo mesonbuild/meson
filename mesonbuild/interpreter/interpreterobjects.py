@@ -61,8 +61,8 @@ def extract_required_kwarg(kwargs: 'kwargs.ExtractRequired',
                            subproject: 'SubProject',
                            feature_check: T.Optional[FeatureCheckBase] = None,
                            default: bool = True
-                           ) -> T.Union[T.Tuple[Literal[True], bool, str],
-                                        T.Tuple[Literal[False], bool, None]]:
+                           ) -> T.Union[T.Tuple[Literal[False], str],
+                                        T.Tuple[bool, None]]:
     """Check common keyword arguments for required status.
 
     This handles booleans vs feature option.
@@ -78,8 +78,9 @@ def extract_required_kwarg(kwargs: 'kwargs.ExtractRequired',
         True
     :raises InterpreterException: If the type of `kwargs['required']` is invalid
     :return:
-        a tuple of `disabled, required, feature_name`. If `disabled` is `True`
-        `feature_name` will be a string, otherwise it is `None`
+        a tuple of `required, disabled_by_feature`. If the argument is a
+        disabled feature option, `disabled_by_feature` is the name of the
+        feature, otherwise it is `None`
     """
     val = kwargs.get('required', default)
     required = False
@@ -90,7 +91,7 @@ def extract_required_kwarg(kwargs: 'kwargs.ExtractRequired',
         feature_check.use(subproject)
         feature = val.name
         if val.is_disabled():
-            return True, required, feature
+            return False, feature
         elif val.is_enabled():
             required = True
     elif isinstance(val, bool):
@@ -103,7 +104,7 @@ def extract_required_kwarg(kwargs: 'kwargs.ExtractRequired',
     # TODO: this should be removed, and those callers should learn about FeatureOptions
     kwargs['required'] = required
 
-    return False, required, None
+    return required, None
 
 def extract_search_dirs(kwargs: 'kwargs.ExtractSearchDirs') -> T.List[str]:
     search_dirs_str = mesonlib.stringlistify(kwargs.get('dirs', []))

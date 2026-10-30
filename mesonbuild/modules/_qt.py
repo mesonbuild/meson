@@ -399,9 +399,9 @@ class QtBaseModule(ExtensionModule):
         # We have to cast here because TypedDicts are invariant, even though
         # ExtractRequiredKwArgs is a subset of HasToolKwArgs, type checkers
         # will insist this is wrong
-        disabled, required, feature = extract_required_kwarg(kwargs, state.subproject, default=False)
-        if disabled:
-            mlog.log('qt.has_tools skipped: feature', mlog.bold(feature), 'disabled')
+        required, disabled_by_feature = extract_required_kwarg(kwargs, state.subproject, default=False)
+        if disabled_by_feature:
+            mlog.log('qt.has_tools skipped: feature', mlog.bold(disabled_by_feature), 'disabled')
             return False
         self._detect_tools(state, method, required=False, version=kwargs['version'])
         for tool in kwargs['tools']:
