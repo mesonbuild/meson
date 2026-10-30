@@ -1026,6 +1026,8 @@ class Target(HoldableObject, AnyTargetProto, metaclass=SimpleABC):
 
 class BuildTarget(Target, BuildTargetProto):
     rust_crate_type: RustCrateType
+    prefix: str
+    suffix: str
 
     # This set contains all the languages a linker can link natively
     # without extra flags. For instance, nvcc (cuda) can link C++
@@ -2393,9 +2395,9 @@ class Executable(BuildTarget, LinkableTargetProto):
         machine = self.environment.machines[self.for_machine]
         # Unless overridden, executables have no suffix or prefix. Except on
         # Windows and with C#/Mono executables where the suffix is 'exe'
-        if not hasattr(self, 'prefix'):
+        if not self.name_prefix_set:
             self.prefix = ''
-        if not hasattr(self, 'suffix'):
+        if not self.name_suffix_set:
             # Executable for Windows or C#/Mono
             if machine.is_windows() or machine.is_cygwin() or 'cs' in self.compilers:
                 self.suffix = 'exe'
@@ -2735,10 +2737,6 @@ class SharedLibrary(BuildTarget, LibTargetProto):
                                        'periods or dashes in the library name due to a limitation of rustc. '
                                        'Replace them with underscores, for example')
 
-        if not hasattr(self, 'prefix'):
-            self.prefix = None
-        if not hasattr(self, 'suffix'):
-            self.suffix = None
         self.basic_filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
         self.determine_filenames()
 
@@ -2894,9 +2892,9 @@ class SharedLibrary(BuildTarget, LibTargetProto):
         the shared library (DLL).
         """
         prefix, suffix, filename_tpl, import_filename_tpl, create_debug_file = self.determine_naming_info()
-        if self.prefix is None:
+        if not self.name_prefix_set:
             self.prefix = prefix
-        if self.suffix is None:
+        if not self.name_suffix_set:
             self.suffix = suffix
         self.filename_tpl = filename_tpl
         self.filename = self.filename_tpl.format(self)
