@@ -13,7 +13,7 @@ from .. import mesonlib
 from .. import mlog
 from ..arglist import CompilerArgs
 from ..dependencies.platform import AppleFrameworks
-from ..mesonlib import MesonBugException, MesonException
+from ..mesonlib import MesonBugException, MesonException, unwrap
 from ..linkers import StaticLinker
 from ..options import OptionKey
 
@@ -96,7 +96,8 @@ def autodetect_xcode_version() -> T.Tuple[str, int]:
         raise MesonException('Could not detect Xcode. Please install it if you wish to use the Xcode backend.')
     if pc.returncode != 0:
         raise MesonException(f'An error occurred while detecting Xcode: {stderr}')
-    version = int(''.join(re.search(r'\d*\.\d*\.*\d*', stdout).group(0).split('.')))
+    m = re.search(r'\d*\.\d*\.*\d*', stdout)
+    version = int(''.join(unwrap(m).group(0).split('.')))
     # If the version number does not have two decimal points, pretend it does.
     if stdout.count('.') < 2:
         version *= 10
@@ -201,7 +202,7 @@ class PbxDict:
                 continue
             if item.key == key:
                 return item
-        return None
+        raise MesonBugException(f'key {key} not found')
 
     def get_item_value(self, key: str, type_: type[PbxDictItemTypes]) -> PbxDictItemTypes:
         i = self.get_item(key).value
@@ -255,6 +256,7 @@ class PbxDict:
 class XCodeBackend(backends.Backend):
 
     name = 'xcode'
+    arch: mesonlib.late_property[str] = mesonlib.late_property()
 
     def __init__(self, build: T.Optional[build.Build]):
         super().__init__(build)
@@ -274,7 +276,6 @@ class XCodeBackend(backends.Backend):
         self.regen_dependency_id = self.gen_id()
         self.top_level_dict = PbxDict()
         self.generator_outputs: dict[tuple[str, int], list[str]] = {}
-        self.set_arch()
         self.xcodeversion, self.objversion = autodetect_xcode_version()
         # In Xcode files are not accessed via their file names, but rather every one of them
         # gets an unique id. More precisely they get one unique id per target they are used
@@ -334,13 +335,12 @@ class XCodeBackend(backends.Backend):
             self.arch = 'arm64'
 
     def generate(self, capture: bool = False, vslite_ctx: T.Optional[T.Dict] = None) -> None:
-        if self.arch is None: # The host machine arch may not be set when backend is created
-            self.set_arch()
         # Check for (currently) unexpected capture arg use cases -
         if capture:
             raise MesonBugException('We do not expect the xcode backend to generate with \'capture = True\'')
         if vslite_ctx:
             raise MesonBugException('We do not expect the xcode backend to be given a valid \'vslite_ctx\'')
+        self.set_arch()
         self.serialize_tests()
         # Cache the result as the method rebuilds the array every time it is called.
         self.build_targets = self.build.get_build_targets()
