@@ -704,9 +704,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
             libtype = mesonlib.LibType.STATIC
         elif kwargs['static'] is False:
             libtype = mesonlib.LibType.SHARED
-        # kwargs['static']'s "| None" is invisible until this module is compiled
-        # with strict_optional.
-        elif prefer_static: # type: ignore[unreachable]
+        elif prefer_static:
             libtype = mesonlib.LibType.PREFER_STATIC
         else:
             libtype = mesonlib.LibType.PREFER_SHARED
