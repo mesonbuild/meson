@@ -734,7 +734,7 @@ class IncludeDirs(HoldableObject):
         for idir in self.incdirs:
             strlist.append(os.path.join(sourcedir, self.curdir, idir))
             strlist.append(os.path.join(builddir, bsubdir, idir))
-        strlist.extend(os.path.join(builddir, bsubdir, idir) for idir in self.extra_build_dirs)
+        strlist.extend(os.path.join(builddir, self.curdir, idir) for idir in self.extra_build_dirs)
         return strlist
 
     def rel_string_list(self, build_to_src: str, build_root: T.Optional[str] = None) -> T.List[str]:
@@ -748,13 +748,15 @@ class IncludeDirs(HoldableObject):
         strlist: T.List[str] = []
         bsubdir = self.build_project.prefix + self.curdir
 
-        for idirs, add_src in [(self.incdirs, True), (self.extra_build_dirs, False)]:
-            for idir in idirs:
-                bld_dir = os.path.normpath(os.path.join(bsubdir, idir))
-                if build_root is None or os.path.isdir(os.path.join(build_root, bld_dir)):
-                    strlist.append(bld_dir)
-                if add_src:
-                    strlist.append(os.path.normpath(os.path.join(build_to_src, self.curdir, idir)))
+        for idir in self.incdirs:
+            bld_dir = os.path.normpath(os.path.join(bsubdir, idir))
+            if build_root is None or os.path.isdir(os.path.join(build_root, bld_dir)):
+                strlist.append(bld_dir)
+            strlist.append(os.path.normpath(os.path.join(build_to_src, self.curdir, idir)))
+        for idir in self.extra_build_dirs:
+            bld_dir = os.path.normpath(os.path.join(self.curdir, idir))
+            if build_root is None or os.path.isdir(os.path.join(build_root, bld_dir)):
+                strlist.append(bld_dir)
 
         return strlist
 

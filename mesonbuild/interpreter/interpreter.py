@@ -980,7 +980,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             mlog.error(*msg)
             raise e
 
-        self.create_build_subdir(subdir)
+        self.create_build_subdir(for_machine.get_prefix() + subdir)
         self.global_args_frozen = True
 
         stack = self.format_subproject_stack(fullstack, ':')
@@ -1052,7 +1052,7 @@ class Interpreter(InterpreterBase, HoldableObject):
 
         with mlog.nested(subp_name):
             if ast:
-                self._save_ast(subdir, ast)
+                self._save_ast(for_machine.get_prefix() + subdir, ast)
 
             subi = Interpreter(new_build, self.backend, subp_name, subdir, self.subproject_dir,
                                default_options, ast=ast, relaxations=relaxations,
@@ -2713,12 +2713,13 @@ class Interpreter(InterpreterBase, HoldableObject):
         if not is_new:
             raise InvalidArguments(f'Tried to enter directory "{subdir}", which has already been visited.')
 
-        self.create_build_subdir(subdir)
+        build_subdir = self.current_build_project().prefix + subdir
+        self.create_build_subdir(build_subdir)
 
         if self.relaxed(InterpreterRuleRelaxation.CARGO_SUBDIR) and \
            os.path.exists(os.path.join(self.environment.get_source_dir(), subdir, 'Cargo.toml')):
             codeblock = self.cargo.interpret(subdir, self.root_subdir)
-            self._save_ast(subdir, codeblock)
+            self._save_ast(build_subdir, codeblock)
             self._evaluate_codeblock(codeblock, subdir)
         elif not self._evaluate_subdir(self.environment.get_source_dir(), subdir):
             buildfilename = os.path.join(subdir, environment.build_filename)
@@ -3116,7 +3117,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         src_root = self.environment.get_source_dir()
         build_root = self.environment.get_build_dir()
         absbase_src = os.path.join(src_root, self.subdir)
-        absbase_build = os.path.join(build_root, self.subdir)
+        absbase_build = os.path.join(build_root, self.current_build_dir())
 
         for a in incdir_strings:
             if path_is_in_root(Path(a), Path(src_root)):

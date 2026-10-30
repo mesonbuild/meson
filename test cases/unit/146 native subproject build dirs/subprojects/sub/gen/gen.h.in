@@ -1,0 +1,3 @@
+#pragma once
+
+#define FOR_MACHINE @for_machine@

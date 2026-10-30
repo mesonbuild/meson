@@ -5079,6 +5079,33 @@ class AllPlatformTests(BasePlatformTests):
         self.setconf('-Duse-sub=true')
         self.build()
 
+    def test_native_subproject_build_dirs(self):
+        # Ensure that in a cross build, a native subproject has include dirs,
+        # configure_file outputs and subdirs under build.<subdir>, not in the host tree.
+        crossdir = os.path.join(self.unit_test_dir, '69 cross')
+        # Reuse the cross test project to generate a native and a cross file
+        # describing this machine, so the configuration below is treated as a
+        # cross build (see test_identity_cross).
+        self.init(crossdir, extra_args=['-Dgenerate=true'])
+        self.meson_native_files = [os.path.join(self.builddir, "nativefile")]
+        self.meson_cross_files = [os.path.join(self.builddir, "crossfile")]
+
+        self.new_builddir()
+        testdir = os.path.join(self.unit_test_dir, '146 native subproject build dirs')
+        self.init(testdir)
+        self.build()
+
+        build_path = Path(self.builddir, 'build.subprojects/sub/gen/sub2/gen.h')
+        self.assertPathExists(build_path)
+        self.assertIn('FOR_MACHINE 0', build_path.read_text(encoding='utf8'))
+
+        host_path = Path(self.builddir, 'subprojects/sub/gen/sub2/gen.h')
+        self.assertPathExists(host_path)
+        self.assertIn('FOR_MACHINE 1', host_path.read_text(encoding='utf8'))
+
+        self.assertPathExists(os.path.join(self.builddir, 'build.subprojects/nativeonly'))
+        self.assertPathDoesNotExist(os.path.join(self.builddir, 'subprojects/nativeonly'))
+
     def test_devenv(self):
         testdir = os.path.join(self.unit_test_dir, '90 devenv')
         self.init(testdir)
