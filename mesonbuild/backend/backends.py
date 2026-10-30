@@ -46,7 +46,7 @@ if T.TYPE_CHECKING:
     from ..interpreter.kwargs import TargetDepends
     from ..linkers import StaticLinker
     from ..mesonlib import InstallScript
-    from ..options import ElementaryOptionValues
+    from ..options import ElementaryOptionValues, UmaskType
 
     from typing_extensions import Literal, TypedDict, NotRequired, TypeAlias
 
@@ -126,9 +126,7 @@ class InstallData:
     prefix: str
     libdir: str
     strip_bin: T.List[str]
-    # TODO: in python 3.8 or with typing_Extensions this could be:
-    # `T.Union[T.Literal['preserve'], int]`, which would be more accurate.
-    install_umask: T.Union[str, int]
+    install_umask: UmaskType
     mesonintrospect: T.List[str]
     version: str
 
@@ -1442,13 +1440,13 @@ class Backend:
         with open(ifilename, 'w', encoding='utf-8') as f:
             f.write(json.dumps(mfobj))
         # Copy file from, to, and with mode unchanged
-        d.data.append(InstallDataBase(ifilename, ofilename, out_name, None, '',
+        d.data.append(InstallDataBase(ifilename, ofilename, out_name, FileMode(), '',
                                       tag='devel', data_type='depmf'))
         for m in self.build.dep_manifest.values():
             for ifilename, name in m.license_mapping():
                 ofilename = os.path.join(odirname, name)
                 out_name = os.path.join(out_dir, name)
-                d.data.append(InstallDataBase(ifilename, ofilename, out_name, None,
+                d.data.append(InstallDataBase(ifilename, ofilename, out_name, FileMode(),
                                               m.subproject, tag='devel', data_type='depmf'))
 
     def get_regen_filelist(self) -> T.List[str]:
@@ -1787,7 +1785,7 @@ class Backend:
                 strip_bin = [detect.defaults['strip'][0]]
 
         umask = self.environment.coredata.optstore.get_value_for(OptionKey('install_umask'))
-        assert isinstance(umask, (str, int)), 'for mypy'
+        umask = T.cast('UmaskType', umask)
 
         d = InstallData(self.environment.get_source_dir(),
                         self.environment.get_build_dir(),

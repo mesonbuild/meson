@@ -821,7 +821,8 @@ class PkgConfigModule(NewExtensionModule):
                                       version, license, pcfile, conflicts, variables,
                                       unescaped_variables, False, dataonly,
                                       pkgroot=pkgroot if relocatable else None)
-        res = build.Data([mesonlib.File(True, state.environment.get_scratch_dir(), pcfile)], pkgroot, pkgroot_name, None, state.subproject, install_tag='devel')
+        res = build.Data([mesonlib.File(True, state.environment.get_scratch_dir(), pcfile)], pkgroot, pkgroot_name,
+                         mesonlib.FileMode(), state.subproject, install_tag='devel')
         variables = parse_variable_list(kwargs['uninstalled_variables'])
         unescaped_variables = parse_variable_list(kwargs['unescaped_uninstalled_variables'])
 
