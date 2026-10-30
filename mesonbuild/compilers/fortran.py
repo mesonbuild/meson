@@ -444,6 +444,7 @@ class IntelFortranCompiler(IntelGnuLikeCompiler, FortranCompiler):
 
 
 class IntelLLVMFortranCompiler(IntelLLVMLikeCompiler, IntelFortranCompiler):
+    
     id = 'intel-llvm'
     
     def get_option_std_args(self, target: BuildTarget, subproject: T.Optional[str] = None) -> T.List[str]:
