@@ -1362,6 +1362,26 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
     def name_string(self) -> str:
         return ' '.join(self.exelist)
 
+    def _compile_sanity_check(self, cmdlist: T.List[str], linker_args: T.List[str],
+                              work_dir: str) -> None:
+        """Run the compiler command line of a sanity check.
+
+        :param cmdlist: The executable and compiler arguments
+        :param linker_args: Linker arguments, appended after the compiler arguments
+        :param work_dir: A directory to put temporary artifacts
+        :raises mesonlib.EnvironmentException: If the compiler returns a non-zero exit code
+        """
+        cmdlist = cmdlist + linker_args
+        pc, stdo, stde = mesonlib.Popen_safe(cmdlist, cwd=work_dir)
+        mlog.debug('Sanity check compiler command line:', mesonlib.join_args(cmdlist))
+        mlog.debug('Sanity check compile stdout:')
+        mlog.debug(stdo)
+        mlog.debug('-----\nSanity check compile stderr:')
+        mlog.debug(stde)
+        mlog.debug('-----')
+        if pc.returncode != 0:
+            raise mesonlib.EnvironmentException(f'Compiler {self.name_string()} cannot compile programs.')
+
     def sanity_check(self, work_dir: str) -> None:
         """Check that this compiler actually works.
 
@@ -1404,17 +1424,7 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
         else:
             cmdlist, linker_args = self._sanity_check_compile_args(sourcename, binname)
 
-        cmdlist.extend(linker_args)
-        pc, stdo, stde = mesonlib.Popen_safe(cmdlist, cwd=work_dir)
-        mlog.debug('Sanity check compiler command line:', mesonlib.join_args(cmdlist))
-        mlog.debug('Sanity check compile stdout:')
-        mlog.debug(stdo)
-        mlog.debug('-----\nSanity check compile stderr:')
-        mlog.debug(stde)
-        mlog.debug('-----')
-        if pc.returncode != 0:
-            raise mesonlib.EnvironmentException(f'Compiler {self.name_string()} cannot compile programs.')
-
+        self._compile_sanity_check(cmdlist, linker_args, work_dir)
         self._run_sanity_check([os.path.join(work_dir, binname)], work_dir)
 
     def _sanity_check_filenames(self) -> T.Tuple[str, T.Optional[str], str]:
