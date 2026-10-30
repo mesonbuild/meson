@@ -340,6 +340,7 @@ class HotdocTargetBuilder:
                               extra_depends=self.extra_depends,
                               outputs=[fullname],
                               sources=[],
+                              backend=self.state.backend,
                               build_project=self.state.current_build_project,
                               depfile=os.path.basename(depfile),
                               build_by_default=self.build_by_default)

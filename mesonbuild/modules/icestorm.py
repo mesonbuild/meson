@@ -72,6 +72,7 @@ class IceStormModule(ExtensionModule):
             all_sources,
             [f'{proj_name}.blif'],
             state.current_build_project,
+            backend=state.backend,
         )
 
         asc_target = build.CustomTarget(
@@ -82,6 +83,7 @@ class IceStormModule(ExtensionModule):
             [constraint_file, blif_target],
             [f'{proj_name}.asc'],
             state.current_build_project,
+            backend=state.backend,
         )
 
         bin_target = build.CustomTarget(
@@ -93,6 +95,7 @@ class IceStormModule(ExtensionModule):
             [f'{proj_name}.bin'],
             state.current_build_project,
             build_by_default=True,
+            backend=state.backend,
         )
 
         upload_target = build.RunTarget(
