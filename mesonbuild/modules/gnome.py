@@ -258,12 +258,12 @@ gresource_dep_needed_version = '>= 2.51.1'
 class GnomeModule(ExtensionModule):
 
     INFO = ModuleInfo('gnome')
+    giscanner: mesonlib.late_property[Program] = mesonlib.late_property()
+    gicompiler: mesonlib.late_property[Program] = mesonlib.late_property()
 
     def __init__(self, interpreter: 'Interpreter') -> None:
         super().__init__(interpreter)
         self.gir_dep: T.Optional[Dependency] = None
-        self.giscanner: T.Optional[Program] = None
-        self.gicompiler: T.Optional[Program] = None
         self.install_glib_compile_schemas = False
         self.install_gio_querymodules: T.List[str] = []
         self.install_gtk_update_icon_cache = False
