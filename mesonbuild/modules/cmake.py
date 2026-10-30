@@ -29,6 +29,7 @@ from ..interpreterbase import (
     VarArgInfo,
     ContainerTypeInfo,
 )
+from ..mesonlib import FileMode
 
 if T.TYPE_CHECKING:
     from typing_extensions import TypedDict
@@ -337,7 +338,7 @@ class CmakeModule(ExtensionModule):
         }
         mesonlib.do_conf_file(template_file, version_file, build.ConfigurationData(conf), 'meson')
 
-        res = build.Data([mesonlib.File(True, state.environment.get_scratch_dir(), version_file)], pkgroot, pkgroot_name, None, state.subproject)
+        res = build.Data([mesonlib.File(True, state.environment.get_scratch_dir(), version_file)], pkgroot, pkgroot_name, FileMode(), state.subproject)
         return ModuleReturnValue(res, [res])
 
     def create_package_file(self, infile: str, outfile: str, PACKAGE_RELATIVE_PATH: str, extra: str, confdata: build.ConfigurationData) -> None:
@@ -427,7 +428,7 @@ class CmakeModule(ExtensionModule):
         conffile = os.path.normpath(inputfile.relative_name())
         self.interpreter.build_def_files.add(conffile)
 
-        res = build.Data([mesonlib.File(True, ofile_path, ofile_fname)], install_dir, install_dir, None, state.subproject)
+        res = build.Data([mesonlib.File(True, ofile_path, ofile_fname)], install_dir, install_dir, FileMode(), state.subproject)
         self.interpreter.build.data.append(res)
 
         return res

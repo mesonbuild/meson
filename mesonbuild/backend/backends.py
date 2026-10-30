@@ -46,7 +46,7 @@ if T.TYPE_CHECKING:
     from ..interpreter.kwargs import TargetDepends
     from ..linkers import StaticLinker
     from ..mesonlib import InstallScript
-    from ..options import ElementaryOptionValues
+    from ..options import ElementaryOptionValues, UmaskType
 
     from typing_extensions import Literal, TypedDict, NotRequired, TypeAlias
 
@@ -126,9 +126,7 @@ class InstallData:
     prefix: str
     libdir: str
     strip_bin: T.List[str]
-    # TODO: in python 3.8 or with typing_Extensions this could be:
-    # `T.Union[T.Literal['preserve'], int]`, which would be more accurate.
-    install_umask: T.Union[str, int]
+    install_umask: UmaskType
     mesonintrospect: T.List[str]
     version: str
 
@@ -1787,7 +1785,7 @@ class Backend:
                 strip_bin = [detect.defaults['strip'][0]]
 
         umask = self.environment.coredata.optstore.get_value_for(OptionKey('install_umask'))
-        assert isinstance(umask, (str, int)), 'for mypy'
+        umask = T.cast('UmaskType', umask)
 
         d = InstallData(self.environment.get_source_dir(),
                         self.environment.get_build_dir(),

@@ -46,6 +46,8 @@ if T.TYPE_CHECKING:
     ElementaryOptionValues: TypeAlias = T.Union[str, int, bool, T.List[str]]
     MutableKeyedOptionDictType: TypeAlias = T.Dict['OptionKey', AnyOptionType]
 
+    UmaskType = T.Union["Literal['preserve']", int]
+
     _OptionKeyTuple: TypeAlias = T.Tuple[T.Optional[str], MachineChoice, str]
 
     class OptionKeyState(TypedDict):
@@ -444,7 +446,7 @@ class OctalInt(int):
 
 
 @dataclasses.dataclass
-class UserUmaskOption(_UserIntegerBase[T.Union["Literal['preserve']", OctalInt]]):
+class UserUmaskOption(_UserIntegerBase['UmaskType']):
 
     min_value: T.Optional[int] = dataclasses.field(default=0, init=False)
     max_value: T.Optional[int] = dataclasses.field(default=0o777, init=False)
@@ -454,7 +456,7 @@ class UserUmaskOption(_UserIntegerBase[T.Union["Literal['preserve']", OctalInt]]
             return format(value, '04o')
         return value
 
-    def validate_value(self, value: object) -> T.Union[Literal['preserve'], OctalInt]:
+    def validate_value(self, value: object) -> UmaskType:
         if value == 'preserve':
             return 'preserve'
         return OctalInt(super().validate_value(value))
