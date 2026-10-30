@@ -444,9 +444,9 @@ class IntelFortranCompiler(IntelGnuLikeCompiler, FortranCompiler):
 
 
 class IntelLLVMFortranCompiler(IntelLLVMLikeCompiler, IntelFortranCompiler):
-    
+
     id = 'intel-llvm'
-    
+
     def get_option_std_args(self, target: BuildTarget, subproject: T.Optional[str] = None) -> T.List[str]:
         args = super().get_option_std_args(target, subproject)
         # ifx requires the standard argument to be separate from -stand.
