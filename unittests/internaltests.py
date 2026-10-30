@@ -478,6 +478,31 @@ InstalledDir: /usr/bin'''), '14.0.0-1ubuntu1.1')
         self.assertEqual(cc.get_import_std_args(base + ['/Isome', '/Od', '/D_HAS_EXCEPTIONS']),
                          ['/D_HAS_EXCEPTIONS=1', '/EHsc', '/MD', '/permissive-', '/std:c++latest', '/utf-8'])
 
+    def test_intel_fortran_standard_args(self):
+        from mesonbuild.compilers.fortran import (
+            IntelFortranCompiler, IntelLLVMFortranCompiler,
+            IntelClFortranCompiler, IntelLLVMClFortranCompiler,
+        )
+        standards = {'none': None, 'legacy': 'none', 'f95': 'f95',
+                     'f2003': 'f03', 'f2008': 'f08', 'f2018': 'f18'}
+        for compiler_class in (IntelFortranCompiler, IntelLLVMFortranCompiler,
+                               IntelClFortranCompiler, IntelLLVMClFortranCompiler):
+            compiler = object.__new__(compiler_class)
+            for standard, value in standards.items():
+                with self.subTest(compiler=compiler_class.id, standard=standard):
+                    if value is None:
+                        expected = []
+                    elif compiler_class is IntelLLVMFortranCompiler:
+                        expected = ['-stand', value]
+                    elif compiler_class is IntelFortranCompiler:
+                        expected = ['-stand=' + value]
+                    else:
+                        expected = ['/stand:' + value]
+                    with mock.patch.object(compiler, 'get_compileropt_value', return_value=standard):
+                        self.assertEqual(compiler.get_option_std_args(None), expected)
+
+        
+        
     def test_compiler_args_class_visualstudio(self):
         env = get_fake_env()
         linker = linkers.MSVCDynamicLinker(env, MachineChoice.HOST, [])
