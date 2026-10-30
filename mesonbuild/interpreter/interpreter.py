@@ -2206,6 +2206,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             install_dir=install_dir,
             install_mode=install_mode,
             install_tag=install_tag,
+            backend=self.backend,
         )
         self.add_target(tg.name, tg)
         return tg

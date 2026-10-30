@@ -47,8 +47,6 @@ class ModuleState:
         self.environment = interpreter.environment
         self.project_name = interpreter.active_projectname
         self.project_version = interpreter.project_version
-        # The backend object is under-used right now, but we will need it:
-        # https://github.com/mesonbuild/meson/issues/1419
         self.backend = interpreter.backend
         self.dependency_overrides = interpreter.build.dependency_overrides
         self.targets = interpreter.build.targets

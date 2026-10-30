@@ -478,6 +478,7 @@ class QtBaseModule(ExtensionModule):
                 depend_files=qrc_deps,
                 depfile=f'{name}.d',
                 description='Compiling Qt resources {}',
+                backend=state.backend,
             )
             targets.append(res_target)
         else:
@@ -497,6 +498,7 @@ class QtBaseModule(ExtensionModule):
                     depend_files=qrc_deps,
                     depfile=f'{name}.d',
                     description='Compiling Qt resources {}',
+                    backend=state.backend,
                 )
                 targets.append(res_target)
 
@@ -755,6 +757,7 @@ class QtBaseModule(ExtensionModule):
                 install_tag=['i18n'],
                 build_by_default=kwargs['build_by_default'],
                 description='Compiling Qt translations {}',
+                backend=state.backend,
             )
             translations.append(lrelease_target)
         if qresource:
@@ -890,6 +893,7 @@ class QtBaseModule(ExtensionModule):
             [f'{target_name}_json_collect.json'],
             state.current_build_project,
             description=f'Collecting json type information for {target_name}',
+            backend=state.backend,
         )
 
     def _gen_qml_cachegen(self, state: ModuleState, kwargs: GenQmlCachegenKwArgs) -> T.List[T.Union[build.CustomTarget, build.GeneratedList]]:
@@ -941,6 +945,7 @@ class QtBaseModule(ExtensionModule):
             [f'{target_name}_qmlcache_loader.cpp'],
             state.current_build_project,
             description=f'Qml cache loader for {target_name}',
+            backend=state.backend,
         )
         output.append(cacheloader_target)
         return output
@@ -1000,6 +1005,7 @@ class QtBaseModule(ExtensionModule):
             install_dir=install_dir,
             install_tag=install_tag,
             description=f'Qml type registration for {target_name}',
+            backend=state.backend,
         )
 
     @FeatureNew('qt.qml_module', '1.7')

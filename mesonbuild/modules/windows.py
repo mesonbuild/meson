@@ -241,6 +241,7 @@ class WindowsModule(ExtensionModule):
                 depend_files=wrc_depend_files,
                 extra_depends=wrc_depends,
                 description='Compiling Windows resource {}',
+                backend=state.backend,
             ))
 
         return ModuleReturnValue(res_targets, [res_targets])

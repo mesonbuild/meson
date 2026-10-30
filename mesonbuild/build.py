@@ -3179,7 +3179,7 @@ class CustomTarget(Target, CustomTargetBase, CommandTargetProto):
                  install_tag: T.Optional[T.List[T.Optional[str]]] = None,
                  rsp_syntax: T.Optional[RSPFileSyntax] = None,
                  absolute_paths: bool = False,
-                 backend: T.Optional['Backend'] = None,
+                 backend: Backend,
                  description: str = 'Generating {} with a custom command',
                  build_subdir: str = '',
                  ):

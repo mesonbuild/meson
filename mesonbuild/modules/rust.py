@@ -1284,6 +1284,7 @@ class RustModule(ExtensionModule):
             install=kwargs['install'],
             install_dir=[kwargs['install_dir']],
             install_tag=['devel'],
+            backend=state.backend,
         )
 
         return ModuleReturnValue(target, [target])
