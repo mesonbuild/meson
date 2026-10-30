@@ -2736,10 +2736,6 @@ class SharedLibrary(BuildTarget, LibTargetProto):
                                        'periods or dashes in the library name due to a limitation of rustc. '
                                        'Replace them with underscores, for example')
 
-        if not self.name_prefix_set:
-            self.prefix = None
-        if not self.name_suffix_set:
-            self.suffix = None
         self.basic_filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
         self.determine_filenames()
 
@@ -2831,7 +2827,7 @@ class SharedLibrary(BuildTarget, LibTargetProto):
             prefix = 'cyg'
             # Import library is called libfoo.dll.a
             import_suffix = import_suffix if import_suffix is not None else '.dll.a'
-            import_prefix = self.prefix if self.prefix is not None else 'lib'
+            import_prefix = self.prefix if self.name_prefix_set else 'lib'
             import_filename_tpl = import_prefix + '{0.name}' + import_suffix
             if self.soversion:
                 filename_tpl = '{0.prefix}{0.name}-{0.soversion}.{0.suffix}'
@@ -2895,9 +2891,9 @@ class SharedLibrary(BuildTarget, LibTargetProto):
         the shared library (DLL).
         """
         prefix, suffix, filename_tpl, import_filename_tpl, create_debug_file = self.determine_naming_info()
-        if self.prefix is None:
+        if not self.name_prefix_set:
             self.prefix = prefix
-        if self.suffix is None:
+        if not self.name_suffix_set:
             self.suffix = suffix
         self.filename_tpl = filename_tpl
         self.filename = self.filename_tpl.format(self)
