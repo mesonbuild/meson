@@ -88,7 +88,7 @@ class ModuleState:
                                                    wanted=wanted, silent=silent, for_machine=for_machine)
 
     def find_tool(self, name: str, depname: str, varname: str, required: bool = True,
-                  wanted: T.Optional[str] = None, native: bool = True) -> Program:
+                  wanted: str = '', native: bool = True) -> Program:
         # Look in overrides in case it's built as subproject
         for_machine = MachineChoice.BUILD if native else MachineChoice.HOST
         progobj = self._interpreter.program_from_overrides([name], for_machine, [])
@@ -145,7 +145,7 @@ class ModuleState:
         return dependency
 
     def dependency(self, depname: str, native: bool = False, required: bool = True,
-                   wanted: T.Optional[T.Union[str, T.List[str]]] = None) -> 'Dependency':
+                   wanted: T.Union[str, T.List[str]] = '') -> 'Dependency':
         kwargs: T.Dict[str, object] = {'native': native, 'required': required}
         if wanted:
             kwargs['version'] = wanted
