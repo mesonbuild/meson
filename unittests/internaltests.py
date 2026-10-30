@@ -48,7 +48,7 @@ from mesonbuild.interpreterbase import (
 from mesonbuild.mesonlib import (
     FileMode, LibType, MachineChoice, SimpleABC, Version, is_windows, is_osx,
     is_cygwin, is_openbsd, search_version, MesonException, EnvironmentException, python_command,
-    version_check_to_range,
+    version_check_to_range, unwrap_property, MesonBugException,
 )
 from mesonbuild.options import OptionKey, UserBooleanOption
 from mesonbuild.interpreter.type_checking import (
@@ -1464,6 +1464,26 @@ InstalledDir: /usr/bin'''), '14.0.0-1ubuntu1.1')
                             prog.get_version()
                     else:
                         self.assertEqual(prog.get_version(), expected)
+
+    def test_unwrap_property(self):
+        class X:
+            value = unwrap_property[int]()
+
+            def __init__(self) -> None:
+                self.value = None
+
+        a = X()
+        b = X()
+        with self.assertRaises(MesonBugException):
+            a.value
+        a.value = 3
+        self.assertEqual(a.value, 3)
+        # Values are per instance.
+        with self.assertRaises(MesonBugException):
+            b.value
+        a.value = None
+        with self.assertRaises(MesonBugException):
+            a.value
 
     def test_version_compare(self):
         comparefunc = mesonbuild.mesonlib.version_compare_many
