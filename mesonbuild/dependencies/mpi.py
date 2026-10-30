@@ -204,7 +204,19 @@ class MPIConfigToolDependency(ConfigToolDependency):
                 version = None
             return valid, version
 
-        # --version is not the same as -v
+        # --version (compiler) is not the same as -v/V (MPI wrapper)
+        p, out = Popen_safe(tool + ['-V'])[:2]
+        first_line = out.split('\n', maxsplit=1)[0]
+        valid = p.returncode == returncode
+        if valid:
+            # Intel OneAPI
+            v = re.search(r'\d+.\d+', first_line)
+            if v:
+                version = v.group(0)
+            else:
+                version = None
+            return valid, version
+
         p, out = Popen_safe(tool + ['-v'])[:2]
         valid = p.returncode == returncode
         first_line = out.split('\n', maxsplit=1)[0]
@@ -223,6 +235,10 @@ class MPIConfigToolDependency(ConfigToolDependency):
         v = re.search(r'(\d{4}) Update (\d)', first_line)
         if v:
             return valid, f'{v.group(1)}.{v.group(2)}'
+
+        # catch Intel OneAPI >2021.16, others
+        p, _ = Popen_safe(tool + ['--help'])[:2]
+        valid = valid or p.returncode == 0
 
         return valid, None
 
