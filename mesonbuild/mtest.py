@@ -1619,28 +1619,25 @@ class SingleTestRunner:
             signal.signal(signal.SIGINT, signal.SIG_IGN)
 
         def preexec_fn() -> None:
-            if self.options.interactive:
-                # Restore the SIGINT handler for the child process to
-                # ensure it can handle it.
-                signal.signal(signal.SIGINT, signal.SIG_DFL)
-            else:
-                # We don't want setsid() in gdb because gdb needs the
-                # terminal in order to handle ^C and not show tcsetpgrp()
-                # errors avoid not being able to use the terminal.
-                os.setsid()
+            # Restore the SIGINT handler for the child process to
+            # ensure it can handle it.
+            signal.signal(signal.SIGINT, signal.SIG_DFL)
 
         def postwait_fn() -> None:
             if self.options.interactive:
                 # Let us accept ^C again
                 signal.signal(signal.SIGINT, previous_sigint_handler)
 
+        start_new_session = not (is_windows() or is_os2()) and not self.options.interactive
+        need_preexec_fn = not (is_windows() or is_os2()) and self.options.interactive
         p = await asyncio.create_subprocess_exec(*args,
                                                  stdin=stdin,
                                                  stdout=stdout,
                                                  stderr=stderr,
                                                  env=env,
                                                  cwd=cwd,
-                                                 preexec_fn=preexec_fn if not (is_windows() or is_os2()) else None)
+                                                 start_new_session=start_new_session,
+                                                 preexec_fn=preexec_fn if need_preexec_fn else None)
         return TestSubprocess(p, stdout=stdout, stderr=stderr,
                               postwait_fn=postwait_fn if not is_windows() else None)
 
