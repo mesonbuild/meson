@@ -99,6 +99,9 @@ It takes the following keyword arguments
 - `dependencies`: a list of `Dependency` objects to pass to the underlying clang call (*since 1.0.0*)
 - `language`: A literal string value of `c` or `cpp`. When set this will force bindgen to treat a source as the given language. Defaults to checking based on the input file extension. *(since 1.4.0)*
 - `bindgen_version`: a list of string version values. When set the found bindgen binary must conform to these constraints. *(since 1.4.0)*
+- `allowlist`: A dictionary of options to pass to pass as `--allowlist-*` options. See below. *(since 1.13.0)*
+- `blocklist`: A dictionary of options to pass to pass as `--blocklist-*` options. See below. *(since 1.13.0)*
+- `clang_macro_fallback`: Set the `--clang-macro-fallback` argument, as well as the `--clang-macro-fallback-build-dir`
 
 ```meson
 rust = import('unstable-rust')
@@ -127,6 +130,22 @@ r1 = rust.bindgen(
   output : 'out.rs',
 )
 ```
+
+*Since 1.13.0*, `--allowlist-*` and `--blocklist-*` options can be passed as
+*compact `dict[str, array[str]]` arguments:
+```meson
+b = rust.bindgen(
+  ...,
+  allowlist : {
+    'var': ['var*'],
+  },
+  blocklist: {
+    'file': ['priv_*'],
+  }
+)
+```
+At configure time meson will translate these into: `--allowlist-var 'var*'
+--blocklist 'priv_*'` and passed to bindgen
 
 *Since 1.1.0* Meson will synchronize assertions for Rust and C/C++  when the
 `b_ndebug` option is set (via `-DNDEBUG` for C/C++, and `-C
