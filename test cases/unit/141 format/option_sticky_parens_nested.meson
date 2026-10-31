@@ -1,0 +1,6 @@
+# format-test: sticky_parens = true
+# format-test: indent_by = '  '
+
+x = ((aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa or bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb) and ccccccccccccccc)
+
+x = (a.get_variable(cmake: 'LLVM_ENABLE_RTTI') == 'ON') == (b.get_variable(configtool: 'has-rtti') == 'YES')

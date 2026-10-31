@@ -8,7 +8,8 @@ import re
 import typing as T
 from configparser import ConfigParser, MissingSectionHeaderError, ParsingError
 from copy import deepcopy
-from dataclasses import dataclass, field, fields, asdict
+from dataclasses import dataclass, field, fields, asdict, replace
+from functools import partial
 from pathlib import Path
 import sys
 
@@ -286,7 +287,7 @@ class FormatterConfig:
             config.indent_by = editorconfig.indent_size * ' '
 
         if editorconfig.max_line_length == 'off':
-            config.max_line_length = 0
+            config.max_line_length = None
         elif editorconfig.max_line_length:
             config.max_line_length = int(editorconfig.max_line_length)
 
@@ -449,7 +450,7 @@ class TrimWhitespaces(FullAstVisitor):
 
     def visit_SymbolNode(self, node: mparser.SymbolNode) -> None:
         super().visit_SymbolNode(node)
-        if node.value in "([{" and node.whitespaces.value == '\n':
+        if node.value in "([{" and not node.whitespaces.value.strip('\n'):
             node.whitespaces.value = ''
         node.whitespaces.accept(self)
 
@@ -488,7 +489,8 @@ class TrimWhitespaces(FullAstVisitor):
 
         if node.lbracket.whitespaces.value:
             node.args.is_multiline = True
-        if node.args.arguments and not node.args.is_multiline and self.config.space_array:
+        if node.args.arguments and self.config.space_array:
+            # ArgumentFormatter replaces the spaces with newlines if node is multiline
             self.add_space_after(node.lbracket)
             self.add_space_after(node.args)
         if not node.args.arguments:
@@ -546,15 +548,15 @@ class TrimWhitespaces(FullAstVisitor):
 
     def visit_FunctionNode(self, node: mparser.FunctionNode) -> None:
         if node.func_name.value == 'files':
-            if self.config.sort_files:
-                self.sort_arguments(node.args)
-
             if len(node.args.arguments) == 1 and not node.args.kwargs:
                 arg = node.args.arguments[0]
                 if isinstance(arg, mparser.ArrayNode):
                     if not arg.lbracket.whitespaces or not arg.lbracket.whitespaces.value.strip():
                         # files([...]) -> files(...)
                         node.args = arg.args
+
+            if self.config.sort_files:
+                self.sort_arguments(node.args)
 
         super().visit_FunctionNode(node)
         self.move_whitespaces(node.rpar, node)
@@ -577,7 +579,8 @@ class TrimWhitespaces(FullAstVisitor):
         self.add_space_after(node.colon)
 
         node.block.whitespaces.value += node.condition_level * self.config.indent_by
-        node.block.whitespaces.block_indent = True
+        # After the last statement, whitespaces begin on the line of that statement
+        node.block.whitespaces.block_indent = not node.block.lines
 
         self.move_whitespaces(node.endforeach, node)
 
@@ -593,19 +596,21 @@ class TrimWhitespaces(FullAstVisitor):
     def visit_IfNode(self, node: mparser.IfNode) -> None:
         super().visit_IfNode(node)
         self.add_space_after(node.if_)
-        self.in_block_comments = True
+        # After the last statement, whitespaces begin on the line of that statement
+        self.in_block_comments = not node.block.lines
         self.move_whitespaces(node.block, node)
         self.in_block_comments = False
         node.whitespaces.condition_level = node.condition_level + 1
-        node.whitespaces.block_indent = True
+        node.whitespaces.block_indent = not node.block.lines
 
     def visit_ElseNode(self, node: mparser.ElseNode) -> None:
         super().visit_ElseNode(node)
-        self.in_block_comments = True
+        # After the last statement, whitespaces begin on the line of that statement
+        self.in_block_comments = not node.block.lines
         self.move_whitespaces(node.block, node)
         self.in_block_comments = False
         node.whitespaces.condition_level = node.condition_level + 1
-        node.whitespaces.block_indent = True
+        node.whitespaces.block_indent = not node.block.lines
 
     def visit_TernaryNode(self, node: mparser.TernaryNode) -> None:
         super().visit_TernaryNode(node)
@@ -642,7 +647,8 @@ class TrimWhitespaces(FullAstVisitor):
 
         self.move_whitespaces(last_node, node)
 
-        if not node.is_multiline and '#' not in node.whitespaces.value:
+        if '#' not in node.whitespaces.value:
+            # ArgumentFormatter adds the newline if node is multiline
             node.whitespaces.value = ''
 
     def visit_ParenthesizedNode(self, node: mparser.ParenthesizedNode) -> None:
@@ -663,78 +669,292 @@ class TrimWhitespaces(FullAstVisitor):
                 node.is_multiline = True
 
         node.lpar.accept(self)
-        if node.is_multiline and self.config.sticky_parens and '#' not in node.lpar.whitespaces.value:
-            node.lpar.whitespaces.value = ''
         node.inner.accept(self)
 
-        if node.is_multiline:
-            inner_ws = node.inner.whitespaces.value
-            if not self.config.sticky_parens:
-                self.add_nl_after(node.inner)
-            elif '#' not in inner_ws:
-                node.inner.whitespaces.value = ''
-            elif inner_ws.count('\n') == 1 and node.rpar.whitespaces and node.rpar.whitespaces.value.lstrip(' \t') == '\n':
-                # Move the comment of last operand after the closing parenthesis,
-                # when nothing else follows it on the same line
-                node.rpar.whitespaces.value = inner_ws.strip() + node.rpar.whitespaces.value
-                node.inner.whitespaces.value = ''
-        else:
-            node.inner.whitespaces = None
+        inner_ws = node.inner.whitespaces.value
+        if (node.is_multiline and self.config.sticky_parens and '#' in inner_ws and inner_ws.count('\n') == 1
+                and not (node.rpar.whitespaces and '#' in node.rpar.whitespaces.value)):
+            # The comment of last operand is moved to the end of the line of the closing parenthesis,
+            # by ArgumentFormatter, which knows where that line ends
+            node.moved_comment = inner_ws.strip()
+            node.inner.whitespaces.value = ''
 
         node.rpar.accept(self)
         self.move_whitespaces(node.rpar, node)
+
+
+@dataclass(slots=True, eq=False)
+class SetAttr:
+    """Reversible assignment of an attribute"""
+
+    obj: object
+    name: str
+    old: T.Any
+    new: T.Any
+
+    def apply(self) -> None:
+        setattr(self.obj, self.name, self.new)
+
+    def undo(self) -> None:
+        setattr(self.obj, self.name, self.old)
+
+
+@dataclass(frozen=True, slots=True)
+class FormatLayout:
+    """Layout of a whitespace, decided by ArgumentFormatter before the whitespace is visited"""
+
+    kind: Literal['space', 'newline', 'last_line']  # last_line: only indent the line following the whitespace
+    indent: int = 0
+
+
+@dataclass(slots=True)
+class FormatterState:
+    """State of ArgumentFormatter, restored when rewinding"""
+
+    level: int = 0
+    indent_after: bool = False
+    is_function_arguments: bool = False
+    bracket_depth: int = 0  # line breaks are only allowed inside brackets
+    paren_inner: T.Optional[mparser.BaseNode] = None  # content of current multiline parentheses
+    chain_level: int = 0  # operator level of the chain of operators being visited
+    split_chain: bool = False
+    chain_indent: int = 0  # indentation level of operators of a split chain
+    chain_point: T.Optional[RewindPoint] = None  # rewind point of the chain of operators being visited
+    column: int = 0
+    pending_comment: T.Optional[str] = None  # comment to insert at the end of current line
+    line_start: T.Optional[mparser.WhitespaceNode] = None  # whitespace ending with the indentation of current line
+    line_has_code: bool = False
+    moved_comments: int = 0
+
+
+Breakable = T.Union[mparser.ArgumentNode, mparser.ParenthesizedNode, mparser.BinaryOperatorNode]
+
+
+@dataclass(slots=True, eq=False)
+class RewindPoint:
+    """Where ArgumentFormatter can restart visiting, after deciding to split a node"""
+
+    target: T.Optional[Breakable]  # node that can be split, if any
+    log_length: int
+    state: FormatterState
+    closed_order: int = 0  # 0 while the node is visited, then order in which nodes were closed
+    first_operand_end: int = 0  # for a chain of operators, column where its first operand ends
+
+
+class Rewind(Exception):
+
+    def __init__(self, point: RewindPoint):
+        super().__init__()
+        self.point = point
 
 
 class ArgumentFormatter(FullAstVisitor):
 
     def __init__(self, config: FormatterConfig):
         self.config = config
-        self.level = 0
-        self.indent_after = False
-        self.is_function_arguments = False
-        self.split_operators = False
+        self.state = FormatterState()
+        self.log: T.List[SetAttr] = []
+        self.points: T.List[RewindPoint] = []  # open points, and points closed on current line
+        self.closed_count = 0
+
+        indent = re.escape(config.indent_by)
+        # every line break with its indentation, except before an empty line
+        self.indent_re = re.compile(rf'\n(?:{indent})*(?![ \t]*\n)')
+        self.last_indent_re = re.compile(rf'\n(?:{indent})*$')  # last line break with its indentation
+
+    def record(self, change: SetAttr) -> None:
+        change.apply()
+        self.log.append(change)
+
+    def set_attr(self, obj: object, name: str, value: T.Any) -> None:
+        """Assign an attribute of an AST node; every change to the AST must go through this"""
+        old = getattr(obj, name)
+        if old is not value and not (isinstance(old, str) and old == value):
+            self.record(SetAttr(obj, name, old, value))
+
+    def set_whitespaces(self, node: mparser.BaseNode, value: str) -> None:
+        self.set_attr(node.whitespaces, 'value', value)
+
+    # Layout decisions are recorded on the whitespace node before it is visited,
+    # and applied by visit_WhitespaceNode after the whitespace is formatted.
 
     def add_space_after(self, node: mparser.BaseNode) -> None:
-        if not node.whitespaces.value:
-            node.whitespaces.value = ' '
+        self.set_attr(node.whitespaces, 'format_layout', FormatLayout('space'))
 
     def add_nl_after(self, node: mparser.BaseNode, indent: int) -> None:
-        if not node.whitespaces.value or node.whitespaces.value == ' ':
-            node.whitespaces.value = '\n'
-        indent_by = (node.condition_level + indent) * self.config.indent_by
-        if indent_by:
-            node.whitespaces.value = re.sub(rf'\n({self.config.indent_by})*', '\n' + indent_by, node.whitespaces.value)
+        self.set_attr(node.whitespaces, 'format_layout', FormatLayout('newline', indent))
 
     def indent_last_line(self, node: mparser.BaseNode, indent: int) -> None:
         """Indent the line following node, without changing indentation of comments"""
-        indent_by = (node.condition_level + indent) * self.config.indent_by
-        node.whitespaces.value = re.sub(rf'\n({self.config.indent_by})*$', '\n' + indent_by, node.whitespaces.value)
+        self.set_attr(node.whitespaces, 'format_layout', FormatLayout('last_line', indent))
+
+    def apply_layout(self, node: mparser.WhitespaceNode, layout: FormatLayout, value: str) -> str:
+        if layout.kind == 'space':
+            return value or ' '
+        indent_by = (node.condition_level + layout.indent) * self.config.indent_by
+        if layout.kind == 'newline':
+            if not value or value == ' ':
+                value = '\n'
+            if indent_by:
+                value = self.indent_re.sub('\n' + indent_by, value)
+            return value
+        return self.last_indent_re.sub('\n' + indent_by, value)
+
+    def advance(self, column: int, text: str) -> int:
+        """Column after printing text (without line break) from column"""
+        if '\t' in text:
+            # Tabs advance to the next tab stop: expand them from the start of the current tab stop
+            offset = column % self.config.tab_width
+            return column + len((' ' * offset + text).expandtabs(self.config.tab_width)) - offset
+        return column + len(text)
+
+    def measure(self, text: str, is_code: bool = True) -> None:
+        """Advance the column over printed text, and split a node at the end of a line that is too long"""
+        for i, line in enumerate(text.split('\n')):
+            if i:
+                # Decide at the end of the line, when all nodes on that line are known
+                if self.config.max_line_length is not None and self.state.column > self.config.max_line_length:
+                    self.split_line()
+                # Points closed on previous line are no more candidates
+                self.points = [p for p in self.points if not p.closed_order]
+                self.state.column = 0
+                self.state.line_has_code = False
+            self.state.column = self.advance(self.state.column, line)
+        if is_code and text:
+            self.state.line_has_code = True
+            if '\n' in text:
+                self.state.line_start = None  # line starts inside a multiline string
+
+    def split_line(self) -> None:
+        """Choose a node to split, and rewind to restart visiting from it"""
+        # Outermost open node is preferred: splitting it shortens the line, even if it begins on a previous line
+        for point in self.points:
+            if not point.closed_order and point.target and not point.target.is_multiline:
+                point.target.is_multiline = True
+                raise Rewind(point)
+
+        # Otherwise, the node closed last on current line, visited again from its innermost open parent.
+        # Splitting a chain of operators cannot make the line fit if its first operand is already too long.
+        closed = [p for p in self.points if p.closed_order and p.target and not p.target.is_multiline
+                  and self.config.max_line_length is not None and p.first_operand_end <= self.config.max_line_length]
+        if closed:
+            point = max(closed, key=lambda p: p.closed_order)
+            index = self.points.index(point)
+            parent = next((p for p in reversed(self.points[:index]) if not p.closed_order), None)
+            if parent:
+                assert point.target is not None
+                point.target.is_multiline = True
+                raise Rewind(parent)
+
+    def rewind_point(self, target: T.Optional[Breakable], visit: T.Callable[[], None]) -> None:
+        """Call visit, and call it again each time a node is split while visiting it"""
+        # Terminates: each Rewind sets is_multiline on one more node (split_line), and it is never unset
+        while True:
+            point = RewindPoint(target, len(self.log), replace(self.state))
+            self.points.append(point)
+            try:
+                visit()
+                break
+            except Rewind as e:
+                if e.point is not point:
+                    raise
+                while len(self.log) > point.log_length:
+                    self.log.pop().undo()
+                self.state = point.state
+                del self.points[self.points.index(point):]
+        self.closed_count += 1
+        point.closed_order = self.closed_count
+
+    def visit_default_func(self, node: mparser.BaseNode) -> None:
+        self.enter_node(node)
+        assert hasattr(node, 'value')
+        self.measure(str(node.value))
+        self.exit_node(node)
+
+    def visit_BooleanNode(self, node: mparser.BooleanNode) -> None:
+        self.enter_node(node)
+        self.measure('true' if node.value else 'false')
+        self.exit_node(node)
+
+    def visit_NumberNode(self, node: mparser.NumberNode) -> None:
+        self.enter_node(node)
+        self.measure(node.raw_value)
+        self.exit_node(node)
+
+    def visit_StringNode(self, node: mparser.StringNode) -> None:
+        self.enter_node(node)
+        prefix = 'f' if node.is_fstring else ''
+        if node.is_multiline:
+            self.measure(f"{prefix}'''{node.value}'''")
+        else:
+            self.measure(f"{prefix}'{node.raw_value}'")
+        self.exit_node(node)
+
+    def visit_ContinueNode(self, node: mparser.ContinueNode) -> None:
+        self.enter_node(node)
+        self.measure('continue')
+        self.exit_node(node)
+
+    def visit_BreakNode(self, node: mparser.BreakNode) -> None:
+        self.enter_node(node)
+        self.measure('break')
+        self.exit_node(node)
+
+    def visit_EmptyNode(self, node: mparser.EmptyNode) -> None:
+        self.enter_node(node)
+        self.exit_node(node)
+
+    def visit_CodeBlockNode(self, node: mparser.CodeBlockNode) -> None:
+        self.enter_node(node)
+        if node.pre_whitespaces:
+            node.pre_whitespaces.accept(self)
+        for i, line in enumerate(node.lines):
+            # Each statement is a rewind point, to visit again a node closed on current line
+            self.rewind_point(None, partial(self.visit_statement, node, line, i == len(node.lines) - 1))
+        if not node.lines:
+            self.exit_node(node)
+
+    def visit_statement(self, block: mparser.CodeBlockNode, line: mparser.BaseNode, is_last: bool) -> None:
+        line.accept(self)
+        if is_last:
+            # TrimWhitespaces moved the end of the last statement line to the block
+            self.exit_node(block)
 
     def visit_ArrayNode(self, node: mparser.ArrayNode) -> None:
+        self.rewind_point(node.args if len(node.args) else None, lambda: self.format_array(node))
+
+    def format_array(self, node: mparser.ArrayNode) -> None:
         self.enter_node(node)
+        self.state.bracket_depth += 1
         if node.args.is_multiline:
-            self.level += 1
+            self.state.level += 1
             if node.args.arguments:
-                self.add_nl_after(node.lbracket, indent=self.level)
+                self.add_nl_after(node.lbracket, indent=self.state.level)
         node.lbracket.accept(self)
-        self.is_function_arguments = False
+        self.state.is_function_arguments = False
         node.args.accept(self)
         if node.args.is_multiline:
-            self.level -= 1
+            self.state.level -= 1
+        self.state.bracket_depth -= 1
         node.rbracket.accept(self)
         self.exit_node(node)
 
     def visit_DictNode(self, node: mparser.DictNode) -> None:
+        self.rewind_point(node.args if len(node.args) else None, lambda: self.format_dict(node))
+
+    def format_dict(self, node: mparser.DictNode) -> None:
         self.enter_node(node)
+        self.state.bracket_depth += 1
         if node.args.is_multiline:
-            self.level += 1
+            self.state.level += 1
             if node.args.kwargs:
-                self.add_nl_after(node.lcurl, indent=self.level)
+                self.add_nl_after(node.lcurl, indent=self.state.level)
         node.lcurl.accept(self)
-        self.is_function_arguments = False
+        self.state.is_function_arguments = False
         node.args.accept(self)
         if node.args.is_multiline:
-            self.level -= 1
+            self.state.level -= 1
+        self.state.bracket_depth -= 1
         node.rcurl.accept(self)
         self.exit_node(node)
 
@@ -743,44 +963,91 @@ class ArgumentFormatter(FullAstVisitor):
         node.source_object.accept(self)
         is_cont = node.source_object.whitespaces and node.source_object.whitespaces.is_continuation
         if is_cont:
-            self.level += 1
-        if node.args.is_multiline:
-            self.level += 1
-            self.add_nl_after(node.lpar, indent=self.level)
-        self.is_function_arguments = True
-        node.args.accept(self)
-        if node.args.is_multiline:
-            self.level -= 1
+            self.state.level += 1
+        node.dot.accept(self)
+        node.name.accept(self)
+        # Rewind point is after the source object, which is not changed by splitting the arguments
+        self.rewind_point(node.args if len(node.args) else None, lambda: self.format_call_arguments(node))
         if is_cont:
-            self.level -= 1
+            self.state.level -= 1
         self.exit_node(node)
 
     def visit_FunctionNode(self, node: mparser.FunctionNode) -> None:
         self.enter_node(node)
-        if node.args.is_multiline:
-            self.level += 1
-            self.add_nl_after(node.lpar, indent=self.level)
-        self.is_function_arguments = True
-        node.args.accept(self)
-        if node.args.is_multiline:
-            self.level -= 1
+        node.func_name.accept(self)
+        self.rewind_point(node.args if len(node.args) else None, lambda: self.format_call_arguments(node))
         self.exit_node(node)
+
+    def format_call_arguments(self, node: T.Union[mparser.FunctionNode, mparser.MethodNode]) -> None:
+        if node.args.is_multiline:
+            self.state.level += 1
+            self.add_nl_after(node.lpar, indent=self.state.level)
+        node.lpar.accept(self)
+        self.state.is_function_arguments = True
+        self.state.bracket_depth += 1
+        node.args.accept(self)
+        self.state.bracket_depth -= 1
+        if node.args.is_multiline:
+            self.state.level -= 1
+        node.rpar.accept(self)
 
     def visit_WhitespaceNode(self, node: mparser.WhitespaceNode) -> None:
         lines = node.value.splitlines(keepends=True)
         if lines:
-            indent = (node.condition_level + self.level) * self.config.indent_by
-            node.value = '' if node.block_indent else lines.pop(0)
+            indent = (node.condition_level + self.state.level) * self.config.indent_by
+            value = '' if node.block_indent else lines.pop(0)
             for line in lines:
                 if '#' in line and not line.startswith(indent):
-                    node.value += indent
-                node.value += line
-            if node.is_continuation or (self.indent_after and node.value.endswith('\n')):
-                node.value += indent
+                    value += indent
+                value += line
+            if node.is_continuation or (self.state.indent_after and value.endswith('\n')):
+                value += indent
+        else:
+            value = node.value
+        if node.format_layout:
+            value = self.apply_layout(node, node.format_layout, value)
+            self.set_attr(node, 'format_layout', None)
+        if self.state.pending_comment:
+            value = self.insert_pending_comment(value)
+        value = self.move_long_comment(value)
+        self.set_attr(node, 'value', value)
+        # Comments are not counted in line length: splitting the line rarely makes them fit
+        self.measure('\n'.join(line.split('#', 1)[0].rstrip(' \t') if '#' in line else line for line in value.split('\n')),
+                     is_code=False)
+        if '\n' in value or self.state.line_start is None:
+            self.state.line_start = node
+
+    def move_long_comment(self, value: str) -> str:
+        """Move the comment ending a line that is too long above that line"""
+        line, newline, rest = value.partition('\n')
+        if '#' not in line or not newline or not self.state.line_has_code or self.state.line_start is None:
+            return value
+        if self.config.max_line_length is None or self.advance(self.state.column, line) <= self.config.max_line_length:
+            return value
+        code, _, comment = line.partition('#')
+        # The whitespace starting the line ends with the indentation of the line
+        start = self.state.line_start.value
+        indent = start.rpartition('\n')[2]
+        self.set_attr(self.state.line_start, 'value', f'{start}#{comment}\n{indent}')
+        self.state.moved_comments += 1
+        return code.rstrip(' \t') + newline + rest
+
+    def insert_pending_comment(self, value: str) -> str:
+        """Insert the pending comment at the end of the first line of value, if value ends that line"""
+        line, newline, rest = value.partition('\n')
+        if not newline or '\\' in line:
+            return value  # line continues after this whitespace
+        comment = self.config.indent_before_comments + self.state.pending_comment
+        self.state.pending_comment = None
+        if '#' in line:
+            # Keep the comment already on this line, on its own line with the indentation of the next one
+            line, _, other = line.partition('#')
+            indent = rest[:len(rest) - len(rest.lstrip(' \t'))]
+            rest = f'{indent}#{other}\n{rest}'
+        return line.rstrip(' \t') + comment + '\n' + rest
 
     def visit_ArgumentNode(self, node: mparser.ArgumentNode) -> None:
-        is_function_arguments = self.is_function_arguments  # record it, because it may change when visiting children
-        super().visit_ArgumentNode(node)
+        is_function_arguments = self.state.is_function_arguments
 
         for colon in node.colons:
             self.add_space_after(colon)
@@ -800,9 +1067,9 @@ class ArgumentFormatter(FullAstVisitor):
                 comma = mparser.SymbolNode(mparser.Token('comma', node.filename, 0, 0, 0, (0, 0), ','))
                 comma.condition_level = node.condition_level
                 comma.whitespaces = mparser.WhitespaceNode(mparser.Token('whitespace', node.filename, 0, 0, 0, (0, 0), ''))
-                node.commas.append(comma)
+                self.set_attr(node, 'commas', node.commas + [comma])
             elif has_trailing_comma and not need_comma:
-                node.commas.pop(-1)
+                self.set_attr(node, 'commas', node.commas[:-1])
 
             arg_index = 0
             if self.config.group_arg_value:
@@ -810,211 +1077,149 @@ class ArgumentFormatter(FullAstVisitor):
                     group_args = False
                     if isinstance(arg, mparser.StringNode) and arg.value.startswith('--') and arg.value != '--':
                         next_arg = node.arguments[arg_index + 1]
-                        if isinstance(next_arg, mparser.StringNode) and not next_arg.value.startswith('--'):
+                        # any node is a value, except strings starting with '-' (another option)
+                        if not (isinstance(next_arg, mparser.StringNode) and next_arg.value.startswith('-')):
                             group_args = True
                     if group_args:
                         # keep '--arg', 'value' on same line
                         self.add_space_after(node.commas[arg_index])
                     elif arg_index < len(node.commas):
-                        self.add_nl_after(node.commas[arg_index], self.level)
+                        self.add_nl_after(node.commas[arg_index], self.state.level)
                     arg_index += 1
 
             for comma in node.commas[arg_index:-1]:
-                self.add_nl_after(comma, self.level)
+                self.add_nl_after(comma, self.state.level)
             if node.arguments or node.kwargs:
-                self.add_nl_after(node, self.level - 1)
+                # Closing bracket on its own line; comments before it keep the indentation of the arguments
+                if node.whitespaces.value in {'', ' '}:
+                    self.set_whitespaces(node, '\n')
+                self.indent_last_line(node, self.state.level - 1)
 
         else:
             if has_trailing_comma and not (node.commas[-1].whitespaces and node.commas[-1].whitespaces.value):
-                node.commas.pop(-1)
+                self.set_attr(node, 'commas', node.commas[:-1])
 
             for comma in node.commas:
                 self.add_space_after(comma)
 
-        self.exit_node(node)
+        # Like in multiline parentheses, a line broken inside an argument (e.g. by a comment
+        # between operands) continues at the indentation of the argument
+        current_indent_after = self.state.indent_after
+        if node.is_multiline and (node.arguments or node.kwargs):
+            self.state.indent_after = True
+        super().visit_ArgumentNode(node)
+        self.state.indent_after = current_indent_after
 
     def visit_ParenthesizedNode(self, node: mparser.ParenthesizedNode) -> None:
+        # Sticky parentheses can only be split on operators
+        can_split = not self.config.sticky_parens or self.operator_level(node.inner) > 0
+        self.rewind_point(node if can_split else None, lambda: self.format_parentheses(node))
+
+    def format_parentheses(self, node: mparser.ParenthesizedNode) -> None:
         self.enter_node(node)
-        current_split_operators = self.split_operators
+        current_paren_inner = self.state.paren_inner
         if node.is_multiline:
-            self.level += self.config.paren_levels
-            current_indent_after = self.indent_after
-            self.indent_after = True
-            self.split_operators = True
+            self.state.level += self.config.paren_levels
+            current_indent_after = self.state.indent_after
+            self.state.indent_after = True
+            self.state.paren_inner = node.inner
+            # Operators of multiline parentheses are split with them: and / or, or any operator with sticky parentheses
+            operator_level = self.operator_level(node.inner)
+            if operator_level == 1 or (operator_level and self.config.sticky_parens):
+                T.cast('mparser.BinaryOperatorNode', node.inner).is_multiline = True
+
+        if not node.is_multiline:
+            self.set_whitespaces(node.inner, '')
+        elif not self.config.sticky_parens:
+            if not node.inner.whitespaces.value:
+                self.set_whitespaces(node.inner, '\n')
         else:
-            # Only split operators of the multiline parentheses, not those of nested parentheses
-            self.split_operators = False
-        node.lpar.accept(self)
-        if node.is_multiline and (not self.config.sticky_parens or '#' in node.lpar.whitespaces.value):
-            self.add_nl_after(node.lpar, indent=self.level)
-        node.inner.accept(self)
+            # Closing parenthesis is never on a separate line with sticky parens
+            if '#' not in node.lpar.whitespaces.value:
+                self.set_whitespaces(node.lpar, '')
+            if '#' not in node.inner.whitespaces.value:
+                self.set_whitespaces(node.inner, '')
+
         if node.is_multiline:
-            self.level -= self.config.paren_levels
-            self.indent_after = current_indent_after
-            self.indent_last_line(node.inner, indent=self.level)
-        self.split_operators = current_split_operators
+            if not self.config.sticky_parens or '#' in node.lpar.whitespaces.value:
+                self.add_nl_after(node.lpar, indent=self.state.level)
+            self.indent_last_line(node.inner, indent=self.state.level - self.config.paren_levels)
+
+        node.lpar.accept(self)
+        self.state.bracket_depth += 1
+        node.inner.accept(self)
+        self.state.bracket_depth -= 1
+        if node.is_multiline:
+            self.state.level -= self.config.paren_levels
+            self.state.indent_after = current_indent_after
+        self.state.paren_inner = current_paren_inner
         node.rpar.accept(self)
+        if node.moved_comment:
+            self.state.pending_comment = node.moved_comment
         self.exit_node(node)
+
+    @staticmethod
+    def operator_level(node: mparser.BaseNode) -> int:
+        """Precedence level of a chain of operators split together, or 0 if node is not such an operator"""
+        if isinstance(node, (mparser.OrNode, mparser.AndNode)):
+            return 1
+        if isinstance(node, mparser.ArithmeticNode):
+            return 2 if node.operation in {'+', '-'} else 3
+        return 0
 
     def visit_OrNode(self, node: mparser.OrNode) -> None:
-        self.enter_node(node)
-        node.left.accept(self)
-        if self.split_operators:
-            self.add_nl_after(node.left, indent=self.level)
-        node.operator.accept(self)
-        node.right.accept(self)
-        self.exit_node(node)
+        self.visit_operator(node)
 
     def visit_AndNode(self, node: mparser.AndNode) -> None:
-        self.enter_node(node)
-        node.left.accept(self)
-        if self.split_operators:
-            self.add_nl_after(node.left, indent=self.level)
-        node.operator.accept(self)
-        node.right.accept(self)
-        self.exit_node(node)
+        self.visit_operator(node)
 
+    def visit_ArithmeticNode(self, node: mparser.ArithmeticNode) -> None:
+        self.visit_operator(node)
 
-class ComputeLineLengths(FullAstVisitor):
-
-    def __init__(self, config: FormatterConfig):
-        self.config = config
-        self.lengths: T.List[int] = []
-        self.length = 0
-        self.split_stack: T.List[T.Union[mparser.ArgumentNode, mparser.ParenthesizedNode]] = []
-        self.split_now: T.Set[int] = set()
-        self.need_regenerate = False
-
-    def visit_default_func(self, node: mparser.BaseNode) -> None:
-        self.enter_node(node)
-        assert hasattr(node, 'value')
-        self.length += len(str(node.value))
-        self.exit_node(node)
-
-    def len(self, line: str) -> int:
-        '''Compute line length, including tab stops'''
-        parts = line.split('\t')
-        line_length = len(parts[0])
-        for p in parts[1:]:
-            tab_length = ((self.length + line_length) % self.config.tab_width) or self.config.tab_width
-            line_length += tab_length + len(p)
-        return line_length
-
-    def count_multiline(self, value: str) -> None:
-        lines = value.splitlines(keepends=True)
-        for line in lines:
-            if line.endswith('\n'):
-                self.lengths.append(self.length + self.len(line) - 1)
-                self.length = 0
-            else:
-                self.length += self.len(line)
-
-    def visit_WhitespaceNode(self, node: mparser.WhitespaceNode) -> None:
-        self.count_multiline(node.value)
-
-    def visit_EmptyNode(self, node: mparser.EmptyNode) -> None:
-        self.enter_node(node)
-        self.exit_node(node)
-
-    def visit_NumberNode(self, node: mparser.NumberNode) -> None:
-        self.enter_node(node)
-        self.length += len(node.raw_value)
-        self.exit_node(node)
-
-    def visit_StringNode(self, node: mparser.StringNode) -> None:
-        self.enter_node(node)
-        if node.is_fstring:
-            self.length += 1
-
-        if node.is_multiline:
-            self.length += 3
-            self.count_multiline(node.value)
-            self.length += 3
+    def visit_operator(self, node: mparser.BinaryOperatorNode) -> None:
+        level = self.operator_level(node)
+        if level == self.state.chain_level:
+            self.format_operator(node)  # part of the chain being visited
         else:
-            self.length += self.len(node.raw_value) + 2
+            self.rewind_point(node if self.state.bracket_depth else None, lambda: self.format_chain(node, level))
 
-        self.exit_node(node)
+    def format_chain(self, node: mparser.BinaryOperatorNode, level: int) -> None:
+        """Visit a chain of operators of same level; when split, there is one operand per line"""
+        chain_level, split_chain, chain_indent = self.state.chain_level, self.state.split_chain, self.state.chain_indent
+        chain_point, self.state.chain_point = self.state.chain_point, self.points[-1]
+        self.state.chain_level = level
+        self.state.split_chain = node.is_multiline
+        # Operators are indented one more level than the line of the first operand,
+        # except when the chain is the content of multiline parentheses, already indented
+        self.state.chain_indent = self.state.level + (0 if node is self.state.paren_inner else 1)
+        self.format_operator(node)
+        self.state.chain_level, self.state.split_chain, self.state.chain_indent = chain_level, split_chain, chain_indent
+        self.state.chain_point = chain_point
 
-    def visit_ContinueNode(self, node: mparser.ContinueNode) -> None:
+    def format_operator(self, node: mparser.BinaryOperatorNode) -> None:
         self.enter_node(node)
-        self.length += len('continue')
+        if self.state.split_chain:
+            self.add_nl_after(node.left, indent=self.state.chain_indent)
+        self.visit_operand(node.left)
+        assert self.state.chain_point is not None
+        if not self.state.chain_point.first_operand_end:
+            self.state.chain_point.first_operand_end = self.state.column
+        level = self.state.level
+        if self.state.split_chain:
+            self.state.level = self.state.chain_indent
+        node.operator.accept(self)
+        self.visit_operand(node.right)
+        self.state.level = level
         self.exit_node(node)
 
-    def visit_BreakNode(self, node: mparser.BreakNode) -> None:
-        self.enter_node(node)
-        self.length += len('break')
-        self.exit_node(node)
-
-    def split_if_needed(self, node: T.Union[mparser.ArgumentNode, mparser.ParenthesizedNode]) -> None:
-        if not node.is_multiline and self.length > self.config.max_line_length:
-            # Split the outermost node that is not split yet; inner nodes are split on next pass if still needed
-            for outer in self.split_stack + [node]:
-                if id(outer) in self.split_now:
-                    return  # line will be measured again after this split
-                if not outer.is_multiline:
-                    outer.is_multiline = True
-                    self.split_now.add(id(outer))
-                    self.need_regenerate = True
-                    return
-
-    def visit_ArgumentNode(self, node: mparser.ArgumentNode) -> None:
-        self.split_stack.append(node)
-        super().visit_ArgumentNode(node)
-        self.split_stack.pop(-1)
-
-    def visit_MethodNode(self, node: mparser.MethodNode) -> None:
-        self.enter_node(node)
-        node.source_object.accept(self)
-        node.dot.accept(self)
-        node.name.accept(self)
-        node.lpar.accept(self)
-        node.args.accept(self)
-        node.rpar.accept(self)
-        if len(node.args):
-            self.split_if_needed(node.args)  # split if closing parenthesis is too far
-        self.exit_node(node)
-
-    def visit_FunctionNode(self, node: mparser.FunctionNode) -> None:
-        self.enter_node(node)
-        node.func_name.accept(self)
-        node.lpar.accept(self)
-        node.args.accept(self)
-        node.rpar.accept(self)
-        if len(node.args):
-            self.split_if_needed(node.args)  # split if closing parenthesis is too far
-        self.exit_node(node)
-
-    def visit_ArrayNode(self, node: mparser.ArrayNode) -> None:
-        self.enter_node(node)
-        node.lbracket.accept(self)
-        node.args.accept(self)
-        node.rbracket.accept(self)
-        if len(node.args):
-            self.split_if_needed(node.args)  # split if closing bracket is too far
-        self.exit_node(node)
-
-    def visit_DictNode(self, node: mparser.DictNode) -> None:
-        self.enter_node(node)
-        node.lcurl.accept(self)
-        node.args.accept(self)
-        node.rcurl.accept(self)
-        if len(node.args):
-            self.split_if_needed(node.args)  # split if closing bracket is too far
-        self.exit_node(node)
-
-    def visit_ParenthesizedNode(self, node: mparser.ParenthesizedNode) -> None:
-        self.enter_node(node)
-        # Sticky parentheses can only be split on and / or operators
-        can_split = not self.config.sticky_parens or isinstance(node.inner, (mparser.OrNode, mparser.AndNode))
-        if can_split:
-            self.split_stack.append(node)
-        node.lpar.accept(self)
-        node.inner.accept(self)
-        node.rpar.accept(self)
-        if can_split:
-            self.split_stack.pop(-1)
-            self.split_if_needed(node)
-        self.exit_node(node)
+    def visit_operand(self, node: mparser.BaseNode) -> None:
+        if self.operator_level(node) == self.state.chain_level:
+            node.accept(self)
+        else:
+            # The operand begins a new chain
+            chain_level, self.state.chain_level = self.state.chain_level, 0
+            node.accept(self)
+            self.state.chain_level = chain_level
 
 
 class SubdirFetcher(FullAstVisitor):
@@ -1070,7 +1275,7 @@ class Formatter:
 
             sections = [section for section in cp.sections() if match_path(source_file.as_posix(), section)]
             for f in fields(config):
-                if getattr(cp, f.name, None) is not None:
+                if getattr(config, f.name) is not None:
                     continue  # value already set from higher file
 
                 getter = f.metadata['getter']
@@ -1130,23 +1335,31 @@ class Formatter:
             ast.accept(subdir_fetcher)
             self.subdirs = subdir_fetcher.subdirs
 
-        ast.accept(AstConditionLevel())
-        for _ in range(10):
-            ast.accept(TrimWhitespaces(self.current_config))
-            ast.accept(ArgumentFormatter(self.current_config))
+        formatted, moved_comments = self.format_ast(ast)
+        if moved_comments:
+            # Format again, as the moved comments may have forced line breaks or multiline arguments.
+            # Moved comments are on their own line, and are never moved again.
+            formatted, moved_comments = self.format_ast(mparser.Parser(formatted, source_file.as_posix()).parse())
+            # assert not moved_comments
+        if not directives:
+            return formatted
 
-            cll = ComputeLineLengths(self.current_config)
-            ast.accept(cll)
-            if not cll.need_regenerate:
-                break
+        formatted_ast = mparser.Parser(formatted, source_file.as_posix()).parse()
+        return restore_disabled_regions(code, directives, formatted, find_format_directives(formatted_ast))
+
+    def format_ast(self, ast: mparser.CodeBlockNode) -> T.Tuple[str, int]:
+        """Format the ast; returns the formatted code, and the number of comments moved to their own line"""
+        ast.accept(AstConditionLevel())
+        ast.accept(TrimWhitespaces(self.current_config))
+        formatter = ArgumentFormatter(self.current_config)
+        ast.accept(formatter)
+        if formatter.state.pending_comment:
+            # No line break after the last statement
+            ast.whitespaces.value += self.current_config.indent_before_comments + formatter.state.pending_comment
 
         printer = RawPrinter()
         ast.accept(printer)
-        if not directives:
-            return printer.result
-
-        formatted_ast = mparser.Parser(printer.result, source_file.as_posix()).parse()
-        return restore_disabled_regions(code, directives, printer.result, find_format_directives(formatted_ast))
+        return printer.result, formatter.state.moved_comments
 
 
 def add_arguments(parser: argparse.ArgumentParser) -> None:
@@ -1287,10 +1500,8 @@ def run(options: argparse.Namespace) -> int:
     return err
 
 # TODO: remove empty newlines when more than N (2...)
-# TODO: split long lines on binary operators
 # TODO: align series of assignments
 # TODO: align comments
-# TODO: move comments on long lines
 
 # Differences from muon format:
 # - By default, uses two spaces before comment, and added option for that

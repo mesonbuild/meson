@@ -1,0 +1,5 @@
+# meson-format offset
+x=[1,2]
+
+# fmt off
+x=[1,2]

@@ -1,0 +1,11 @@
+# layout of the parentheses in the source does not matter
+if (
+    a
+    or b
+)
+    message('closing parenthesis on separate line in source')
+endif
+
+if (a or b)
+    message('newline after operator in source')
+endif

@@ -1,7 +1,0 @@
-# a lone on directive does nothing
-# meson-format on
-a = [1, 2]
-# a lone off directive disables formatting until the end of file
-# meson-format off
-b   =   [1,2]
-c   =   {  'k'  :  1  }

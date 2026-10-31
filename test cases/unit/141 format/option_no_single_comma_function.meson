@@ -1,0 +1,5 @@
+# format-test: no_single_comma_function = true
+
+fct = files(
+    'meson.build',  # force multiline
+)

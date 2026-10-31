@@ -1,0 +1,11 @@
+# format-test: kwargs_force_multiline = true
+
+test(
+    name,
+    meson_cmd,
+    args: ['format', '--check-only', f],
+)
+d = {
+    'a': 1,
+    'b': 2,
+}

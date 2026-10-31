@@ -1,0 +1,11 @@
+u = (a)
+
+x = [1, 2]
+
+foo(1)
+
+# blank line after a comment is kept, without trailing whitespace
+foo(  # comment
+
+    1,
+)
