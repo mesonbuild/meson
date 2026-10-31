@@ -1600,6 +1600,68 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
     def get_cpp_modules_args(self) -> T.List[str]:
         return []
 
+    def get_cpp_modules_depfile_args(self) -> T.List[str]:
+        """Arguments to keep module dependencies out of the dependency file.
+
+        Module dependencies are handled by the dependency scanner instead.
+        """
+        return []
+
+    def get_cpp_modules_scan_command(self) -> T.Optional[T.List[str]]:
+        """Command used to scan a C++ source for the modules it provides and requires.
+
+        The command writes a P1689 description and is meant to be run by Ninja,
+        it therefore uses the following Ninja variables:
+
+        - ``$ARGS``: the compile arguments of the source
+        - ``$in``: the source to scan
+        - ``$out``: the P1689 file to write
+        - ``$OBJ``: the object file the source is compiled to
+        - ``$DEPFILE``: the dependency file, to rescan when an included file changes
+
+        :return: the command, or None if the compiler cannot scan modules
+        """
+        return None
+
+    def get_cpp_modules_bmi_args(self, private_dir: str, search_dirs: T.Sequence[str]) -> T.List[str]:
+        """Arguments to compile the sources of a target which use modules.
+
+        They tell the compiler to write the compiled modules in the private
+        directory of the target, and where to look for the ones imported by
+        the sources, which are in the private directories of other targets.
+
+        :param private_dir: the private directory of the target
+        :param search_dirs: the private directories of the targets it links with
+        :return: the arguments, none if the compiler does not need any
+        """
+        return []
+
+    def get_cpp_modules_mapper(self, private_dir: str) -> T.Optional[str]:
+        """The file telling the compiler where the compiled modules are
+
+        It is written after the scan, by the dependency accumulator, because it
+        depends on which modules the sources provide.
+
+        :param private_dir: the private directory of the target
+        :return: the file, or None if the compiler does not use one
+        """
+        return None
+
+    def filter_cpp_modules_scan_args(self, args: T.Sequence[str]) -> T.List[str]:
+        """The compile arguments to scan a source with, without the ones which depend on the scan"""
+        return list(args)
+
+    def get_cpp_modules_bmi_pattern(self) -> T.Optional[str]:
+        """Where the compiler writes the compiled form of a C++ module.
+
+        ``{module}`` stands for the name of the module, in which the ``:`` of
+        a partition is replaced with ``-``. The location is relative to the
+        build directory.
+
+        :return: the pattern, or None if the location is not known
+        """
+        return None
+
     @abc.abstractmethod
     def get_optimization_args(self, optimization_level: str) -> T.List[str]:
         pass
