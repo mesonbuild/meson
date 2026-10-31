@@ -15,6 +15,7 @@ from .mesonlib import MesonException
 from .options import OptionKey
 
 if T.TYPE_CHECKING:
+    from .environment import Environment
     from typing_extensions import Protocol
 
     # typeshed
@@ -78,36 +79,23 @@ def read_cmd_line_file(build_dir: str, options: SharedCMDOptions) -> None:
         # literal_eval to get it into the list of strings.
         options.native_file = ast.literal_eval(properties.get('native_file', '[]'))
 
-def write_cmd_line_file(build_dir: str, options: SharedCMDOptions) -> None:
-    filename = get_cmd_line_file(build_dir)
+def write_cmd_line_file(env: Environment) -> None:
+    """Write the options that were set by the user, as recorded in the option
+       store, and the cross and native files."""
+    filename = get_cmd_line_file(env.build_dir)
     config = CmdLineFileParser()
 
+    user_options = env.coredata.optstore.get_command_line_options()
+    config['options'] = {str(k): str(v) for k, v in user_options.items()}
+
+    # Use the paths resolved by coredata because the files could have been
+    # read from a pipe and written into a private file.
     properties: T.Dict[str, T.List[str]] = {}
-    if options.cross_file:
-        properties['cross_file'] = options.cross_file
-    if options.native_file:
-        properties['native_file'] = options.native_file
-
-    config['options'] = {str(k): str(v) for k, v in options.cmd_line_options.items()}
+    if env.coredata.cross_files:
+        properties['cross_file'] = env.coredata.cross_files
+    if env.coredata.config_files:
+        properties['native_file'] = env.coredata.config_files
     config['properties'] = {k: repr(v) for k, v in properties.items()}
-    with open(filename, 'w', encoding='utf-8') as f:
-        config.write(f)
-
-def update_cmd_line_file(build_dir: str, options: SharedCMDOptions) -> None:
-    filename = get_cmd_line_file(build_dir)
-    config = CmdLineFileParser()
-    config.read(filename)
-    if 'options' not in config:
-        # file missing or corrupted, write it from scratch including
-        # the [properties] section
-        write_cmd_line_file(build_dir, options)
-        return
-    for k, v in options.cmd_line_options.items():
-        keystr = str(k)
-        if v is not None:
-            config['options'][keystr] = str(v)
-        elif keystr in config['options']:
-            del config['options'][keystr]
 
     with open(filename, 'w', encoding='utf-8') as f:
         config.write(f)
@@ -231,11 +219,3 @@ def parse_cmd_line_options(args: SharedCMDOptions) -> None:
         cmdline_name = options.argparse_name_to_arg(name)
         raise MesonException(
             f'Got argument {name} as both -D{name} and {cmdline_name}. Pick one.')
-
-    # Ensure buildtype is processed before debug and optimization, so that
-    # the buildtype expansion sets their defaults and explicit values for
-    # debug/optimization override them.
-    bt_key = OptionKey('buildtype')
-    if bt_key in args.cmd_line_options:
-        bt_val = args.cmd_line_options.pop(bt_key)
-        args.cmd_line_options = {bt_key: bt_val, **args.cmd_line_options}
