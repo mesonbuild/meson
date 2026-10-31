@@ -130,7 +130,6 @@ import importlib
 import itertools
 
 if T.TYPE_CHECKING:
-    from typing_extensions import Literal
     import types
 
     from .. import cargo
@@ -1198,7 +1197,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                                 kwargs: 'TYPE_kwargs') -> build.ConfigurationData:
         return build.ConfigurationData(args[0])
 
-    @functools.lru_cache(None)
+    @functools.cache
     def set_backend(self) -> None:
         from ..backend import backends
 
@@ -2191,7 +2190,7 @@ class Interpreter(InterpreterBase, HoldableObject):
 
         install = kwargs['install']
         install_mode = self._warn_kwarg_install_mode_sticky(kwargs['install_mode'])
-        install_dir: T.List[T.Union[str, Literal[False]]] = [] if kwargs['install_dir'] is None else [kwargs['install_dir']]
+        install_dir: T.List[T.Union[str, T.Literal[False]]] = [] if kwargs['install_dir'] is None else [kwargs['install_dir']]
         install_tag: T.List[T.Optional[str]] = [] if kwargs['install_tag'] is None else [kwargs['install_tag']]
         if install and not install_dir:
             raise InvalidArguments('vcs_tag: "install_dir" keyword argument must be set when "install" is true.')
@@ -3679,7 +3678,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             if preferred_library == 'both':
                 preferred_library = 'shared'
         assert preferred_library in {'shared', 'static'}
-        preferred_library = T.cast('Literal["static", "shared"]', preferred_library)
+        preferred_library = T.cast('T.Literal["static", "shared"]', preferred_library)
 
         if self.backend.name == 'xcode':
             # Xcode is a bit special in that you can't (at least for the moment)
@@ -3775,7 +3774,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         return new_args, deps
 
     @staticmethod
-    def _handle_rust_abi(abi: T.Optional[Literal['c', 'rust']],
+    def _handle_rust_abi(abi: T.Optional[T.Literal['c', 'rust']],
                          crate_type: T.Optional[build.RustCrateType],
                          default_rust_type: build.RustCrateType,
                          default_c_type: build.RustCrateType, typename: str,

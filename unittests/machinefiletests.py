@@ -45,7 +45,7 @@ from .helpers import (
     skip_if_not_language, skipIfNoExecutable, get_classpath, skip_if_env_set
 )
 
-@functools.lru_cache()
+@functools.cache
 def is_real_gnu_compiler(path):
     '''
     Check if the gcc we have is a real gcc and not a macOS wrapper around clang
@@ -135,7 +135,7 @@ class NativeFileTests(BasePlatformTests):
         """
         filename = os.path.join(self.builddir, f'generated{self.current_config}.config')
         self.current_config += 1
-        with open(filename, 'wt', encoding='utf-8') as f:
+        with open(filename, 'w', encoding='utf-8') as f:
             for section, entries in values.items():
                 f.write(f'[{section}]\n')
                 for k, v in entries.items():
@@ -157,7 +157,7 @@ class NativeFileTests(BasePlatformTests):
         else:
             chbang = '#!/usr/bin/env python3'
 
-        with open(filename, 'wt', encoding='utf-8') as f:
+        with open(filename, 'w', encoding='utf-8') as f:
             f.write(textwrap.dedent('''\
                 {}
                 import argparse
@@ -195,7 +195,7 @@ class NativeFileTests(BasePlatformTests):
         # invoke python files itself, so instead we generate a .bat file, which
         # invokes our python wrapper
         batfile = os.path.join(self.builddir, f'binary_wrapper{self.current_wrapper}.bat')
-        with open(batfile, 'wt', encoding='utf-8') as f:
+        with open(batfile, 'w', encoding='utf-8') as f:
             f.write(fr'@{sys.executable} {filename} %*')
         return batfile
 
@@ -960,7 +960,7 @@ class CrossFileTests(BasePlatformTests):
         """
         filename = os.path.join(self.builddir, f'generated{self.current_config}.config')
         self.current_config += 1
-        with open(filename, 'wt', encoding='utf-8') as f:
+        with open(filename, 'w', encoding='utf-8') as f:
             for section, entries in values.items():
                 f.write(f'[{section}]\n')
                 for k, v in entries.items():
@@ -1210,7 +1210,7 @@ class CrossFileTests(BasePlatformTests):
 
         rustc = shutil.which('rustc')
         assert rustc is not None, 'Should have skipped'
-        build_tuple = subprocess.run([rustc, '--print', 'host-tuple'], universal_newlines=True, check=True, capture_output=True).stdout.strip()
+        build_tuple = subprocess.run([rustc, '--print', 'host-tuple'], text=True, check=True, capture_output=True).stdout.strip()
         host_tuple = 'aarch64-unknown-linux-gnu'
 
         with self.subTest('properties only'):

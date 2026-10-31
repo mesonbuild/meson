@@ -5,7 +5,7 @@
 
 import os, sys
 
-if sys.version_info < (3, 10):
+if sys.version_info < (3, 10):  # noqa: UP036
     raise SystemExit('ERROR: Tried to install Meson with an unsupported Python version: \n{}'
                      '\nMeson requires Python 3.10.0 or greater'.format(sys.version))
 

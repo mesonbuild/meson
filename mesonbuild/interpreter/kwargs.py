@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import typing as T
 
-from typing_extensions import TypedDict, Literal, Protocol, NotRequired
+from typing_extensions import TypedDict, Protocol, NotRequired
 
 from .. import build
 from .. import options
@@ -25,7 +25,7 @@ TargetDepends = T.Union[build.BuildTargetProto, build.GeneratedList, Program]
 CustomTargetInputs = T.Union[str, build.BuildTarget, build.GeneratedTypes,
                              build.ExtractedObjects, Program, File]
 BuildTargetObjects = T.Union[str, File, build.ExtractedObjects, build.GeneratedTypes]
-RustAbi = Literal['rust', 'c']
+RustAbi = T.Literal['rust', 'c']
 
 class NativeKW(TypedDict):
 
@@ -69,7 +69,7 @@ class FuncBenchmark(BaseTest):
 
     # Needs complex refactor for rust test to go in BaseTest
     args: T.List[build.CommandTypes]
-    protocol: Literal['exitcode', 'tap', 'gtest', 'rust']
+    protocol: T.Literal['exitcode', 'tap', 'gtest', 'rust']
 
 class FuncTest(FuncBenchmark):
 
@@ -408,9 +408,9 @@ class BuildTarget(BaseBuildTarget):
     install_vala_header: T.Union[str, bool, None]
     install_vala_vapi: T.Union[str, bool, None]
     install_vala_gir: T.Union[str, bool, None]
-    rust_crate_type: T.Optional[Literal['bin', 'lib', 'rlib', 'dylib', 'cdylib', 'staticlib', 'proc-macro']]
+    rust_crate_type: T.Optional[T.Literal['bin', 'lib', 'rlib', 'dylib', 'cdylib', 'staticlib', 'proc-macro']]
     rust_dependency_map: T.Dict[str, str]
-    swift_interoperability_mode: Literal['c', 'cpp']
+    swift_interoperability_mode: T.Literal['c', 'cpp']
     swift_module_name: str
     sources: SourcesVarargsType
     link_args: T.List[str]
@@ -450,7 +450,7 @@ class _ExecutableMixin(TypedDict):
     gui_app: T.Optional[bool]
     implib: T.Optional[T.Union[str, bool]]
     pie: T.Optional[bool]
-    android_exe_type: T.Optional[Literal['application', 'executable']]
+    android_exe_type: T.Optional[T.Literal['application', 'executable']]
 
 
 class Executable(BuildTarget, _ExecutableMixin, _LinkableTargetMixin):
@@ -531,8 +531,8 @@ class Jar(BaseBuildTarget, _JarMixin):
 
 class BuildTargetFunc(Library, _ExecutableMixin, _JarMixin):
 
-    target_type: Literal['executable', 'shared_library', 'static_library',
-                         'shared_module', 'both_libraries', 'library', 'jar']
+    target_type: T.Literal['executable', 'shared_library', 'static_library',
+                           'shared_module', 'both_libraries', 'library', 'jar']
 
 
 class FuncDeclareDependency(TypedDict):
@@ -582,7 +582,7 @@ class FuncExpectError(TypedDict):
 
 class FuncEnvironment(TypedDict):
 
-    method: Literal['set', 'prepend', 'append']
+    method: T.Literal['set', 'prepend', 'append']
     separator: str
 
 

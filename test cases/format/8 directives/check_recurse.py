@@ -23,7 +23,7 @@ def main() -> int:
     ], capture_output=True, text=True)
 
     actual = result.stdout.replace('\\', '/').splitlines(keepends=True)
-    with open(args.expected, 'r', encoding='utf-8') as f:
+    with open(args.expected, encoding='utf-8') as f:
         expected = f.readlines()
 
     if actual == expected:

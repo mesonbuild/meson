@@ -639,7 +639,7 @@ class PkgConfigModule(NewExtensionModule):
                                 Lflag = '-r{}/{}'.format(self._escape(self._make_relative(prefix, install_dir, pure_path_class)),
                                                          l.filename)
                             else:
-                                Lflag = '-r${libdir}/%s' % l.filename
+                                Lflag = '-r${{libdir}}/{}'.format(l.filename)
                             lflag = None
                         else:
                             if custom_install_dir:

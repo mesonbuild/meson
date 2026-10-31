@@ -17,7 +17,7 @@ import abc
 import multiprocessing
 import platform, subprocess, operator, os, shlex, shutil, re
 import collections
-from functools import lru_cache, wraps
+from functools import lru_cache, wraps, cache
 from itertools import tee
 from tempfile import TemporaryDirectory, NamedTemporaryFile
 import typing as T
@@ -31,7 +31,7 @@ from mesonbuild import mlog
 from .core import MesonException, MesonBugException, HoldableObject, ExecutableSerialisation
 
 if T.TYPE_CHECKING:
-    from typing_extensions import Literal, Protocol, Self
+    from typing_extensions import Protocol, Self
 
     from .._typing import ImmutableListProtocol
     from ..build import ConfigurationData
@@ -469,19 +469,19 @@ class File(HoldableObject):
         return ret.format(self.relative_name())
 
     @staticmethod
-    @lru_cache(maxsize=None)
+    @cache
     def from_source_file(source_root: str, subdir: str, fname: str) -> File:
         if not os.path.isfile(os.path.join(source_root, subdir, fname)):
             raise MesonException(f'File {fname} does not exist.')
         return File(False, subdir, fname)
 
     @staticmethod
-    @lru_cache(maxsize=None)
+    @cache
     def from_built_file(subdir: str, fname: str) -> 'File':
         return File(True, subdir, fname)
 
     @staticmethod
-    @lru_cache(maxsize=None)
+    @cache
     def from_built_relative(relative: str) -> 'File':
         dirpart, fnamepart = os.path.split(relative)
         return File.from_built_file(dirpart, fnamepart)
@@ -490,14 +490,14 @@ class File(HoldableObject):
     def from_absolute_file(fname: str) -> 'File':
         return File(False, '', fname)
 
-    @lru_cache(maxsize=None)
+    @cache
     def rel_to_builddir(self, build_to_src: str) -> str:
         if self.is_built:
             return self.relative_name()
         else:
             return os.path.join(build_to_src, self.subdir, self.fname)
 
-    @lru_cache(maxsize=None)
+    @cache
     def absolute_path(self, srcdir: str, builddir: str) -> str:
         absdir = srcdir
         if self.is_built:
@@ -527,7 +527,7 @@ class File(HoldableObject):
     def __hash__(self) -> int:
         return self.hash
 
-    @lru_cache(maxsize=None)
+    @cache
     def relative_name(self) -> str:
         return os.path.join(self.subdir, self.fname)
 
@@ -818,7 +818,7 @@ def is_os2() -> bool:
 def is_os400() -> bool:
     return platform.system().lower() == 'os400'
 
-@lru_cache(maxsize=None)
+@cache
 def darwin_get_object_archs(objpath: str) -> 'ImmutableListProtocol[str]':
     '''
     For a specific object (executable, static library, dylib, etc), run `lipo`
@@ -1482,7 +1482,7 @@ def join_args(args: T.Iterable[str]) -> str:
 
 
 def do_replacement(regex: T.Pattern[str], line: str,
-                   variable_format: Literal['meson', 'cmake', 'cmake@'],
+                   variable_format: T.Literal['meson', 'cmake', 'cmake@'],
                    confdata: T.Union[T.Dict[str, T.Tuple[str, T.Optional[str]]], 'ConfigurationData']) -> T.Tuple[str, T.Set[str]]:
     if variable_format == 'meson':
         return do_replacement_meson(regex, line, confdata)
@@ -1620,13 +1620,13 @@ def do_define_meson(regex: T.Pattern[str], line: str, confdata: 'ConfigurationDa
 
     arr = line.split()
     if len(arr) != 2:
-        raise MesonException('#mesondefine does not contain exactly two tokens: %s' % line.strip())
+        raise MesonException('#mesondefine does not contain exactly two tokens: {}'.format(line.strip()))
 
     varname = arr[1]
     try:
         v, _ = confdata.get(varname)
     except KeyError:
-        return '/* #undef %s */\n' % varname
+        return '/* #undef {} */\n'.format(varname)
 
     if isinstance(v, str):
         result = f'#define {varname} {v}'.strip() + '\n'
@@ -1634,13 +1634,13 @@ def do_define_meson(regex: T.Pattern[str], line: str, confdata: 'ConfigurationDa
         return result
     elif isinstance(v, bool):
         if v:
-            return '#define %s\n' % varname
+            return '#define {}\n'.format(varname)
         else:
-            return '#undef %s\n' % varname
+            return '#undef {}\n'.format(varname)
     elif isinstance(v, int):
-        return '#define %s %d\n' % (varname, v)
+        return f'#define {varname} {v}\n'
     else:
-        raise MesonException('#mesondefine argument "%s" is of unknown type.' % varname)
+        raise MesonException('#mesondefine argument "{}" is of unknown type.'.format(varname))
 
 def do_define_cmake(line: str, confdata: 'ConfigurationData', at_only: bool,
                     subproject: T.Optional[SubProject] = None) -> str:
@@ -1673,19 +1673,19 @@ def do_define_cmake(line: str, confdata: 'ConfigurationData', at_only: bool,
         v, _ = confdata.get(varname)
     except KeyError:
         if cmake_bool_define:
-            return '#define %s 0\n' % varname
+            return '#define {} 0\n'.format(varname)
         else:
-            return '/* #undef %s */\n' % varname
+            return '/* #undef {} */\n'.format(varname)
 
     if not cmake_bool_define and not v:
-        return '/* #undef %s */\n' % varname
+        return '/* #undef {} */\n'.format(varname)
 
     result = get_cmake_define(line, confdata)
     result = f'#define {varname} {result}'.strip() + '\n'
     result, _ = do_replacement_cmake(result, at_only, confdata)
     return result
 
-def get_variable_regex(variable_format: Literal['meson', 'cmake', 'cmake@'] = 'meson') -> T.Pattern[str]:
+def get_variable_regex(variable_format: T.Literal['meson', 'cmake', 'cmake@'] = 'meson') -> T.Pattern[str]:
     # Only allow (a-z, A-Z, 0-9, _, -) as valid characters for a define
     if variable_format == 'meson':
         # Also allow escaping pairs of '@' with '\@'
@@ -1707,7 +1707,7 @@ def get_variable_regex(variable_format: Literal['meson', 'cmake', 'cmake@'] = 'm
     return regex
 
 def do_conf_str(src: str, data: T.List[str], confdata: 'ConfigurationData',
-                variable_format: Literal['meson', 'cmake', 'cmake@'],
+                variable_format: T.Literal['meson', 'cmake', 'cmake@'],
                 subproject: T.Optional[SubProject] = None) -> T.Tuple[T.List[str], T.Set[str], bool]:
     if variable_format == 'meson':
         return do_conf_str_meson(src, data, confdata, subproject)
@@ -1746,7 +1746,7 @@ def do_conf_str_meson(src: str, data: T.List[str], confdata: 'ConfigurationData'
 def do_conf_str_cmake(src: str, data: T.List[str], confdata: 'ConfigurationData', at_only: bool,
                       subproject: T.Optional[SubProject] = None) -> T.Tuple[T.List[str], T.Set[str], bool]:
 
-    variable_format: Literal['cmake', 'cmake@'] = 'cmake'
+    variable_format: T.Literal['cmake', 'cmake@'] = 'cmake'
     if at_only:
         variable_format = 'cmake@'
 
@@ -1777,7 +1777,7 @@ def do_conf_str_cmake(src: str, data: T.List[str], confdata: 'ConfigurationData'
     return result, missing_variables, confdata_useless
 
 def do_conf_file(src: str, dst: str, confdata: 'ConfigurationData',
-                 variable_format: Literal['meson', 'cmake', 'cmake@'],
+                 variable_format: T.Literal['meson', 'cmake', 'cmake@'],
                  encoding: str = 'utf-8', subproject: T.Optional[SubProject] = None) -> T.Tuple[T.Set[str], bool]:
     try:
         with open(src, encoding=encoding, newline='') as f:
@@ -1812,7 +1812,7 @@ CONF_NASM_PRELUDE = '''; Autogenerated by the Meson build system.
 
 def _dump_c_header(ofile: T.TextIO,
                    cdata: ConfigurationData,
-                   output_format: Literal['c', 'nasm'],
+                   output_format: T.Literal['c', 'nasm'],
                    macro_name: T.Optional[str]) -> None:
     format_desc: T.Callable[[str], str]
     if output_format == 'c':
@@ -1846,7 +1846,7 @@ def _dump_c_header(ofile: T.TextIO,
 
 
 def dump_conf_header(ofilename: str, cdata: ConfigurationData,
-                     output_format: Literal['c', 'nasm', 'json'],
+                     output_format: T.Literal['c', 'nasm', 'json'],
                      macro_name: T.Optional[str]) -> None:
     ofilename_tmp = ofilename + '~'
     with open(ofilename_tmp, 'w', encoding='utf-8') as ofile:

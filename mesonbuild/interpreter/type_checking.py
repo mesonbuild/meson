@@ -26,7 +26,6 @@ from ..programs import Program, ExternalProgram
 NoneType: T.Type[None] = type(None)
 
 if T.TYPE_CHECKING:
-    from typing_extensions import Literal
 
     from .kwargs import CustomTargetInputs
     from ..build import ObjectTypes, GeneratedTypes, CommandTypes, TargetSources, LinkableTypes, StaticTypes
@@ -246,7 +245,7 @@ def split_equal_string(input: str) -> T.Tuple[str, str]:
     return (a, b)
 
 def env_convertor(value: FullEnvInitValueType,
-                  init_method: Literal['set', 'prepend', 'append'] = 'set',
+                  init_method: T.Literal['set', 'prepend', 'append'] = 'set',
                   separator: str = os.pathsep) -> EnvironmentVariables:
     if isinstance(value, str):
         return EnvironmentVariables(dict([split_equal_string(value)]), init_method, separator)
@@ -388,7 +387,7 @@ INSTALL_FOLLOW_SYMLINKS: KwargInfo[T.Optional[bool]] = KwargInfo(
 
 INSTALL_KW = KwargInfo('install', bool, default=False)
 
-CT_INSTALL_DIR_KW: KwargInfo[T.List[T.Union[str, Literal[False]]]] = KwargInfo(
+CT_INSTALL_DIR_KW: KwargInfo[T.List[T.Union[str, T.Literal[False]]]] = KwargInfo(
     'install_dir',
     ContainerTypeInfo(list, (str, bool)),
     listify=True,

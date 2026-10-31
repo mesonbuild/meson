@@ -16,7 +16,6 @@ from ..interpreterbase import (MesonInterpreterObject, FeatureNew,
 
 import typing as T
 if T.TYPE_CHECKING:
-    from typing_extensions import TypeAlias
     from .interpreter import Interpreter
     from .kwargs import DoSubproject
     from ..dependencies.base import DependencyObjectKWs
@@ -24,7 +23,7 @@ if T.TYPE_CHECKING:
     from .interpreterobjects import SubprojectHolder
     from ..mesonlib import MachineChoice
 
-    CandidateType: TypeAlias = T.Tuple[T.Callable[[DependencyObjectKWs, str, DoSubproject], T.Optional[Dependency]], str]
+    CandidateType: T.TypeAlias = T.Tuple[T.Callable[[DependencyObjectKWs, str, DoSubproject], T.Optional[Dependency]], str]
 
 
 class DependencyFallbacksHolder(MesonInterpreterObject):

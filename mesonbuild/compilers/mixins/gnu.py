@@ -315,7 +315,7 @@ gnu_lang_map = {
     'objcpp': 'objective-c++'
 }
 
-@functools.lru_cache(maxsize=None)
+@functools.cache
 def gnulike_default_include_dirs(compiler: T.Tuple[str, ...], lang: str, verbosity_arg: str = '-v') -> 'ImmutableListProtocol[str]':
     if lang not in gnu_lang_map:
         return []
@@ -436,7 +436,7 @@ class GnuLikeCompiler(Compiler, metaclass=mesonlib.SimpleABC):
 
         return parameter_list
 
-    @functools.lru_cache()
+    @functools.cache
     def _get_search_dirs(self) -> str:
         extra_args = ['--print-search-dirs']
         with self._build_wrapper('', extra_args=extra_args,

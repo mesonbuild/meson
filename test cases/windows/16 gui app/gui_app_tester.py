@@ -15,5 +15,5 @@ expected = int(sys.argv[2])
 
 actual = pefile.PE(executable).dump_dict()['OPTIONAL_HEADER']['Subsystem']['Value']
 
-print('subsystem expected: %d, actual: %d' % (expected, actual))
+print(f'subsystem expected: {expected}, actual: {actual}')
 sys.exit(0 if (expected == actual) else 1)

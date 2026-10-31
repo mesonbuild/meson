@@ -2,7 +2,14 @@ line-length = 100
 target-version = "py310"
 
 [lint]
-  select = ["F"]
+  select = ["F", "UP"]
+  ignore = [
+    # These UP codes are all related to modernizing type annotations.
+    # They create a very large change, and are therefore ignored for now.
+    "UP006", "UP007", "UP032", "UP037", "UP045",
+  ]
 
 [lint.per-file-ignores]
   "mesonbuild/mesonlib.py" = ["F403"]
+  "mesonbuild/scripts/python_info.py" = ["UP036"]
+  "test cases/frameworks/1 boost/test_python_module.py" = ["UP036"]

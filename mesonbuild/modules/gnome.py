@@ -39,7 +39,7 @@ from ..options import OptionKey
 from ..scripts.gettext import read_linguas
 
 if T.TYPE_CHECKING:
-    from typing_extensions import Literal, TypedDict
+    from typing_extensions import TypedDict
 
     from . import ModuleState
     from ..build import BuildTarget
@@ -99,9 +99,9 @@ if T.TYPE_CHECKING:
         includes: T.List[T.Union[str, GirTarget]]
         install: bool
         install_gir: T.Optional[bool]
-        install_dir_gir: T.Union[str, None, Literal[False]]
+        install_dir_gir: T.Union[str, None, T.Literal[False]]
         install_typelib: T.Optional[bool]
-        install_dir_typelib: T.Union[str, None, Literal[False]]
+        install_dir_typelib: T.Union[str, None, T.Literal[False]]
         link_with: T.List[T.Union[build.SharedLibrary, build.StaticLibrary, build.BothLibraries]]
         namespace: str
         nsversion: str
@@ -115,7 +115,7 @@ if T.TYPE_CHECKING:
         main_xml: T.Optional[str]
         module_version: str
         namespace: str
-        mode: Literal['xml', 'smgl', 'auto', 'none']
+        mode: T.Literal['xml', 'smgl', 'auto', 'none']
         html_args: T.List[str]
         scan_args: T.List[str]
         scanobjs_args: T.List[str]
@@ -147,7 +147,7 @@ if T.TYPE_CHECKING:
         docbook: T.Optional[str]
         rst: T.Optional[str]
         markdown: T.Optional[str]
-        autocleanup: Literal['all', 'none', 'objects', 'default']
+        autocleanup: T.Literal['all', 'none', 'objects', 'default']
 
     class GenMarshal(TypedDict):
 
@@ -835,7 +835,7 @@ class GnomeModule(ExtensionModule):
         except MesonException:
             return False
 
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def _gir_has_option(self, option: str) -> bool:
         exe = self.giscanner
         if isinstance(exe, LocalProgram):
@@ -1157,7 +1157,7 @@ class GnomeModule(ExtensionModule):
         'g-ir-scanner only accepts -L/-l; must ignore -F and other linker flags'
         return (
             [f for f in ldflags if f.startswith(('-L', '-l', '--extra-library'))],
-            [f for f in ldflags if f.startswith(('-Wl,-rpath,'))],
+            [f for f in ldflags if f.startswith('-Wl,-rpath,')],
         )
 
     @TypedArgs(
@@ -1676,12 +1676,12 @@ class GnomeModule(ExtensionModule):
         ldflags.extend(compiler_flags[1])
         ldflags.extend(compiler_flags[2])
         if compiler:
-            args += ['--cc=%s' % join_args(compiler.get_exelist())]
-            args += ['--ld=%s' % join_args(compiler.get_linker_exelist())]
+            args += ['--cc={}'.format(join_args(compiler.get_exelist()))]
+            args += ['--ld={}'.format(join_args(compiler.get_linker_exelist()))]
         if cflags:
-            args += ['--cflags=%s' % join_args(cflags)]
+            args += ['--cflags={}'.format(join_args(cflags))]
         if ldflags:
-            args += ['--ldflags=%s' % join_args(ldflags)]
+            args += ['--ldflags={}'.format(join_args(ldflags))]
 
         return args, new_depends
 
@@ -2028,8 +2028,8 @@ class GnomeModule(ExtensionModule):
         # instead, but that seems like much more work, nice as it would be.
         fhead = ''
         if body_prefix != '':
-            fhead += '%s\n' % body_prefix
-        fhead += '#include "%s"\n' % hdr_filename
+            fhead += '{}\n'.format(body_prefix)
+        fhead += '#include "{}"\n'.format(hdr_filename)
         for hdr in self.interpreter.source_strings_to_files(kwargs['sources']):
             hdr_path = os.path.relpath(hdr.relative_name(), state.subdir)
             fhead += f'#include "{hdr_path}"\n'

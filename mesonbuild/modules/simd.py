@@ -14,7 +14,6 @@ from ..interpreterbase.decorators import KwargInfo, TypedArgs
 from . import ExtensionModule, ModuleInfo
 
 if T.TYPE_CHECKING:
-    from typing_extensions import Literal
 
     from . import ModuleState
     from ..interpreter import Interpreter, kwargs as kwtypes
@@ -101,7 +100,7 @@ class SimdModule(ExtensionModule):
 
             # Add compile args we derived above to those the user provided us
             # This cast is mostly a lie, but it makes mypy happy and calculating the actual key name would be difficult
-            langarg_key = T.cast('Literal["c_args"]', compiler.get_language() + '_args')
+            langarg_key = T.cast('T.Literal["c_args"]', compiler.get_language() + '_args')
             old_lang_args = lib_kwargs[langarg_key]
             all_lang_args = old_lang_args + compile_args
             lib_kwargs[langarg_key] = all_lang_args

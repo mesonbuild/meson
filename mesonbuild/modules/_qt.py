@@ -33,7 +33,6 @@ if T.TYPE_CHECKING:
     from ..interpreter.interpreter import CustomTargetSources
     from ..mesonlib import FileOrString
     from ..programs import CommandList, Program
-    from typing_extensions import Literal
 
     QtDependencyType = T.Union[QtPkgConfigDependency, QmakeQtDependency]
 
@@ -89,7 +88,7 @@ if T.TYPE_CHECKING:
     class HasToolKwArgs(kwargs.ExtractRequired):
 
         method: DependencyMethods
-        tools: T.List[Literal['moc', 'uic', 'rcc', 'lrelease', 'qmlcachegen', 'qmltyperegistrar']]
+        tools: T.List[T.Literal['moc', 'uic', 'rcc', 'lrelease', 'qmlcachegen', 'qmltyperegistrar']]
         version: T.List[str]
 
     class CompileTranslationsKwArgs(TypedDict):
@@ -961,7 +960,7 @@ class QtBaseModule(ExtensionModule):
 
         inputs: T.Sequence[T.Union[File, build.CustomTarget]] = [collected_json] if collected_json else []
         outputs: T.List[str] = [f'{target_name}_qmltyperegistrations.cpp']
-        install_dir: T.List[T.Union[str, Literal[False]]] = [False]
+        install_dir: T.List[T.Union[str, T.Literal[False]]] = [False]
         install_tag: T.List[T.Union[str, None]] = [None]
 
         cmd: CommandList = [

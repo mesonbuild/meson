@@ -12,13 +12,13 @@ from ..type_checking import in_set_validator
 import typing as T
 
 if T.TYPE_CHECKING:
-    from typing_extensions import Literal, TypedDict
+    from typing_extensions import TypedDict
 
     from ...interpreterbase import TYPE_var, TYPE_kwargs
 
     class ToStringKw(TypedDict):
         fill: int
-        format: Literal['dec', 'hex', 'oct', 'bin']
+        format: T.Literal['dec', 'hex', 'oct', 'bin']
 
 class IntegerHolder(ObjectHolder[int]):
     # Operators that only require type checks

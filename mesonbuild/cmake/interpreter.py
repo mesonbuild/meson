@@ -5,7 +5,7 @@
 # or an interpreter-based tool.
 from __future__ import annotations
 
-from functools import lru_cache
+from functools import cache
 from os import environ
 from pathlib import Path
 import itertools
@@ -450,7 +450,7 @@ class ConverterTarget:
             return [p for p in inputs if p is not None]
 
         self.generated_raw = non_optional(rel_path(x, False, True) for x in self.generated_raw)
-        self.includes = non_optional(itertools.chain((rel_path(x, True, False) for x in OrderedSet(self.includes))))
+        self.includes = non_optional(itertools.chain(rel_path(x, True, False) for x in OrderedSet(self.includes)))
         self.sys_includes = non_optional(rel_path(x, True, False) for x in OrderedSet(self.sys_includes))
         self.sources = non_optional(rel_path(x, False, False) for x in self.sources)
 
@@ -550,14 +550,14 @@ class ConverterTarget:
                 self.compile_opts[lang] = []
             self.compile_opts[lang] += [x for x in opts if x not in self.compile_opts[lang]]
 
-    @lru_cache(maxsize=None)
+    @cache
     def _all_source_suffixes(self) -> 'ImmutableListProtocol[str]':
         suffixes: T.List[str] = []
         for exts in lang_suffixes.values():
             suffixes.extend(exts)
         return suffixes
 
-    @lru_cache(maxsize=None)
+    @cache
     def _all_lang_stds(self, lang: str) -> 'ImmutableListProtocol[str]':
         try:
             opt = self.env.coredata.optstore.get_value_object(OptionKey(f'{lang}_std', machine=MachineChoice.BUILD))

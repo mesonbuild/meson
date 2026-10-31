@@ -137,7 +137,7 @@ class CPPCompiler(CLikeCompiler, Compiler):
                 mlog.debug(f'Compiler accepts {cpp_std_value}:', 'NO')
                 return False
 
-    @functools.lru_cache()
+    @functools.cache
     def _find_best_cpp_std(self, cpp_std: str) -> str:
         # The initial version mapping approach to make falling back
         # from '-std=c++14' to '-std=c++1y' was too brittle. For instance,
@@ -195,7 +195,7 @@ class _StdCPPLibMixin(CompilerMixinBase):
         lib = 'c++' if is_libcxx else 'stdc++'
         return lib
 
-    @functools.lru_cache(None)
+    @functools.cache
     def language_stdlib_only_link_flags(self) -> T.List[str]:
         """Detect the C++ stdlib and default search dirs
 

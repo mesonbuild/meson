@@ -119,7 +119,7 @@ class CLikeCompilerArgs(arglist.CompilerArgs):
         return self.compiler.unix_args_to_native(new._container)
 
     @staticmethod
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def _cached_realpath(arg: str) -> str:
         return os.path.realpath(arg)
 
@@ -200,7 +200,7 @@ class CLikeCompiler(Compiler):
         '''
         return []
 
-    @functools.lru_cache()
+    @functools.cache
     def _get_library_dirs(self, elf_class: T.Optional[int] = None) -> 'ImmutableListProtocol[str]':
         # TODO: replace elf_class with enum
         dirs = self.get_compiler_dirs('libraries')
@@ -245,7 +245,7 @@ class CLikeCompiler(Compiler):
         """
         return self._get_library_dirs(elf_class).copy()
 
-    @functools.lru_cache()
+    @functools.cache
     def _get_program_dirs(self) -> 'ImmutableListProtocol[str]':
         '''
         Programs used by the compiler. Also where toolchain DLLs such as
@@ -1110,7 +1110,7 @@ class CLikeCompiler(Compiler):
 
         return None
 
-    @functools.lru_cache()
+    @functools.cache
     def output_is_64bit(self) -> bool:
         '''
         returns true if the output produced is 64-bit, false if 32-bit
@@ -1391,7 +1391,7 @@ class CLikeCompiler(Compiler):
             return ['-DNDEBUG']
         return []
 
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def can_compile(self, src: 'mesonlib.FileOrString') -> bool:
         # Files we preprocess can be anything, e.g. .in
         if self.mode == 'PREPROCESSOR':

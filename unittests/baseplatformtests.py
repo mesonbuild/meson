@@ -37,7 +37,7 @@ from run_tests import (
 )
 
 if T.TYPE_CHECKING:
-    from typing_extensions import TypeAlias, TypedDict
+    from typing_extensions import TypedDict
 
     class CompDbEntry(TypedDict):
 
@@ -49,7 +49,7 @@ if T.TYPE_CHECKING:
         file: str
         output: str
 
-    CompDB: TypeAlias = T.List[CompDbEntry]
+    CompDB: T.TypeAlias = T.List[CompDbEntry]
 
 
 # magic attribute used by unittest.result.TestResult._is_relevant_tb_level

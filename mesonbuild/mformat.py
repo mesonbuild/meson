@@ -21,7 +21,6 @@ from .environment import build_filename
 
 if T.TYPE_CHECKING:
     import argparse
-    from typing_extensions import Literal
 
 
 class DefaultConfigParser(ConfigParser):
@@ -162,14 +161,14 @@ class EditorConfig:
 
     # FIXME: these literals are not type-checked
 
-    indent_style: T.Optional[Literal['space', 'tab']] = field(default=None, metadata={'getter': DefaultConfigParser.get})
+    indent_style: T.Optional[T.Literal['space', 'tab']] = field(default=None, metadata={'getter': DefaultConfigParser.get})
     indent_size: T.Optional[int] = field(default=None, metadata={'getter': DefaultConfigParser.getint})
     tab_width: T.Optional[int] = field(default=None, metadata={'getter': DefaultConfigParser.getint})
-    end_of_line: T.Optional[Literal['lf', 'cr', 'crlf']] = field(default=None, metadata={'getter': DefaultConfigParser.get})
-    charset: T.Optional[Literal['latin1', 'utf-8', 'utf-8-bom', 'utf-16be', 'utf-16le']] = field(default=None, metadata={'getter': DefaultConfigParser.get})
+    end_of_line: T.Optional[T.Literal['lf', 'cr', 'crlf']] = field(default=None, metadata={'getter': DefaultConfigParser.get})
+    charset: T.Optional[T.Literal['latin1', 'utf-8', 'utf-8-bom', 'utf-16be', 'utf-16le']] = field(default=None, metadata={'getter': DefaultConfigParser.get})
     trim_trailing_whitespace: T.Optional[bool] = field(default=None, metadata={'getter': DefaultConfigParser.getboolean})
     insert_final_newline: T.Optional[bool] = field(default=None, metadata={'getter': DefaultConfigParser.getboolean})
-    max_line_length: T.Optional[T.Union[Literal['off'], int]] = field(default=None, metadata={'getter': DefaultConfigParser.get})
+    max_line_length: T.Optional[T.Union[T.Literal['off'], int]] = field(default=None, metadata={'getter': DefaultConfigParser.get})
 
 
 @dataclass
@@ -208,7 +207,7 @@ class FormatterConfig:
                   })
 
     # Additional config keys
-    end_of_line: T.Optional[Literal['cr', 'lf', 'crlf', 'native']] = field(
+    end_of_line: T.Optional[T.Literal['cr', 'lf', 'crlf', 'native']] = field(
         default=None,
         metadata={'getter': DefaultConfigParser.getstr,
                   'default': 'native',
@@ -1251,7 +1250,7 @@ def run(options: argparse.Namespace) -> int:
                 code = sys.stdin.read()
             else:
                 code = src_file.read_text(encoding='utf-8')
-        except IOError as e:
+        except OSError as e:
             raise MesonException(f'Unable to read from {src_file}') from e
 
         formatted = formatter.format(code, src_file)
@@ -1262,7 +1261,7 @@ def run(options: argparse.Namespace) -> int:
             try:
                 with src_file.open('w', encoding='utf-8', newline=formatter.current_config.newline) as sf:
                     sf.write(formatted)
-            except IOError as e:
+            except OSError as e:
                 raise MesonException(f'Unable to write to {src_file}') from e
         elif options.check_only or options.check_diff:
             if code != formatted:
@@ -1279,7 +1278,7 @@ def run(options: argparse.Namespace) -> int:
             try:
                 with options.output.open('w', encoding='utf-8', newline=formatter.current_config.newline) as of:
                     of.write(formatted)
-            except IOError as e:
+            except OSError as e:
                 raise MesonException(f'Unable to write to {options.output}') from e
         else:
             print(formatted, end='')

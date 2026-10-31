@@ -17,12 +17,12 @@ from .interpreter.type_checking import STR_PARG, NoneType, in_set_validator
 if T.TYPE_CHECKING:
     from .interpreterbase import TYPE_var, TYPE_kwargs
     from .mesonlib import SubProject
-    from typing_extensions import TypeAlias, TypedDict, Literal, NotRequired
+    from typing_extensions import TypedDict, NotRequired
     from .options import OptionStore
 
     _DEPRECATED_ARGS = T.Union[bool, str, T.Dict[str, str], T.List[str]]
 
-    ParserFuncT: TypeAlias = T.Callable[[tuple[str, str, bool, _DEPRECATED_ARGS], TYPE_kwargs], options.AnyOptionType]
+    ParserFuncT: T.TypeAlias = T.Callable[[tuple[str, str, bool, _DEPRECATED_ARGS], TYPE_kwargs], options.AnyOptionType]
 
     FuncOptionArgs = TypedDict('FuncOptionArgs', {
         'type': str,
@@ -55,7 +55,7 @@ if T.TYPE_CHECKING:
         choices: T.List[str]
 
     class FeatureArgs(TypedDict):
-        value: Literal['enabled', 'disabled', 'auto']
+        value: T.Literal['enabled', 'disabled', 'auto']
         choices: T.List[str]
 
 

@@ -57,7 +57,7 @@ class StaticLinker:
 
     def get_archive_name(self, filename: str) -> str:
         # Only used for shared libraries on AIX, so return empty.
-        return str()
+        return ''
 
     def get_std_link_args(self, env: 'Environment', is_thin: bool) -> T.List[str]:
         return []
@@ -325,7 +325,7 @@ class DynamicLinker(metaclass=mesonlib.SimpleABC):
 
     def get_archive_name(self, filename: str) -> str:
         #Only used by AIX.
-        return str()
+        return ''
 
     def get_command_to_archive_shlib(self) -> T.List[str]:
         #Only used by AIX.

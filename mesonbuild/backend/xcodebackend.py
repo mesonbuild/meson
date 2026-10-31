@@ -299,7 +299,7 @@ class XCodeBackend(backends.Backend):
     def gen_id(self) -> str:
         return str(uuid.uuid4()).upper().replace('-', '')[:24]
 
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def get_target_dir_cached(self, target: build.Target) -> str:
         dirname = os.path.join(target.get_subdir(), T.cast('str', self.environment.coredata.optstore.get_value_for(OptionKey('buildtype'))))
         return dirname
@@ -987,7 +987,7 @@ class XCodeBackend(backends.Backend):
                 path = fname
             else:
                 typestr = self.get_xcodetype(fname)
-                path = '"%s"' % t.get_filename()
+                path = '"{}"'.format(t.get_filename())
             target_dict.add_item('isa', 'PBXFileReference')
             target_dict.add_item('explicitFileType', typestr)
             target_dict.add_item('path', path)
@@ -1309,7 +1309,7 @@ class XCodeBackend(backends.Backend):
             elif isinstance(t, build.SharedLibrary):
                 typestr = 'com.apple.product-type.library.dynamic'
             else:
-                raise MesonException('Unknown target type for %s' % tname)
+                raise MesonException('Unknown target type for {}'.format(tname))
             ntarget_dict.add_item('productType', f'"{typestr}"')
 
     def generate_pbx_project(self, objects_dict: PbxDict) -> None:
@@ -1358,7 +1358,7 @@ class XCodeBackend(backends.Backend):
         shell_dict.add_item('runOnlyForDeploymentPostprocessing', 0)
         shell_dict.add_item('shellPath', '/bin/sh')
         cmd = mesonlib.get_meson_command() + ['test', '--no-rebuild', '-C', self.environment.get_build_dir()]
-        cmdstr = ' '.join(["'%s'" % i for i in cmd])
+        cmdstr = ' '.join(["'{}'".format(i) for i in cmd])
         shell_dict.add_item('shellScript', cmdstr)
         shell_dict.add_item('showEnvVarsInLog', 0)
 
@@ -1373,7 +1373,7 @@ class XCodeBackend(backends.Backend):
         shell_dict.add_item('runOnlyForDeploymentPostprocessing', 0)
         shell_dict.add_item('shellPath', '/bin/sh')
         cmd = mesonlib.get_meson_command() + ['--internal', 'regencheck', os.path.join(self.environment.get_build_dir(), 'meson-private')]
-        cmdstr = ' '.join(["'%s'" % i for i in cmd])
+        cmdstr = ' '.join(["'{}'".format(i) for i in cmd])
         shell_dict.add_item('shellScript', cmdstr)
         shell_dict.add_item('showEnvVarsInLog', 0)
 
@@ -1614,7 +1614,7 @@ class XCodeBackend(backends.Backend):
                 rel_dir = self.get_target_dir(l)
                 libname = l.get_filename()
             abs_path = os.path.join(self.environment.get_build_dir(), rel_dir, libname)
-            dep_libs.append("'%s'" % abs_path)
+            dep_libs.append("'{}'".format(abs_path))
             if isinstance(l, build.SharedLibrary):
                 links_dylib = True
             if isinstance(l, build.StaticLibrary):

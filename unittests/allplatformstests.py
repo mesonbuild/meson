@@ -819,7 +819,7 @@ class AllPlatformTests(BasePlatformTests):
         line_number = 0
         i = 1
         while line_number < len(lines) and i < 100001:
-            print('---> %s' % lines[line_number])
+            print('---> {}'.format(lines[line_number]))
             if f'# Iteration {i} to stdout' in lines[line_number]:
                 i += 1
             line_number += 1
@@ -934,7 +934,7 @@ class AllPlatformTests(BasePlatformTests):
     def assertFailedTestCount(self, failure_count, command):
         try:
             self._run(command)
-            self.assertEqual(0, failure_count, 'Expected %d tests to fail.' % failure_count)
+            self.assertEqual(0, failure_count, f'Expected {failure_count} tests to fail.')
         except subprocess.CalledProcessError:
             actual_fails = 0
             with open(os.path.join(self.logdir, 'testlog.json'), encoding='utf-8') as f:

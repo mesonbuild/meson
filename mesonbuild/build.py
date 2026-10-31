@@ -4,7 +4,7 @@
 from __future__ import annotations
 from collections import defaultdict, deque, OrderedDict
 from dataclasses import dataclass, field
-from functools import lru_cache
+from functools import cache
 import abc
 import copy
 import hashlib
@@ -40,7 +40,7 @@ from .compilers import (
 from .interpreterbase import FeatureNew, FeatureDeprecated
 
 if T.TYPE_CHECKING:
-    from typing_extensions import Literal, Self, TypeAlias, TypedDict, Protocol
+    from typing_extensions import Self, TypedDict, Protocol
 
     from .arglist import CompilerArgs
     from .environment import Environment
@@ -57,15 +57,15 @@ if T.TYPE_CHECKING:
     from .mparser import BaseNode
     from .options import ElementaryOptionValues
 
-    TargetSources: TypeAlias = T.Union['File', 'GeneratedTypes']
-    CommandTypes: TypeAlias = T.Union['programs.Program', 'BuildTargetTypes', File, str]
-    GeneratedTypes: TypeAlias = T.Union['CustomTarget', 'CustomTargetIndex', 'GeneratedList']
-    BuildTargetTypes: TypeAlias = T.Union['BuildTarget', 'CustomTarget', 'CustomTargetIndex']
-    LinkableTypes: TypeAlias = T.Union['LinkableTargetProto', 'BothLibraries']
-    StaticTypes: TypeAlias = T.Union['StaticTargetProto', 'BothLibraries']
-    ObjectTypes: TypeAlias = T.Union['File', 'ExtractedObjects']
-    RustCrateType: TypeAlias = Literal['bin', 'lib', 'rlib', 'dylib', 'cdylib', 'staticlib', 'proc-macro']
-    _LibraryType: TypeAlias = Literal['auto', 'shared', 'static']
+    TargetSources: T.TypeAlias = T.Union['File', 'GeneratedTypes']
+    CommandTypes: T.TypeAlias = T.Union['programs.Program', 'BuildTargetTypes', File, str]
+    GeneratedTypes: T.TypeAlias = T.Union['CustomTarget', 'CustomTargetIndex', 'GeneratedList']
+    BuildTargetTypes: T.TypeAlias = T.Union['BuildTarget', 'CustomTarget', 'CustomTargetIndex']
+    LinkableTypes: T.TypeAlias = T.Union['LinkableTargetProto', 'BothLibraries']
+    StaticTypes: T.TypeAlias = T.Union['StaticTargetProto', 'BothLibraries']
+    ObjectTypes: T.TypeAlias = T.Union['File', 'ExtractedObjects']
+    RustCrateType: T.TypeAlias = T.Literal['bin', 'lib', 'rlib', 'dylib', 'cdylib', 'staticlib', 'proc-macro']
+    _LibraryType: T.TypeAlias = T.Literal['auto', 'shared', 'static']
 
     class AnyTargetProto(Protocol):
         def get_basename(self) -> str: ...
@@ -110,7 +110,7 @@ if T.TYPE_CHECKING:
     class LibTargetProto(LinkableTargetProto, Protocol):
         # FIXME: convert pkgconfig.py to use install_dir_names()
         @property
-        def install_dir(self) -> T.List[T.Union[str, Literal[False]]]: ...
+        def install_dir(self) -> T.List[T.Union[str, T.Literal[False]]]: ...
         @property
         def has_custom_install_dir(self) -> bool: ...
 
@@ -154,7 +154,7 @@ if T.TYPE_CHECKING:
         depend_files: T.List[File]
         embed_directories: list[IncludeDirs]
         extra_files: T.List[File]
-        gnu_symbol_visibility: Literal['default', 'internal', 'hidden', 'protected', 'inlineshidden', '']
+        gnu_symbol_visibility: T.Literal['default', 'internal', 'hidden', 'protected', 'inlineshidden', '']
         implicit_include_directories: bool
         include_directories: T.List[IncludeDirs]
         install: bool
@@ -174,7 +174,7 @@ if T.TYPE_CHECKING:
         native: MachineChoice
         override_options: T.Dict[str, ElementaryOptionValues]
         resources: T.List[str]
-        swift_interoperability_mode: Literal['c', 'cpp']
+        swift_interoperability_mode: T.Literal['c', 'cpp']
         swift_module_name: str
         rust_crate_type: RustCrateType
         rust_dependency_map: T.Dict[str, str]
@@ -192,7 +192,7 @@ if T.TYPE_CHECKING:
 
     class ExecutableKeywordArguments(BuildTargetKeywordArguments, total=False):
 
-        android_exe_type: T.Optional[Literal['application', 'executable']]
+        android_exe_type: T.Optional[T.Literal['application', 'executable']]
         implib: T.Optional[str]
         export_dynamic: bool
         pie: bool
@@ -258,7 +258,7 @@ def _process_install_tag(install_tag: T.Optional[T.List[T.Optional[str]]],
     return _install_tag
 
 
-@lru_cache(maxsize=None)
+@cache
 def get_target_macos_dylib_install_name(ld: SharedLibrary) -> str:
     name = ['@rpath/', ld.prefix, ld.name]
     if ld.soversion is not None:
@@ -952,7 +952,7 @@ class Target(HoldableObject, AnyTargetProto, metaclass=SimpleABC):
             return NotImplemented
         return self.get_id() >= other.get_id()
 
-    def get_custom_install_dir(self) -> T.List[T.Union[str, Literal[False]]]:
+    def get_custom_install_dir(self) -> T.List[T.Union[str, T.Literal[False]]]:
         raise NotImplementedError
 
     def get_basename(self) -> str:
@@ -1230,8 +1230,8 @@ class BuildTarget(Target, BuildTargetProto):
                 raise MesonException('cannot build Rust sources with a different link_language')
             if self.structured_sources:
                 # TODO: the interpreter should be able to generate a better error message?
-                if any((s.endswith('.rs') for s in self.sources)) or \
-                       any(any((s.endswith('.rs') for s in g.get_outputs())) for g in self.generated):
+                if any(s.endswith('.rs') for s in self.sources) or \
+                       any(any(s.endswith('.rs') for s in g.get_outputs()) for g in self.generated):
                     raise MesonException('cannot mix Rust structured sources and unstructured sources')
 
             # relocation-model=pic is rustc's default and Meson does not
@@ -1522,7 +1522,7 @@ class BuildTarget(Target, BuildTargetProto):
         return ExtractedObjects(self, self.sources, self.generated, self.objects,
                                 recursive, pch=True)
 
-    @lru_cache(maxsize=None)
+    @cache
     def get_all_link_deps(self) -> ImmutableListProtocol[BuildTargetProto]:
         """ Get all shared libraries dependencies
         This returns all shared libraries in the entire dependency tree. Those
@@ -1545,14 +1545,14 @@ class BuildTarget(Target, BuildTargetProto):
             else:
                 nonresults.add(t)
             if isinstance(t, BuildTarget):
-                stack.extendleft((t2 for t2 in t.link_targets if t2 not in nonresults))
-                stack.extendleft((t2 for t2 in t.link_whole_targets if t2 not in nonresults))
+                stack.extendleft(t2 for t2 in t.link_targets if t2 not in nonresults)
+                stack.extendleft(t2 for t2 in t.link_whole_targets if t2 not in nonresults)
         return list(result)
 
     def get_link_deps_mapping(self, prefix: str) -> T.Mapping[str, str]:
         return self.get_transitive_link_deps_mapping(prefix)
 
-    @lru_cache(maxsize=None)
+    @cache
     def get_transitive_link_deps_mapping(self, prefix: str) -> T.Mapping[str, str]:
         result: T.Dict[str, str] = {}
         for i in itertools.chain(self.link_targets, self.link_whole_targets):
@@ -1564,7 +1564,7 @@ class BuildTarget(Target, BuildTargetProto):
             result = result_tmp
         return result
 
-    @lru_cache(maxsize=None)
+    @cache
     def get_link_dep_subdirs(self) -> T.AbstractSet[str]:
         result: OrderedSet[str] = OrderedSet()
         for i in self.link_targets:
@@ -1593,7 +1593,7 @@ class BuildTarget(Target, BuildTargetProto):
     def get_default_install_dir(self) -> T.Tuple[str, str]:
         return self.environment.get_libdir(), '{libdir}'
 
-    def get_custom_install_dir(self) -> T.List[T.Union[str, Literal[False]]]:
+    def get_custom_install_dir(self) -> T.List[T.Union[str, T.Literal[False]]]:
         return self.install_dir
 
     def get_custom_install_mode(self) -> T.Optional['FileMode']:
@@ -1603,15 +1603,15 @@ class BuildTarget(Target, BuildTargetProto):
         return self.raw_overrides.get(name, None)
 
     @T.overload
-    def _extract_pic_pie(self, kwargs: StaticLibraryKeywordArguments, arg: Literal['pic'],
-                         option: Literal['b_staticpic']) -> bool: ...
+    def _extract_pic_pie(self, kwargs: StaticLibraryKeywordArguments, arg: T.Literal['pic'],
+                         option: T.Literal['b_staticpic']) -> bool: ...
 
     @T.overload
     def _extract_pic_pie(self, kwargs: T.Union[StaticLibraryKeywordArguments, ExecutableKeywordArguments],
-                         arg: Literal['pie'], option: Literal['b_pie']) -> bool: ...
+                         arg: T.Literal['pie'], option: T.Literal['b_pie']) -> bool: ...
 
     def _extract_pic_pie(self, kwargs: T.Union[StaticLibraryKeywordArguments, ExecutableKeywordArguments],
-                         arg: Literal['pic', 'pie'], option: Literal['b_staticpic', 'b_pie']) -> bool:
+                         arg: T.Literal['pic', 'pie'], option: T.Literal['b_staticpic', 'b_pie']) -> bool:
         # You can't disable PIC on OS X. The compiler ignores -fno-PIC.
         # PIC is always on for Windows (all code is position-independent
         # since library loading is done differently)
@@ -1668,7 +1668,7 @@ class BuildTarget(Target, BuildTargetProto):
     def get_extra_args(self, language: Language) -> T.List[str]:
         return self.extra_args[language]
 
-    @lru_cache(maxsize=None)
+    @cache
     def get_dependencies(self) -> T.Iterable[BuildTargetProto]:
         # Get all targets needed for linking. This includes all link_with and
         # link_whole targets, and also all dependencies of static libraries
@@ -1765,7 +1765,7 @@ class BuildTarget(Target, BuildTargetProto):
             self.check_can_link_together(t)
             self.link_whole_targets.append(t)
 
-    @lru_cache(maxsize=None)
+    @cache
     def get_internal_static_libraries(self) -> OrderedSet[StaticTargetProto]:
         result: OrderedSet[StaticTargetProto] = OrderedSet()
         self.get_internal_static_libraries_recurse(result)
@@ -2036,7 +2036,7 @@ class BuildTarget(Target, BuildTargetProto):
         self.rpath_dirs_to_remove.update([d.encode('utf-8') for d in result])
         return tuple(result)
 
-    @lru_cache(maxsize=None)
+    @cache
     def rpaths_for_non_system_absolute_shared_libraries(self, exclude_system: bool = True) -> ImmutableListProtocol[str]:
         paths: OrderedSet[str] = OrderedSet()
         srcdir = self.environment.get_source_dir()
@@ -3041,7 +3041,7 @@ class SharedModule(SharedLibrary):
 class BothLibraries(SecondLevelHolder):
     typename: T.ClassVar[str] = 'both libraries'
 
-    def __init__(self, shared: SharedLibrary, static: StaticLibrary, preferred_library: Literal['shared', 'static']) -> None:
+    def __init__(self, shared: SharedLibrary, static: StaticLibrary, preferred_library: T.Literal['shared', 'static']) -> None:
         self._preferred_library = preferred_library
         self.shared = shared
         self.static = static
@@ -3174,11 +3174,11 @@ class CustomTarget(Target, CustomTargetBase, CommandTargetProto):
                  depend_files: list[File] | None = None,
                  extra_depends: T.Optional[T.Sequence[TargetDepends]] = None,
                  depfile: T.Optional[str] = None,
-                 depfile_type: T.Optional[Literal['gcc', 'msvc']] = None,
+                 depfile_type: T.Optional[T.Literal['gcc', 'msvc']] = None,
                  env: T.Optional[EnvironmentVariables] = None,
                  feed: bool = False,
                  install: bool = False,
-                 install_dir: T.Optional[T.List[T.Union[str, Literal[False]]]] = None,
+                 install_dir: T.Optional[T.List[T.Union[str, T.Literal[False]]]] = None,
                  install_mode: T.Optional[FileMode] = None,
                  install_tag: T.Optional[T.List[T.Optional[str]]] = None,
                  rsp_syntax: T.Optional[RSPFileSyntax] = None,
@@ -3285,7 +3285,7 @@ class CustomTarget(Target, CustomTargetBase, CommandTargetProto):
     def should_install(self) -> bool:
         return self.install
 
-    def get_custom_install_dir(self) -> T.List[T.Union[str, Literal[False]]]:
+    def get_custom_install_dir(self) -> T.List[T.Union[str, T.Literal[False]]]:
         return self.install_dir
 
     def get_custom_install_mode(self) -> T.Optional['FileMode']:
@@ -3618,7 +3618,7 @@ class CustomTargetIndex(CustomTargetBase, HoldableObject):
         return self.target.has_custom_install_dir
 
     @property
-    def install_dir(self) -> T.List[T.Union[str, Literal[False]]]:
+    def install_dir(self) -> T.List[T.Union[str, T.Literal[False]]]:
         return [self.target.install_dir[self.__index]]
 
     def __repr__(self) -> str:
@@ -3686,7 +3686,7 @@ class CustomTargetIndex(CustomTargetBase, HoldableObject):
         suf = os.path.splitext(self.output)[-1]
         return suf in {'.a', '.lib'} and not self.should_install()
 
-    def get_custom_install_dir(self) -> T.List[T.Union[str, Literal[False]]]:
+    def get_custom_install_dir(self) -> T.List[T.Union[str, T.Literal[False]]]:
         return self.target.get_custom_install_dir()
 
     def get_basename(self) -> str:

@@ -29,7 +29,7 @@ class ImageDef:
         self.args: T.List[str] = data.get('args', [])
         self.env: T.Dict[str, str] = data['env']
 
-class BuilderBase():
+class BuilderBase:
     def __init__(self, data_dir: Path, temp_dir: Path) -> None:
         self.data_dir = data_dir
         self.temp_dir = temp_dir

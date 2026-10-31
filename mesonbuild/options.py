@@ -33,21 +33,21 @@ from .mesonlib import (
 from . import mlog
 
 if T.TYPE_CHECKING:
-    from typing_extensions import Literal, Final, TypeAlias, TypedDict
+    from typing_extensions import TypedDict
 
     from .envconfig import MachineInfo
     from .mesonlib import SubProject
     from .compilers.compilers import Language
 
-    DeprecatedType: TypeAlias = T.Union[bool, str, T.Dict[str, str], T.List[str]]
-    AnyOptionType: TypeAlias = T.Union[
+    DeprecatedType: T.TypeAlias = T.Union[bool, str, T.Dict[str, str], T.List[str]]
+    AnyOptionType: T.TypeAlias = T.Union[
         'UserBooleanOption', 'UserComboOption', 'UserFeatureOption',
         'UserIntegerOption', 'UserStdOption', 'UserStringArrayOption',
         'UserStringOption', 'UserUmaskOption']
-    ElementaryOptionValues: TypeAlias = T.Union[str, int, bool, T.List[str]]
-    MutableKeyedOptionDictType: TypeAlias = T.Dict['OptionKey', AnyOptionType]
+    ElementaryOptionValues: T.TypeAlias = T.Union[str, int, bool, T.List[str]]
+    MutableKeyedOptionDictType: T.TypeAlias = T.Dict['OptionKey', AnyOptionType]
 
-    _OptionKeyTuple: TypeAlias = T.Tuple[T.Optional[str], MachineChoice, str]
+    _OptionKeyTuple: T.TypeAlias = T.Tuple[T.Optional[str], MachineChoice, str]
 
     class OptionKeyState(TypedDict):
         name: str
@@ -316,7 +316,7 @@ class OptionKey:
         return self.machine is MachineChoice.BUILD
 
 if T.TYPE_CHECKING:
-    OptionDict: TypeAlias = T.Dict[OptionKey, ElementaryOptionValues]
+    OptionDict: T.TypeAlias = T.Dict[OptionKey, ElementaryOptionValues]
 
 @dataclasses.dataclass
 class UserOption(T.Generic[_T], HoldableObject):
@@ -332,7 +332,7 @@ class UserOption(T.Generic[_T], HoldableObject):
     def __post_init__(self, value_: _T) -> None:
         self.value = self.validate_value(value_)
         # Final isn't technically allowed in a __post_init__ method
-        self.default: Final[_T] = self.value  # type: ignore[misc]
+        self.default: T.Final[_T] = self.value  # type: ignore[misc]
 
     def listify(self, value: ElementaryOptionValues) -> T.List[str]:
         if isinstance(value, list):
@@ -453,7 +453,7 @@ class OctalInt(int):
 
 
 @dataclasses.dataclass
-class UserUmaskOption(_UserIntegerBase[T.Union["Literal['preserve']", OctalInt]]):
+class UserUmaskOption(_UserIntegerBase[T.Union["T.Literal['preserve']", OctalInt]]):
 
     min_value: T.Optional[int] = dataclasses.field(default=0, init=False)
     max_value: T.Optional[int] = dataclasses.field(default=0o777, init=False)
@@ -463,7 +463,7 @@ class UserUmaskOption(_UserIntegerBase[T.Union["Literal['preserve']", OctalInt]]
             return format(self.value, '04o')
         return self.value
 
-    def validate_value(self, value: object) -> T.Union[Literal['preserve'], OctalInt]:
+    def validate_value(self, value: object) -> T.Union[T.Literal['preserve'], OctalInt]:
         if value == 'preserve':
             return 'preserve'
         return OctalInt(super().validate_value(value))
