@@ -131,7 +131,8 @@ if (a
     b)
   message('comment after operator')
 endif
-y = (1 +   # comment
+y = (1
+    +   # comment
     2)
 if (a
     or b)   # last

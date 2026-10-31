@@ -440,6 +440,80 @@ class PlatformAgnosticTests(BasePlatformTests):
         formatted = formatter.format(code, Path())
         self.assertEqual(code, formatted)
 
+        code = 'a = foo(\n    [\n        1,\n        # comment\n    ],\n)\n'
+        formatted = formatter.format(code, Path())
+        self.assertEqual(code, formatted)
+
+        code = 'if true\n    a = [\n        1,\n        # comment\n    ]\nendif\n'
+        formatted = formatter.format(code, Path())
+        self.assertEqual(code, formatted)
+
+    def test_format_comment_between_operands_in_arguments(self) -> None:
+        """Ensure the operand after a comment is indented like the argument"""
+        formatter = Formatter(None, use_editor_config=False, fetch_subdirs=False)
+        code = 'foo(\n    a or  # comment\n    b,\n)\n'
+        formatted = formatter.format(code, Path())
+        self.assertEqual(code, formatted)
+
+        code = 'a = [\n    b  # comment\n    + c,\n]\n'
+        formatted = formatter.format(code, Path())
+        self.assertEqual(code, formatted)
+
+    def test_format_split_operators(self) -> None:
+        """Ensure long chains of operators are split, one operand per line"""
+        formatter = Formatter(None, use_editor_config=False, fetch_subdirs=False)
+        a, b, c, d = 'a' * 20, 'b' * 30, 'c' * 20, 'd' * 25
+        cases = [
+            # inside arguments, operators are indented one more level
+            (f"foo({a} and {b} or {c})\n",
+             f"foo(\n    {a}\n        and {b}\n        or {c},\n)\n"),
+            (f"foo(\n    '{a}' + '{b}' + '{c}',\n)\n",
+             f"foo(\n    '{a}'\n        + '{b}'\n        + '{c}',\n)\n"),
+            # multiline parentheses are split first; * is only split with the + level
+            (f"x = ({a} * {b} + {c} * {d})\n",
+             f"x = (\n    {a} * {b}\n    + {c} * {d}\n)\n"),
+            # not split when the first operand is already too long
+            (f"x = [{a}, {b}, {c}, {d}] + e\n",
+             f"x = [\n    {a},\n    {b},\n    {c},\n    {d},\n] + e\n"),
+        ]
+        for code, expected in cases:
+            formatted = formatter.format(code, Path())
+            self.assertEqual(expected, formatted)
+            # formatting must be stable
+            self.assertEqual(expected, formatter.format(formatted, Path()))
+
+    def test_format_move_long_comments(self) -> None:
+        """Ensure a comment making a line too long is moved on its own line above that line"""
+        formatter = Formatter(None, use_editor_config=False, fetch_subdirs=False)
+        comment = '# ' + 'x' * 75
+        cases = [
+            (f"a = 1\nopts.set('cpp_std', 'c++14')  {comment}\n",
+             f"a = 1\n{comment}\nopts.set('cpp_std', 'c++14')\n"),
+            (f"foo(\n    'argument',  {comment}\n    other,\n)\n",
+             f"foo(\n    {comment}\n    'argument',\n    other,\n)\n"),
+            # the line break after the comment is not needed anymore
+            (f"x = (a or  {comment}\n    b)\n",
+             f"x = (\n    a\n    {comment}\n    or b\n)\n"),
+            # short comments are not moved
+            ("x = 1  # comment\n", "x = 1  # comment\n"),
+        ]
+        for code, expected in cases:
+            formatted = formatter.format(code, Path())
+            self.assertEqual(expected, formatted)
+            # formatting must be stable
+            self.assertEqual(expected, formatter.format(formatted, Path()))
+
+    def test_format_blank_lines_after_opening_bracket(self) -> None:
+        """Ensure blank lines after an opening bracket are removed"""
+        formatter = Formatter(None, use_editor_config=False, fetch_subdirs=False)
+        for code, expected in [('u = (\n\n    a)\n', 'u = (a)\n'),
+                               ('x = [\n\n    1, 2]\n', 'x = [1, 2]\n'),
+                               ('foo(\n\n    1)\n', 'foo(1)\n'),
+                               # blank line after a comment is kept, without trailing whitespace
+                               ('foo(  # comment\n\n    1)\n', 'foo(  # comment\n\n    1,\n)\n')]:
+            formatted = formatter.format(code, Path())
+            self.assertEqual(expected, formatted)
+
     def test_format_sticky_parens(self) -> None:
         fd, fname = tempfile.mkstemp(suffix='.ini', text=True)
         self.addCleanup(os.unlink, fname)
@@ -459,6 +533,19 @@ class PlatformAgnosticTests(BasePlatformTests):
              'x = ((aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa or bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb)\n    and ccccccccccccccc)\n'),
             ("x = (a.get_variable(cmake: 'LLVM_ENABLE_RTTI') == 'ON') == (b.get_variable(configtool: 'has-rtti') == 'YES')\n",
              "x = (a.get_variable(cmake: 'LLVM_ENABLE_RTTI') == 'ON') == (b.get_variable(\n  configtool: 'has-rtti',\n) == 'YES')\n"),
+            # all operators of the lowest level are split with the parentheses
+            ('x = (aaaaaaaaaaaaaaaaaaaa * bbbbbbbbbbbbbbbbbbbb + cccccccccccccccccccc * dddddddddd - eeeeee / ffffff)\n',
+             'x = (aaaaaaaaaaaaaaaaaaaa * bbbbbbbbbbbbbbbbbbbb\n    + cccccccccccccccccccc * dddddddddd\n    - eeeeee / ffffff)\n'),
+            # comment of last operand is moved to the end of the line of the closing parenthesis
+            ('x = (a\n  or b  # comment\n) + c\n',
+             'x = (a\n    or b) + c  # comment\n'),
+            ('foo((a\n  or b  # comment\n),  # other\n  1)\n',
+             'foo(\n  (a\n      or b),  # comment\n  # other\n  1,\n)\n'),
+            # not moved when closing parenthesis has its own comment, or with several comment lines
+            ('x = (a\n  or b  # comment\n)  # other\n',
+             'x = (a\n    or b  # comment\n)  # other\n'),
+            ('x = (a\n  or b  # comment\n  # more\n)\n',
+             'x = (a\n    or b  # comment\n    # more\n)\n'),
         ]
         for code, expected in cases:
             formatted = formatter.format(code, Path())
