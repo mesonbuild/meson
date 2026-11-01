@@ -44,6 +44,7 @@ index.md
 			External-Project-module.md
 			Fs-module.md
 			Gnome-module.md
+			gobuild-module.md
 			Hotdoc-module.md
 			Icestorm-module.md
 			Java-module.md
