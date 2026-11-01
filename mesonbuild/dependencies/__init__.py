@@ -8,6 +8,7 @@ from .base import (
         BuiltinDependency, SystemDependency, get_leaf_external_dependencies)
 from .detect import find_external_dependency, get_dep_identifier, packages, _packages_accept_language
 
+
 __all__ = [
     'Dependency',
     'InternalDependency',
@@ -226,6 +227,13 @@ packages.defaults.update({
     'libcrypto': 'misc',
     'libssl': 'misc',
     'objfw': 'misc',
+
+    # From blas_lapack:
+    'accelerate': 'blas_lapack',
+    'blas': 'blas_lapack',
+    'lapack': 'blas_lapack',
+    'mkl': 'blas_lapack',
+    'openblas': 'blas_lapack',
 
     # From platform:
     'appleframeworks': 'platform',
