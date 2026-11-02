@@ -5726,6 +5726,29 @@ class AllPlatformTests(BasePlatformTests):
         self.assertEqual(cm.exception.returncode, 1)
         self.assertIn('exit status 39', cm.exception.stdout)
 
+    def test_bindgen_from_subproject(self) -> None:
+        if self.backend is not Backend.ninja:
+            raise SkipTest('This test requires Ninja')
+        from mesonbuild.modules.rust import RustModule
+
+        testdir = os.path.join(self.unit_test_dir, '146 bindgen subproject')
+        original_init = RustModule.__init__
+        for rust_target in (None, '1.85.0'):
+            with self.subTest(rust_target=rust_target):
+                self.new_builddir()
+
+                def init_module(module, interpreter):
+                    original_init(module, interpreter)
+                    # Exercise the compiler-version probe without requiring rustc.
+                    module._bindgen_rust_target = rust_target
+
+                with mock.patch.object(RustModule, '__init__', init_module):
+                    self.init(testdir, inprocess=True)
+                self.build(target='header.rs')
+                with open(os.path.join(self.builddir, 'header.rs'), encoding='utf-8') as f:
+                    self.assertEqual(f.read(), 'pub const VALUE: u32 = 42;\n')
+                self.assertIn('no work to do', self.build(target='header.rs'))
+
     @skip_if_not_language('rust')
     def test_bindgen_drops_invalid(self) -> None:
         if self.backend is not Backend.ninja:
