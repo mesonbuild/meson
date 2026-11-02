@@ -798,8 +798,7 @@ class ConverterCustomTarget:
 class CMakeInterpreter:
     def __init__(self, subdir: str, env: 'Environment', backend: 'Backend', for_machine: MachineChoice):
         self.subdir = Path(subdir)
-        # This must be the same as BuildProject.prefix
-        prefix = 'build.' if for_machine is MachineChoice.BUILD else ''
+        prefix = for_machine.get_prefix()
         self.build_dir_rel = Path(prefix + subdir) / '__CMake_build'
         self.src_dir = Path(env.get_source_dir()) / subdir
         self.build_dir = Path(env.get_build_dir()) / self.build_dir_rel
