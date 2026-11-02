@@ -915,6 +915,7 @@ class QtBaseModule(ExtensionModule):
             self.tools['qmlcachegen'],
             command_args,
             [f'{target_name}_@BASENAME@.cpp'],
+            depend_files=[kwargs['qml_qrc']],
             name=f'Qml cache generation for {target_name}')
 
         output: T.List[T.Union[build.CustomTarget, build.GeneratedList]] = []

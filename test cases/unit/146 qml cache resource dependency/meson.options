@@ -1,0 +1,1 @@
+option('resource_prefix', type: 'string', value: '/old')

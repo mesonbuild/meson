@@ -1521,6 +1521,22 @@ class AllPlatformTests(BasePlatformTests):
         self.utime(os.path.join(testdir, 'srcgen.py'))
         self.assertRebuiltTarget('basic')
 
+    def test_qml_cache_resource_dependency(self):
+        if self.backend is not Backend.ninja:
+            raise SkipTest('This test requires the Ninja backend')
+        testdir = os.path.join(self.unit_test_dir, '146 qml cache resource dependency')
+        self.init(testdir)
+        cache_source = 'cache.a.p/MyModule_Main.cpp'
+        loader = 'MyModule_qmlcache_loader.cpp'
+        self.build(cache_source, extra_args=[loader])
+        for source in (cache_source, loader):
+            self.assertIn('_old_MyModule_Main_qml', Path(self.builddir, source).read_text(encoding='utf-8'))
+
+        self.setconf('-Dresource_prefix=/new', will_build=False)
+        self.build(cache_source, extra_args=[loader])
+        for source in (cache_source, loader):
+            self.assertIn('_new_MyModule_Main_qml', Path(self.builddir, source).read_text(encoding='utf-8'))
+
     def test_long_opt_vs_D(self):
         '''
         Test that conflicts between -D for builtin options and the corresponding
