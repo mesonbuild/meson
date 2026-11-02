@@ -391,6 +391,7 @@ class Resolver:
         self.wrapdb_provided_deps: T.Dict[str, str] = {}
         self.wrapdb_provided_programs: T.Dict[str, SubProject] = {}
         self.loaded_dirs: T.Set[str] = set()
+        self._wraplock_exclude_checked = False
         self.cargolocks: T.Dict[str, T.Optional[CargoLock]] = {}
         self.load_wraps()
         self.load_netrc()
@@ -662,11 +663,39 @@ class Resolver:
         self.wrap.update_hash_cache(self.dirname)
         return rel_path, method
 
+    def _exclude_wraplock_from_git(self) -> None:
+        # Ask Git for the metadata path: .git can be a file in a worktree.
+        # Keep the lock file itself persistent, including while other processes wait on it.
+        try:
+            success, output = quiet_git(['rev-parse', '--show-toplevel', '--git-path', 'info/exclude'], self.subdir_root)
+            paths = output.splitlines()
+            if not success or len(paths) != 2:
+                return
+            root, exclude = paths
+            lockpath = Path(os.path.relpath(os.path.join(self.subdir_root, '.wraplock'), root)).as_posix()
+            if lockpath.startswith('../') or '\n' in lockpath or '\r' in lockpath:
+                return
+            # Exclude only this file, even when directory names contain Git glob characters.
+            pattern = '/' + ''.join('\\' + c if c in '\\*?[] ' else c for c in lockpath)
+            rule = os.fsencode(pattern)
+            with open(os.path.join(self.subdir_root, exclude), 'a+b') as f:
+                f.seek(0)
+                existing = f.read()
+                if rule not in existing.splitlines():
+                    separator = b'\n' if existing and not existing.endswith(b'\n') else b''
+                    f.write(separator + rule + b'\n')
+        except OSError as e:
+            # Ignoring generated files is optional, including for read-only Git metadata.
+            mlog.debug(f'Could not exclude .wraplock from Git: {e}')
+
     def resolve(self, packagename: str, force_method: T.Optional[Method] = None) -> T.Tuple[str, Method]:
         try:
             with DirectoryLock(self.subdir_root, '.wraplock',
                                DirectoryLockAction.WAIT,
                                'Failed to lock subprojects directory', optional=True):
+                if not self._wraplock_exclude_checked:
+                    self._exclude_wraplock_from_git()
+                    self._wraplock_exclude_checked = True
                 return self._resolve(packagename, force_method)
         except FileNotFoundError:
             raise WrapNotFoundException('Attempted to resolve subproject without subprojects directory present.')

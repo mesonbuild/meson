@@ -38,6 +38,64 @@ class SubprojectsCommandTests(BasePlatformTests):
     def _git(self, cmd, workdir):
         return git(cmd, str(workdir), check=True)[1].strip()
 
+    @skipIfNoExecutable('git')
+    def test_wraplock_git_status(self):
+        for subdir, nested, worktree in [('subprojects', False, False),
+                                         ('vendor[deps]', True, False),
+                                         ('subprojects', False, True)]:
+            with self.subTest(subdir=subdir, nested=nested, worktree=worktree), tempfile.TemporaryDirectory() as tmp:
+                repo = Path(tmp, 'repo')
+                source = repo / 'src' if nested else repo
+                self._create_project(source / subdir / 'foo', 'foo')
+                (source / 'meson.build').write_text(
+                    f"project('repro', subproject_dir: '{subdir}')\nsubproject('foo')\n", encoding='utf-8')
+                (repo / '.gitignore').write_text('# User rules\n', encoding='utf-8')
+                self._git(['init'], repo)
+                self._git_config(repo)
+                self._git(['add', '.'], repo)
+                self._git(['commit', '--no-gpg-sign', '-m', 'Initial test project'], repo)
+                if worktree:
+                    source = Path(tmp, 'worktree')
+                    self._git(['worktree', 'add', '--detach', str(source)], repo)
+                    self.assertTrue((source / '.git').is_file())
+                exclude = repo / '.git' / 'info' / 'exclude'
+                original = b'# Existing local rules\n/local-only'
+                exclude.write_bytes(original)
+                self.init(str(source))
+                self.assertTrue((source / subdir / '.wraplock').is_file())
+                self.assertEqual(self._git(['status', '--porcelain'], source), '')
+                updated = exclude.read_bytes()
+                self.assertTrue(updated.startswith(original + b'\n'))
+                self.new_builddir()
+                self.init(str(source))
+                self.assertEqual(exclude.read_bytes(), updated)
+                self.assertEqual(self._git(['status', '--porcelain'], source), '')
+                self.new_builddir()
+
+    def test_wraplock_without_git(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp)
+            self._create_project(source / 'subprojects' / 'foo', 'foo')
+            (source / 'meson.build').write_text("project('repro')\nsubproject('foo')\n", encoding='utf-8')
+            self.init(str(source))
+            self.assertTrue((source / 'subprojects' / '.wraplock').is_file())
+            self.assertFalse((source / '.git').exists())
+
+    @skipIfNoExecutable('git')
+    def test_wraplock_inaccessible_git_exclude(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp)
+            self._create_project(source / 'subprojects' / 'foo', 'foo')
+            (source / 'meson.build').write_text("project('repro')\nsubproject('foo')\n", encoding='utf-8')
+            self._git(['init'], source)
+            exclude = source / '.git' / 'info' / 'exclude'
+            exclude.unlink(missing_ok=True)
+            # A directory makes opening the exclude file fail even when tests run as root.
+            exclude.mkdir()
+            self.init(str(source))
+            self.assertTrue((source / 'subprojects' / '.wraplock').is_file())
+            self.assertTrue(exclude.is_dir())
+
     def _git_config(self, workdir):
         self._git(['config', 'user.name', 'Meson Test'], workdir)
         self._git(['config', 'user.email', 'meson.test@example.com'], workdir)
