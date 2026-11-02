@@ -5754,6 +5754,22 @@ class AllPlatformTests(BasePlatformTests):
                 self.assertNotIn('/fp:fast', args)
                 return
 
+    @skipIfNoExecutable('zig')
+    @skipUnless(is_linux(), 'Requires the Zig ELF linker')
+    def test_zig_static_linking(self):
+        if self.backend is not Backend.ninja:
+            raise SkipTest('This test requires Ninja')
+        zig = shutil.which('zig')
+        native_file = os.path.join(self.builddir, 'zig.ini')
+        with open(native_file, 'w', encoding='utf-8') as f:
+            f.write(f"[binaries]\nc = [{zig!r}, 'cc']\nar = [{zig!r}, 'ar']\n")
+        testdir = os.path.join(self.common_test_dir, '5 linkstatic')
+        self.init(testdir, extra_args=['--native-file', native_file])
+        self.build()
+        self.run_tests()
+        with open(os.path.join(self.builddir, 'libmylib.a'), 'rb') as f:
+            self.assertEqual(f.read(8), b'!<arch>\n')
+
     def test_custom_target_name(self):
         testdir = os.path.join(self.unit_test_dir, '99 custom target name')
         self.init(testdir)
