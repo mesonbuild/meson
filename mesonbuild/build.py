@@ -2186,12 +2186,14 @@ class Generator(HoldableObject):
                  depfile: T.Optional[str] = None,
                  capture: bool = False,
                  depends: T.Optional[T.Sequence[TargetDepends]] = None,
+                 depend_files: T.Optional[T.Sequence[File]] = None,
                  name: str = 'Generator'):
         self.environment = env
         self.exe = exe
         self.depfile = depfile
         self.capture = capture
         self.depends: T.List[TargetDepends] = list(depends or [])
+        self.depend_files: T.List[File] = list(depend_files or [])
         self.arglist = arguments
         self.outputs = output
         self.name = name
@@ -2279,7 +2281,7 @@ class GeneratedList(HoldableObject):
         self.infilelist: T.List[FileMaybeInTargetPrivateDir] = []
         self.outfilelist: T.List[str] = []
         self.outmap: T.Dict[FileMaybeInTargetPrivateDir, T.List[str]] = {}
-        self.depend_files: T.List[File] = []
+        self.depend_files: T.List[File] = self.generator.depend_files.copy()
 
         if self.extra_args is None:
             self.extra_args: T.List[str] = []
