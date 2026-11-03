@@ -48,7 +48,7 @@ def run(args: T.List[str]) -> int:
 
     exelist = detect_clangformat()
     if not exelist:
-        print('Could not execute clang-format "%s"' % ' '.join(exelist))
+        print('Could not execute clang-format "{}"'.format(' '.join(exelist)))
         return 1
 
     if options.check:

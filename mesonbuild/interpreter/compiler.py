@@ -34,11 +34,11 @@ if T.TYPE_CHECKING:
     from .interpreter import SourceOutputs
     from ..mlog import TV_LoggableList
 
-    from typing_extensions import TypedDict, Literal
+    from typing_extensions import TypedDict
 
     class GetSupportedArgumentKw(TypedDict):
 
-        checked: Literal['warn', 'require', 'off']
+        checked: T.Literal['warn', 'require', 'off']
 
     class AlignmentKw(TypedDict):
 

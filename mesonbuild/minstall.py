@@ -37,12 +37,7 @@ if T.TYPE_CHECKING:
     )
     from .mesonlib import FileMode, EnvironOrDict, ExecutableSerialisation, InstallScript
 
-    try:
-        from typing import Protocol
-    except AttributeError:
-        from typing_extensions import Protocol
-
-    class ArgumentType(Protocol):
+    class ArgumentType(T.Protocol):
         """Typing information for the object returned by argparse."""
         no_rebuild: bool
         only_changed: bool

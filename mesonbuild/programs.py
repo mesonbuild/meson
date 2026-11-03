@@ -20,12 +20,11 @@ from . import mlog
 from .mesonlib import MachineChoice, OrderedSet, SimpleABC
 
 if T.TYPE_CHECKING:
-    from typing_extensions import TypeAlias
     from .environment import Environment
     from .interpreter import Interpreter
 
-    CommandListEntry: TypeAlias = T.Union[str, 'Program']
-    CommandList: TypeAlias = T.List[CommandListEntry]
+    CommandListEntry: T.TypeAlias = T.Union[str, 'Program']
+    CommandList: T.TypeAlias = T.List[CommandListEntry]
 
 
 class Program(mesonlib.HoldableObject, metaclass=SimpleABC):
@@ -127,7 +126,7 @@ class ExternalProgram(Program):
             # method, and thus only the found() method of this class is ever executed
             if self.found():  # lgtm [py/init-calls-subclass]
                 mlog.log('Program', mlog.bold(name), 'found:', mlog.green('YES'),
-                         '(%s)' % ' '.join(self.command))
+                         '({})'.format(' '.join(self.command)))
             else:
                 mlog.log('Program', mlog.bold(name), 'found:', mlog.red('NO'))
 
@@ -184,7 +183,7 @@ class ExternalProgram(Program):
         return cls.from_entry(name, command)
 
     @staticmethod
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def _windows_sanitize_path(path: str) -> str:
         # Ensure that we use USERPROFILE even when inside MSYS, MSYS2, Cygwin, etc.
         if 'USERPROFILE' not in os.environ:

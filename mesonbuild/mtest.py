@@ -787,7 +787,7 @@ class TextLogfileBuilder(TestFileLogger):
         self.file.write('test:         ' + result.name + '\n')
         starttime_str = time.strftime("%H:%M:%S", time.gmtime(result.starttime))
         self.file.write('start time:   ' + starttime_str + '\n')
-        self.file.write('duration:     ' + '%.2fs' % result.duration + '\n')
+        self.file.write('duration:     ' + '{:.2f}s'.format(result.duration) + '\n')
         self.file.write('result:       ' + result.get_exit_status() + '\n')
         if result.cmdline:
             self.file.write('command:      ' + result.cmdline + '\n')
@@ -1150,7 +1150,7 @@ class TestRunGTest(TestRunExitCode):
             filename = os.path.join(self.test.workdir, filename)
 
         try:
-            with open(filename, 'r', encoding='utf8', errors='replace') as f:
+            with open(filename, encoding='utf8', errors='replace') as f:
                 self.junit = et.parse(f)
         except FileNotFoundError:
             # This can happen if the test fails to run or complete for some
@@ -1245,7 +1245,7 @@ class TestRunRust(TestRun):
                 name, result = match.groups()
                 doctest = RUST_DOCTEST_RE.match(name)
                 if doctest:
-                    name = ':'.join((x.rstrip() for x in doctest.groups() if x))
+                    name = ':'.join(x.rstrip() for x in doctest.groups() if x)
                 else:
                     name = name.rstrip()
                 name = name.replace('::', '.')

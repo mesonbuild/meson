@@ -16,14 +16,13 @@ from .framework import ExtraFrameworkDependency
 from .pkgconfig import PkgConfigDependency
 
 if T.TYPE_CHECKING:
-    from typing_extensions import TypeAlias
 
     from .base import DependencyObjectKWs, ExternalDependency, DepType
     from .configtool import ConfigToolDependency
     from ..environment import Environment
 
     # TODO: remove this?
-    DependencyGenerator: TypeAlias = DependencyCandidate[ExternalDependency]
+    DependencyGenerator: T.TypeAlias = DependencyCandidate[ExternalDependency]
     FactoryFunc = T.Callable[
         [
             'Environment',

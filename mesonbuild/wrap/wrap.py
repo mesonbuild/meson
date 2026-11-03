@@ -27,7 +27,7 @@ from base64 import b64encode
 from enum import Enum
 from netrc import netrc
 from pathlib import Path
-from functools import lru_cache
+from functools import cache
 
 from . import WrapMode
 from .. import coredata
@@ -40,11 +40,10 @@ from .. import mesonlib
 
 if T.TYPE_CHECKING:
     import http.client
-    from typing_extensions import Literal
 
     from ..cargo.manifest import CargoLock
 
-    Method = Literal['meson', 'cmake', 'cargo']
+    Method = T.Literal['meson', 'cmake', 'cargo']
 
 try:
     # Importing is just done to check if SSL exists, so all warnings
@@ -61,7 +60,7 @@ if sys.version_info >= (3, 14):
     import tarfile
     tarfile.TarFile.extraction_filter = staticmethod(tarfile.fully_trusted_filter)
 
-@lru_cache(maxsize=None)
+@cache
 def patch_command() -> T.Optional[str]:
     if mesonlib.is_windows():
         from ..programs import ExternalProgram
@@ -90,7 +89,7 @@ truststore_message = '''
     correct SSL certificates, install https://truststore.readthedocs.io/ and
     try again.'''
 
-@lru_cache(maxsize=None)
+@cache
 def ssl_truststore() -> T.Optional[ssl.SSLContext]:
     """ Provide a default context=None for urlopen, but use truststore if installed. """
     try:
@@ -166,7 +165,7 @@ def get_releases_data(allow_insecure: bool) -> bytes:
     url = open_wrapdburl('https://wrapdb.mesonbuild.com/v2/releases.json', allow_insecure, True, True)
     return read_and_decompress(url)
 
-@lru_cache(maxsize=None)
+@cache
 def get_releases(allow_insecure: bool) -> T.Dict[str, T.Any]:
     data = get_releases_data(allow_insecure)
     return T.cast('T.Dict[str, T.Any]', json.loads(data.decode()))
@@ -295,7 +294,7 @@ class PackageDefinition:
             else:
                 mlog.deprecation(f'WrapDB v1 is deprecated, updated using `meson wrap update {name}`')
 
-        with open(filename, 'r', encoding='utf-8') as file:
+        with open(filename, encoding='utf-8') as file:
             wrap.wrapfile_hash = hashlib.sha256(file.read().encode('utf-8')).hexdigest()
 
         return wrap
@@ -781,7 +780,7 @@ class Resolver:
         # Retrieve original hash, if it exists.
         hashfile = self.wrap.get_hashfile(self.dirname)
         if os.path.isfile(hashfile):
-            with open(hashfile, 'r', encoding='utf-8') as file:
+            with open(hashfile, encoding='utf-8') as file:
                 expected_hash = file.read().strip()
         else:
             # If stored hash doesn't exist then don't warn.

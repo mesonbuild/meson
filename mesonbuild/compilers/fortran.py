@@ -250,7 +250,7 @@ class FortranCompiler(CLikeCompiler, Compiler):
             raise mesonlib.EnvironmentException('Could not run sizeof test binary.')
         return int(res.stdout), res.cached
 
-    @functools.lru_cache()
+    @functools.cache
     def output_is_64bit(self) -> bool:
         '''
         returns true if the output produced is 64-bit, false if 32-bit

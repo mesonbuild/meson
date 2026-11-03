@@ -14,7 +14,6 @@ import typing as T
 from contextlib import AbstractContextManager
 
 if T.TYPE_CHECKING:
-    from typing_extensions import TypeAlias
 
     # Object holders need the actual interpreter
     from ..interpreter import Interpreter
@@ -22,8 +21,8 @@ if T.TYPE_CHECKING:
 
 TV_func = T.TypeVar('TV_func', bound=T.Callable[..., T.Any])
 
-TYPE_elementary: TypeAlias = T.Union[str, int, bool, T.Sequence['TYPE_elementary'], T.Dict[str, 'TYPE_elementary']]
-TYPE_var: TypeAlias = T.Union[TYPE_elementary, HoldableObject, 'MesonInterpreterObject', T.Sequence['TYPE_var'], T.Dict[str, 'TYPE_var']]
+TYPE_elementary: T.TypeAlias = T.Union[str, int, bool, T.Sequence['TYPE_elementary'], T.Dict[str, 'TYPE_elementary']]
+TYPE_var: T.TypeAlias = T.Union[TYPE_elementary, HoldableObject, 'MesonInterpreterObject', T.Sequence['TYPE_var'], T.Dict[str, 'TYPE_var']]
 TYPE_kwargs = T.Dict[str, TYPE_var]
 TYPE_key_resolver = T.Callable[[mparser.BaseNode], str]
 TYPE_op_arg = T.TypeVar('TYPE_op_arg', bound='TYPE_var', contravariant=True)

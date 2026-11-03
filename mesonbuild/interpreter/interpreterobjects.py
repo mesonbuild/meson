@@ -42,7 +42,7 @@ if T.TYPE_CHECKING:
     from ..mesonlib import SubProject
     from .interpreter import Interpreter
 
-    from typing_extensions import Literal, TypedDict
+    from typing_extensions import TypedDict
 
     class EnvironmentSeparatorKW(TypedDict):
 
@@ -61,8 +61,8 @@ def extract_required_kwarg(kwargs: 'kwargs.ExtractRequired',
                            subproject: 'SubProject',
                            feature_check: T.Optional[FeatureCheckBase] = None,
                            default: bool = True
-                           ) -> T.Union[T.Tuple[Literal[True], bool, str],
-                                        T.Tuple[Literal[False], bool, None]]:
+                           ) -> T.Union[T.Tuple[T.Literal[True], bool, str],
+                                        T.Tuple[T.Literal[False], bool, None]]:
     """Check common keyword arguments for required status.
 
     This handles booleans vs feature option.
@@ -270,7 +270,7 @@ class RunProcess(MesonInterpreterObject):
         try:
             p = subprocess.Popen(command_array, stdin=stdin, stdout=stdout, stderr=stderr, env=child_env, cwd=cwd)
         except FileNotFoundError:
-            raise InterpreterException('Could not execute command `%s`.' % mesonlib.join_args(command_array))
+            raise InterpreterException('Could not execute command `{}`.'.format(mesonlib.join_args(command_array)))
 
         o_list: T.List = []
         e_list: T.List = []

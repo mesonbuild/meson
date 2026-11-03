@@ -116,7 +116,7 @@ def gen(outfile: str, desc: Description, extra_rules: T.List[Rule]) -> int:
 def run(args: T.List[str]) -> int:
     assert len(args) >= 2, 'got wrong number of arguments!'
     outfile, jsonfile, *jsondeps = args
-    with open(jsonfile, 'r', encoding='utf-8') as f:
+    with open(jsonfile, encoding='utf-8') as f:
         desc: Description = json.load(f)
 
     # All rules, necessary for fulfilling across TU and target boundaries

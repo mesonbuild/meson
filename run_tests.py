@@ -75,7 +75,7 @@ os.environ['MESON_RUNNING_IN_PROJECT_TESTS'] = '1'
 # would (in addition to warning people when UTF-8 mode removed the problem) also
 # require using a minimum python version of 3.11 (in which the warning was added)
 # or add verbose if/else soup.
-if sys.version_info >= (3, 10):
+if sys.version_info >= (3, 10):  # noqa: UP036
     import warnings
     warnings.filterwarnings('ignore', message="UTF-8 Mode affects .*getpreferredencoding", category=EncodingWarning)
 

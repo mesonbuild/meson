@@ -136,7 +136,7 @@ class RefmanLinksExtension(Extension):
 
     def create_symbol(self, *args, **kwargs):
         kwargs['language'] = 'meson'
-        return super(RefmanLinksExtension, self).create_symbol(*args, **kwargs)
+        return super().create_symbol(*args, **kwargs)
 
     @staticmethod
     def get_dependencies() -> T.List[T.Type[Extension]]:

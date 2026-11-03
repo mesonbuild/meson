@@ -37,14 +37,13 @@ from ..wrap.wrap import PackageDefinition, WrapType
 if T.TYPE_CHECKING:
     from . import raw
     from .. import mparser
-    from typing_extensions import Literal
 
     from .manifest import Dependency, Profile
     from ..environment import Environment
     from ..compilers.rust import RustCompiler
     from ..options import ElementaryOptionValues
 
-    RUST_ABI = Literal['rust', 'c', 'proc-macro']
+    RUST_ABI = T.Literal['rust', 'c', 'proc-macro']
 
 def _dependency_name(package_name: str, api: str, suffix: str = '-rs') -> str:
     basename = package_name[:-len(suffix)] if suffix and package_name.endswith(suffix) else package_name
@@ -828,7 +827,7 @@ class Interpreter:
             else:
                 self._enable_feature(pkg, f, machine)
 
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def _get_cfgs(self, machine: MachineChoice, subproject: SubProject) -> T.Dict[str, str]:
         rustc = T.cast('RustCompiler', self.environment.coredata.compilers[machine]['rust'])
         cfgs = rustc.get_cfgs().copy()

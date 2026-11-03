@@ -22,7 +22,7 @@ from ..utils.core import HoldableObject
 from .. import mlog
 
 if T.TYPE_CHECKING:
-    from typing_extensions import Literal, TypedDict
+    from typing_extensions import TypedDict
 
     from . import ModuleState
     from .._typing import ImmutableListProtocol
@@ -32,8 +32,8 @@ if T.TYPE_CHECKING:
     from ..mesonlib import MachineChoice
     from ..programs import CommandList
 
-    LexImpls = Literal['lex', 'flex', 'reflex', 'win_flex']
-    YaccImpls = Literal['yacc', 'byacc', 'bison', 'win_bison']
+    LexImpls = T.Literal['lex', 'flex', 'reflex', 'win_flex']
+    YaccImpls = T.Literal['yacc', 'byacc', 'bison', 'win_bison']
 
     class LexGenerateKwargs(TypedDict):
 

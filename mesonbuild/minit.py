@@ -25,7 +25,7 @@ from mesonbuild.options import OptionKey
 if T.TYPE_CHECKING:
     import argparse
 
-    from typing_extensions import Protocol, Literal
+    from typing_extensions import Protocol
 
     class Arguments(Protocol):
 
@@ -34,11 +34,11 @@ if T.TYPE_CHECKING:
         name: str
         executable: str
         deps: str
-        language: Literal['c', 'cpp', 'cs', 'cuda', 'd', 'fortran', 'java', 'rust', 'objc', 'objcpp', 'vala'] | None
+        language: T.Literal['c', 'cpp', 'cs', 'cuda', 'd', 'fortran', 'java', 'rust', 'objc', 'objcpp', 'vala'] | None
         build: bool
         builddir: str
         force: bool
-        type: Literal['executable', 'library']
+        type: T.Literal['executable', 'library']
         version: str
 
 
