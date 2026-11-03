@@ -1439,7 +1439,7 @@ InstalledDir: /usr/bin'''), '14.0.0-1ubuntu1.1')
         with tempfile.TemporaryDirectory() as tmpdir:
             script_path = Path(tmpdir) / 'script.py'
             script_path.write_text('import sys\nprint(sys.argv[1])\n', encoding='utf-8')
-            script_path.chmod(0o755)
+            script_path.chmod(0o700)
 
             inputs: list[tuple[str, str | None]] = [
                 ('',  None),
