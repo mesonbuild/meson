@@ -37,6 +37,7 @@ from mesonbuild.compilers.compilers import CompileCheckMode, ManyInOneLinkerOpti
 from mesonbuild.compilers.cpp import ClangCPPCompiler, GnuCPPCompiler, VisualStudioCPPCompiler, QccCPPCompiler
 from mesonbuild.compilers.objcpp import ClangObjCPPCompiler, GnuObjCPPCompiler
 from mesonbuild.compilers.d import DmdDCompiler, LLVMDCompiler
+from mesonbuild.compilers.cuda import CudaCompiler
 from mesonbuild.compilers.detect import detect_c_compiler
 from mesonbuild.compilers.mixins.visualstudio import MSVCCompiler, ClangClCompiler
 from mesonbuild.linkers import linkers
@@ -64,6 +65,28 @@ from run_tests import get_fake_env, get_fake_options
 from .helpers import IS_CI, chdir, skipIfNoPkgconfig
 
 class InternalTests(unittest.TestCase):
+
+    def test_cached_compiler_environment(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            old_env = get_fake_env(bdir=tmpdir)
+            for machine in MachineChoice:
+                linker = linkers.GnuBFDDynamicLinker(['ld'], old_env, machine, None, [])
+                cpp = GnuCPPCompiler([], ['c++'], '12.0', machine, old_env, linker=linker)
+                cpp.get_preprocessor()
+                with mock.patch.object(cpp, 'get_default_include_dirs', return_value=[]):
+                    cuda = CudaCompiler([], ['nvcc'], '12.0', machine, cpp, old_env, linker=linker)
+                old_env.coredata.compilers[machine]['cuda'] = cuda
+            old_env.dump_coredata()
+
+            env = get_fake_env(bdir=tmpdir)
+            self.assertFalse(env.first_invocation)
+            for machine in MachineChoice:
+                cuda = env.coredata.compilers[machine]['cuda']
+                self.assertIsNot(cuda, old_env.coredata.compilers[machine]['cuda'])
+                cpp = cuda.host_compiler
+                for compiler in (cuda, cpp, cpp.get_preprocessor()):
+                    self.assertIs(compiler.environment, env)
+                    self.assertIs(compiler.linker.environment, env)
 
     @unittest.skipIf(is_windows() or is_cygwin() or os.geteuid() == 0, 'needs a directory the test user cannot traverse')
     def test_cmake_user_registry_unreadable_home(self):

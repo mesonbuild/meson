@@ -581,6 +581,16 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
         self.is_cross = environment.is_cross_build(for_machine)
         self.modes: T.List[Compiler] = []
 
+    def set_environment(self, environment: Environment) -> None:
+        # A preprocessor compiler's modes list contains the preprocessor itself.
+        if self.environment is environment:
+            return
+        self.environment = environment
+        if self.linker is not None:
+            self.linker.environment = environment
+        for mode in self.modes:
+            mode.set_environment(environment)
+
     @property
     def info(self) -> MachineInfo:
         # This must be fetched dynamically because it may be re-evaluated later,

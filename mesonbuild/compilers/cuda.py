@@ -194,6 +194,10 @@ class CudaCompiler(Compiler):
         self.host_werror_args = ['-Xcompiler=' + x for x in self.host_compiler.get_werror_args()]
         self.debug_macros_available = version_compare(self.version, '>=12.9')
 
+    def set_environment(self, environment: Environment) -> None:
+        super().set_environment(environment)
+        self.host_compiler.set_environment(environment)
+
     @classmethod
     def _shield_nvcc_list_arg(cls, arg: str, listmode: bool = True) -> str:
         r"""
