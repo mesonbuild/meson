@@ -498,7 +498,11 @@ InstalledDir: /usr/bin'''), '14.0.0-1ubuntu1.1')
                         expected = ['-stand=' + value]
                     else:
                         expected = ['/stand:' + value]
-                    with mock.patch.object(compiler, 'get_compileropt_value', return_value=standard):
+                    compiler.environment = mock.Mock()
+                    compiler.environment.coredata = mock.Mock()
+                    compiler.environment.coredata.optstore = mock.Mock()
+                    compiler.environment.coredata.optstore.get_option_for_maybe_target = mock.Mock(return_value=standard)
+                    with mock.patch.object(compiler, 'form_compileropt_key', return_value=None):
                         self.assertEqual(compiler.get_option_std_args(None), expected)
 
     def test_compiler_args_class_visualstudio(self):

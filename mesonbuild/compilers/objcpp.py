@@ -17,7 +17,7 @@ from .mixins.clike import CLikeCompiler
 if T.TYPE_CHECKING:
     from ..environment import Environment
     from ..linkers.linkers import DynamicLinker
-    from ..mesonlib import MachineChoice
+    from ..mesonlib import MachineChoice, SubProject
     from ..build import BuildTarget
     from ..options import MutableKeyedOptionDictType
 
@@ -40,14 +40,14 @@ class ObjCPPCompiler(CLikeCompiler, Compiler):
     def get_no_stdlib_link_args(self) -> T.List[str]:
         return ['-nostdlib++']
 
-    def form_compileropt_key(self, basename: str) -> OptionKey:
+    def form_compileropt_key(self, basename: str, subproject: T.Optional[SubProject] = None) -> OptionKey:
         if basename in {'std', 'rtti'}:
-            return OptionKey(f'cpp_{basename}', machine=self.for_machine)
-        return super().form_compileropt_key(basename)
+            return OptionKey(f'cpp_{basename}', subproject=subproject, machine=self.for_machine)
+        return super().form_compileropt_key(basename, subproject)
 
     def make_option_name(self, key: OptionKey) -> str:
-        if key.name == 'std':
-            return 'cpp_std'
+        if key.name in {'std', 'rtti'}:
+            return f'cpp_{key.name}'
         return super().make_option_name(key)
 
     @staticmethod
@@ -70,10 +70,11 @@ class ObjCPPCompiler(CLikeCompiler, Compiler):
             True)
         return opts
 
-    def get_option_compile_args(self, target: 'BuildTarget', subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_std_args(self, target: BuildTarget | SubProject | None) -> list[str]:
+        target, subproject = self._get_subproject_and_target(target)
         args: T.List[str] = []
-        rtti = self.get_compileropt_value('rtti', target, subproject)
-        assert isinstance(rtti, bool)
+        key = self.form_compileropt_key('rtti', subproject)
+        rtti = self.environment.coredata.optstore.get_option_for_maybe_target(target, key, bool)
         if not rtti:
             args.append('-fno-rtti')
         return args
@@ -97,14 +98,11 @@ class GnuObjCPPCompiler(GnuCPPStds, GnuCompiler, ObjCPPCompiler):
                                          self.supported_warn_args(gnu_common_warning_args) +
                                          self.supported_warn_args(gnu_objc_warning_args))}
 
-    def get_option_std_args(self, target: BuildTarget, subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_std_args(self, target: BuildTarget | SubProject | None) -> list[str]:
         args: T.List[str] = []
+        target, subproject = self._get_subproject_and_target(target)
         key = OptionKey('cpp_std', subproject=subproject, machine=self.for_machine)
-        if target:
-            std = self.environment.coredata.get_option_for_target(target, key)
-        else:
-            std = self.environment.coredata.optstore.get_value_for(key)
-        assert isinstance(std, str)
+        std = self.environment.coredata.optstore.get_option_for_maybe_target(target, key, str)
         if std != 'none':
             args.append('-std=' + std)
         return args
@@ -126,11 +124,11 @@ class ClangObjCPPCompiler(ClangCPPStds, ClangCompiler, ObjCPPCompiler):
                           '3': default_warn_args + ['-Wextra', '-Wpedantic'],
                           'everything': ['-Weverything']}
 
-    def get_option_std_args(self, target: BuildTarget, subproject: T.Optional[str] = None) -> T.List[str]:
-        args = []
-        key = OptionKey('cpp_std', machine=self.for_machine)
-        std = self.get_compileropt_value(key, target, subproject)
-        assert isinstance(std, str)
+    def get_option_std_args(self, target: BuildTarget | SubProject | None) -> list[str]:
+        args: T.List[str] = []
+        target, subproject = self._get_subproject_and_target(target)
+        key = OptionKey('cpp_std', subproject, self.for_machine)
+        std = self.environment.coredata.optstore.get_option_for_maybe_target(target, key, str)
         if std != 'none':
             args.append('-std=' + std)
         return args
