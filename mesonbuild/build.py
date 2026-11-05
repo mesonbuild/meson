@@ -3846,13 +3846,18 @@ def load(build_dir: str) -> Build:
     filename = os.path.join(build_dir, 'meson-private', 'build.dat')
     try:
         b = meson_pickle.load(filename, 'Build data', Build)
-        # We excluded coredata when saving Build object, load it separately
-        b.environment.coredata = coredata.load(build_dir)
+        # We excluded coredata when saving the Environment object, load it separately
+        b.environment.coredata = coredata.load(build_dir, b.environment)
         return b
     except FileNotFoundError:
         raise MesonException(f'No such build data file as {filename!r}.')
 
 
 def save(obj: Build, filename: str) -> None:
+    # As of this commit, meson_pickle.BuildPickler is a normal save, but it
+    # checks that all references to an Environment are to obj.environment.
+    # The coredata is left out via Environment.__getstate__ and is loaded
+    # by build.load().
     with open(filename, 'wb') as f:
-        meson_pickle.dump(obj, f)
+        pickler = meson_pickle.BuildPickler(f, obj.environment)
+        pickler.dump(obj)

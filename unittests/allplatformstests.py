@@ -3502,21 +3502,35 @@ class AllPlatformTests(BasePlatformTests):
                             self.assertEqual(sorted(expected_files), sorted(intro_installed))
                             self.wipe()
 
-    def __reconfigure(self):
+    def __reconfigure(self, srcdir: str):
         # Set an older version to force a reconfigure from scratch
+        env = get_fake_env(srcdir, self.builddir, self.prefix)
         filename = os.path.join(self.privatedir, 'coredata.dat')
         with open(filename, 'rb') as f:
-            obj = mesonbuild.meson_pickle.load_unchecked(f)
+            obj = mesonbuild.meson_pickle.load_unchecked(f, env)
         obj.version = '0.47.0'
         with open(filename, 'wb') as f:
-            mesonbuild.meson_pickle.dump(obj, f)
+            mesonbuild.meson_pickle.dump(obj, f, env)
+
+    def test_reconfigure_moved_builddir(self):
+        testdir = os.path.join(self.unit_test_dir, '47 reconfigure')
+        self.init(testdir, extra_args=['-Dopt1=val1'])
+
+        oldbuilddir = self.builddir
+        self.new_builddir()
+        shutil.rmtree(self.builddir)
+        shutil.move(oldbuilddir, self.builddir)
+        out = self.init(testdir, extra_args=['--reconfigure'])
+        self.assertIn('opt1 val1', out)
+        b = mesonbuild.build.load(self.builddir)
+        self.assertEqual(b.environment.get_build_dir(), self.builddir)
 
     def test_reconfigure(self):
         testdir = os.path.join(self.unit_test_dir, '47 reconfigure')
         self.init(testdir, extra_args=['-Dopt1=val1', '-Dsub1:werror=true'])
         self.setconf('-Dopt2=val2')
 
-        self.__reconfigure()
+        self.__reconfigure(testdir)
 
         out = self.init(testdir, extra_args=['--reconfigure', '-Dopt3=val3'])
         self.assertRegex(out, 'Regenerating configuration from scratch')

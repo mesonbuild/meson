@@ -32,6 +32,7 @@ if T.TYPE_CHECKING:
     from .options import ElementaryOptionValues, MutableKeyedOptionDictType
     from .build import BuildTarget
     from .cmdline import SharedCMDOptions
+    from .environment import Environment
 
     OptionDictType = T.Dict[str, options.AnyOptionType]
     CompilerCheckCacheKey = T.Tuple[T.Tuple[str, ...], str, FileOrString, T.Tuple[str, ...], CompileCheckMode]
@@ -459,12 +460,12 @@ def major_versions_differ(v1: str, v2: str) -> bool:
     # Major version differ, or one is development version but not the other.
     return v1_major != v2_major or ('99' in {v1_minor, v2_minor} and v1_minor != v2_minor)
 
-def load(build_dir: str, suggest_reconfigure: bool = True) -> CoreData:
+def load(build_dir: str, env: Environment, suggest_reconfigure: bool = True) -> CoreData:
     filename = os.path.join(build_dir, 'meson-private', 'coredata.dat')
-    return meson_pickle.load(filename, 'Coredata', CoreData, suggest_reconfigure)
+    return meson_pickle.load(filename, 'Coredata', CoreData, suggest_reconfigure, env)
 
 
-def save(obj: CoreData, build_dir: str) -> str:
+def save(obj: CoreData, build_dir: str, env: Environment) -> str:
     filename = os.path.join(build_dir, 'meson-private', 'coredata.dat')
     prev_filename = filename + '.prev'
     tempfilename = filename + '~'
@@ -474,7 +475,7 @@ def save(obj: CoreData, build_dir: str) -> str:
         import shutil
         shutil.copyfile(filename, prev_filename)
     with open(tempfilename, 'wb') as f:
-        meson_pickle.dump(obj, f)
+        meson_pickle.dump(obj, f, env)
         f.flush()
         os.fsync(f.fileno())
     os.replace(tempfilename, filename)
