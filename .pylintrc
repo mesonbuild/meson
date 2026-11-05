@@ -79,6 +79,7 @@ disable=
     unused-argument,
     unused-variable,
     used-before-assignment,
+    useless-return,
     useless-super-delegation,
     wrong-import-order,
     wrong-import-position,

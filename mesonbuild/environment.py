@@ -144,7 +144,7 @@ class Environment:
             os.makedirs(self.log_dir, exist_ok=True)
             os.makedirs(self.info_dir, exist_ok=True)
             try:
-                self.coredata = coredata.load(self.get_build_dir(), suggest_reconfigure=False)
+                self.coredata = coredata.load(self.get_build_dir(), self, suggest_reconfigure=False)
                 self.first_invocation = False
             except FileNotFoundError:
                 self.create_new_coredata(cmd_options)
@@ -507,7 +507,7 @@ class Environment:
         return path
 
     def dump_coredata(self) -> str:
-        return coredata.save(self.coredata, self.get_build_dir())
+        return coredata.save(self.coredata, self.get_build_dir(), self)
 
     def get_log_dir(self) -> str:
         return self.log_dir
