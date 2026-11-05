@@ -3843,21 +3843,38 @@ def get_sources_string_names(sources: T.Sequence[CustomTargetSources], backend: 
     return names
 
 def load(build_dir: str) -> Build:
+    # A Build consists of three parts, the Environment, the CoreData
+    # and the Build itself.  While all three are reached from a single
+    # Build object, the CoreData is saved separately so that it can
+    # be reused across reconfigurations.
+    #
+    # The complication is that the CoreData refers to the Environment,
+    # so it can only be loaded when an environment is available.
+    # For this reason, the build.dat file contains two pickles that
+    # share their memo; the first is the Environment, which is needed
+    # to load the CoreData, and the second is the Build, which refers
+    # to the Environment through the memo and to the CoreData through
+    # persistent_ids that are arranged by BuildPickler.
+    #
+    # Ideally, only the Environment would have to be saved, and all the
+    # information that meson needs from build.load() would be available
+    # from introspection data.  But until then, here we are.
     filename = os.path.join(build_dir, 'meson-private', 'build.dat')
     try:
-        b = meson_pickle.load(filename, 'Build data', Build)
-        # We excluded coredata when saving the Environment object, load it separately
-        b.environment.coredata = coredata.load(build_dir, b.environment)
-        return b
-    except FileNotFoundError:
-        raise MesonException(f'No such build data file as {filename!r}.')
+        with meson_pickle.open_pickle(filename, 'Build data') as f:
+            unpickler = meson_pickle.Unpickler(f)
+            env = unpickler.load()
+            env.coredata = coredata.load(build_dir, env)
+            unpickler.env = env
+            b = unpickler.load()
+    except FileNotFoundError as e:
+        raise MesonException(f'No such build data file as {e.filename!r}.')
+    return meson_pickle.check_loaded(b, filename, 'Build data', Build)
 
 
 def save(obj: Build, filename: str) -> None:
-    # As of this commit, meson_pickle.BuildPickler is a normal save, but it
-    # checks that all references to an Environment are to obj.environment.
-    # The coredata is left out via Environment.__getstate__ and is loaded
-    # by build.load().
+    # See load() for the format.
     with open(filename, 'wb') as f:
         pickler = meson_pickle.BuildPickler(f, obj.environment)
+        pickler.dump(obj.environment)
         pickler.dump(obj)
