@@ -329,6 +329,9 @@ class BasePlatformTests(TestCase):
                 return x.get('value')
         self.fail(f'Option {optname} not found')
 
+    def load_coredata(self) -> mesonbuild.coredata.CoreData:
+        return mesonbuild.coredata.load(self.builddir)
+
     def wipe(self):
         windows_proof_rmtree(self.builddir)
 
