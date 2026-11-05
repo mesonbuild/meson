@@ -627,6 +627,10 @@ class Environment:
             env.prepend('PATH', list(extra_paths))
         return env
 
+    def get_lang_comp_args(self, lang: Language, for_machine: MachineChoice) -> T.List[str]:
+        argkey = OptionKey(f'{lang}_args', machine=for_machine)
+        return mesonlib.listify(self.env_opts.get(argkey, []))
+
     def add_lang_args(self, lang: Language, comp: T.Type['Compiler'],
                       for_machine: MachineChoice) -> None:
         """Add global language arguments that are needed before compiler/linker detection."""

@@ -497,20 +497,21 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
                 ccache, compiler, version, for_machine, env,
                 full_version=full_version, linker=linker)
         if 'CL.EXE COMPATIBILITY' in out:
-            # if this is clang-cl masquerading as cl, detect it as cl, not
-            # clang
-            arg = '--version'
+            cls = c.ClangClCCompiler if lang == 'c' else cpp.ClangClCPPCompiler
+            # If this is clang-cl masquerading as cl, detect it as cl, not
+            # clang. Include language compiler args because they can affect
+            # the reported target.
+            args = ['--version'] + env.get_lang_comp_args(cls.language, for_machine)
             try:
-                p, out, err = Popen_safe(compiler + [arg])
+                p, out, err = Popen_safe(compiler + args)
             except OSError as e:
-                popen_exceptions[join_args(compiler + [arg])] = e
+                popen_exceptions[join_args(compiler + args)] = e
             version = search_version(out)
             match = re.search('^Target: (.*?)-', out, re.MULTILINE)
             if match:
                 target = match.group(1)
             else:
                 target = 'unknown target'
-            cls = c.ClangClCCompiler if lang == 'c' else cpp.ClangClCPPCompiler
             # Prefer a target-prefixed lld-link matching a target-prefixed
             # clang-cl driver (e.g. nixpkgs), falling back to plain lld-link.
             lld = compute_clang_cl_tool_name(compiler, 'lld-link')
