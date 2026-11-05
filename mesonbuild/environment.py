@@ -444,6 +444,13 @@ class Environment:
                         self.properties[for_machine].properties.setdefault(name, p_env)
                     break
 
+    def __copy__(self) -> T.NoReturn:
+        raise MesonBugException('Environment cannot be copied')
+
+    def __deepcopy__(self, memo: T.Dict[int, T.Any]) -> Environment:
+        # There is a single Environment, objects that refer to it share it.
+        return self
+
     def create_new_coredata(self, options: cmdline.SharedCMDOptions) -> None:
         # WARNING: Don't use any values from coredata in __init__. It gets
         # re-initialized with project options by the interpreter during
