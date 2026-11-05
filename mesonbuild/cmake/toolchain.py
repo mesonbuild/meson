@@ -218,6 +218,8 @@ class CMakeToolchain:
     @staticmethod
     def is_cmdline_option(compiler: 'Compiler', arg: str) -> bool:
         if compiler.get_argument_syntax() == 'msvc':
+            if compiler.get_id() == 'clang-cl':
+                return arg.startswith('/') or arg.startswith('-')
             return arg.startswith('/')
         else:
             if os.path.basename(compiler.get_exe()) == 'zig' and arg in {'ar', 'cc', 'c++', 'dlltool', 'lib', 'ranlib', 'objcopy', 'rc'}:
