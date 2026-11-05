@@ -109,6 +109,20 @@ class MachineMap:
         return [self.build, self.host, self.target][machine.value]
 
 
+class EmptyCMDOptions:
+    # mimic an argparse namespace
+    def __init__(self, cross_file: T.Optional[str] = None):
+        self.cross_file = [cross_file] if cross_file is not None else []
+        self.native_file: T.List[str] = []
+        self.cmd_line_options: T.Dict[OptionKey, T.Optional[str]] = {}
+        self.builtin_keys: T.Set[OptionKey] = set()
+        self.d_keys: T.Set[OptionKey] = set()
+        self.projectoptions: T.List[str] = []
+
+    def __eq__(self, other: object) -> bool:
+        return NotImplemented
+
+
 class Environment:
     private_dir = 'meson-private'
     log_dir = 'meson-logs'
