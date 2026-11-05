@@ -6,8 +6,9 @@ from __future__ import annotations
 
 import copy
 
+from . import meson_pickle
 from . import mlog, options
-import pickle, os, uuid
+import os, uuid
 import sys
 from collections import OrderedDict
 import textwrap
@@ -15,7 +16,6 @@ import textwrap
 from .mesonlib import (
     MesonException, MachineChoice, PerMachine,
     PerMachineDefaultable,
-    pickle_load
 )
 
 from .options import OptionKey
@@ -461,7 +461,7 @@ def major_versions_differ(v1: str, v2: str) -> bool:
 
 def load(build_dir: str, suggest_reconfigure: bool = True) -> CoreData:
     filename = os.path.join(build_dir, 'meson-private', 'coredata.dat')
-    return pickle_load(filename, 'Coredata', CoreData, suggest_reconfigure)
+    return meson_pickle.load(filename, 'Coredata', CoreData, suggest_reconfigure)
 
 
 def save(obj: CoreData, build_dir: str) -> str:
@@ -474,7 +474,7 @@ def save(obj: CoreData, build_dir: str) -> str:
         import shutil
         shutil.copyfile(filename, prev_filename)
     with open(tempfilename, 'wb') as f:
-        pickle.dump(obj, f)
+        meson_pickle.dump(obj, f)
         f.flush()
         os.fsync(f.fileno())
     os.replace(tempfilename, filename)

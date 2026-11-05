@@ -15,9 +15,10 @@ import sys
 import typing as T
 
 from . import build, tooldetect
+from . import meson_pickle
 from .backend.backends import InstallData
 from .mesonlib import (InstallScriptFailure, MesonException, Popen_safe, RealPathAction,
-                       is_windows, setup_vsenv, path_has_root, pickle_load,
+                       is_windows, setup_vsenv, path_has_root,
                        unwrap)
 from .options import OptionKey
 from .scripts import depfixer, destdir_join
@@ -133,7 +134,7 @@ class DirMaker:
 
 
 def load_install_data(fname: str) -> InstallData:
-    return pickle_load(fname, 'InstallData', InstallData)
+    return meson_pickle.load(fname, 'InstallData', InstallData)
 
 def is_executable(path: str, follow_symlinks: bool = False) -> bool:
     '''Checks whether any of the "x" bits are set in the source file mode.'''

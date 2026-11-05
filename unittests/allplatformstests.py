@@ -12,7 +12,6 @@ import textwrap
 import os
 import shutil
 import platform
-import pickle
 import zipfile, tarfile
 import sys
 import sysconfig
@@ -24,6 +23,7 @@ import typing as T
 
 from mesonbuild.build import BuildProject
 import mesonbuild.mlog
+import mesonbuild.meson_pickle
 import mesonbuild.depfile
 import mesonbuild.dependencies.base
 import mesonbuild.dependencies.factory
@@ -3506,10 +3506,10 @@ class AllPlatformTests(BasePlatformTests):
         # Set an older version to force a reconfigure from scratch
         filename = os.path.join(self.privatedir, 'coredata.dat')
         with open(filename, 'rb') as f:
-            obj = pickle.load(f)
+            obj = mesonbuild.meson_pickle.load_unchecked(f)
         obj.version = '0.47.0'
         with open(filename, 'wb') as f:
-            pickle.dump(obj, f)
+            mesonbuild.meson_pickle.dump(obj, f)
 
     def test_reconfigure(self):
         testdir = os.path.join(self.unit_test_dir, '47 reconfigure')
