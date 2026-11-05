@@ -222,6 +222,7 @@
       "mesonbuild.linkers.detect",
       "mesonbuild.linkers.linkers",
       "mesonbuild.machinefile",
+      "mesonbuild.meson_pickle",
       "mesonbuild.mesonlib",
       "mesonbuild.mesonmain",
       "mesonbuild.mintro",
@@ -243,6 +244,6 @@
       "mesonbuild.wrap",
       "mesonbuild.wrap.wrap"
     ],
-    "count": 74
+    "count": 75
   }
 }

@@ -10,7 +10,6 @@ import copy
 import hashlib
 import itertools, pathlib
 import os
-import pickle
 import re
 import shutil
 import textwrap
@@ -18,6 +17,7 @@ import typing as T
 
 from . import coredata
 from . import dependencies
+from . import meson_pickle
 from . import mlog
 from . import programs
 from .environment import MachineMap
@@ -27,7 +27,7 @@ from .mesonlib import (
     OrderedSet, classify_unity_sources, ROOT_SUBPROJECT,
     get_filenames_templates_dict, substitute_values, has_path_sep,
     is_parent_path, relpath, PerMachineDefaultable,
-    MesonBugException, EnvironmentVariables, pickle_load, lazy_property,
+    MesonBugException, EnvironmentVariables, lazy_property,
     unwrap,
 )
 from .options import OptionKey
@@ -3845,7 +3845,7 @@ def get_sources_string_names(sources: T.Sequence[CustomTargetSources], backend: 
 def load(build_dir: str) -> Build:
     filename = os.path.join(build_dir, 'meson-private', 'build.dat')
     try:
-        b = pickle_load(filename, 'Build data', Build)
+        b = meson_pickle.load(filename, 'Build data', Build)
         # We excluded coredata when saving Build object, load it separately
         b.environment.coredata = coredata.load(build_dir)
         return b
@@ -3855,4 +3855,4 @@ def load(build_dir: str) -> Build:
 
 def save(obj: Build, filename: str) -> None:
     with open(filename, 'wb') as f:
-        pickle.dump(obj, f)
+        meson_pickle.dump(obj, f)
