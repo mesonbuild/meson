@@ -77,6 +77,8 @@ class RegenInfo:
     source_dir: str
     build_dir: str
     depfiles: T.List[str]
+    meson_command: T.List[str]
+    backend: str
 
 class TestProtocol(enum.Enum):
 
@@ -1467,9 +1469,13 @@ class Backend:
 
     def generate_regen_info(self) -> None:
         deps = self.get_regen_filelist()
+        backend = self.environment.coredata.optstore.get_value_for(OptionKey('backend'))
+        assert isinstance(backend, str)
         regeninfo = RegenInfo(self.environment.get_source_dir(),
                               self.environment.get_build_dir(),
-                              deps)
+                              deps,
+                              self.environment.coredata.meson_command,
+                              backend)
         filename = os.path.join(self.environment.get_scratch_dir(),
                                 'regeninfo.dump')
         with open(filename, 'wb') as f:

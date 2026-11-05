@@ -6,9 +6,8 @@ from __future__ import annotations
 import sys, os
 import pickle, subprocess
 import typing as T
-from ..coredata import CoreData
+
 from ..backend.backends import RegenInfo
-from ..options import OptionKey
 
 # This could also be used for XCode.
 
@@ -26,29 +25,23 @@ def need_regen(regeninfo: RegenInfo, regen_timestamp: float) -> bool:
     Vs2010Backend.touch_regen_timestamp(regeninfo.build_dir)
     return False
 
-def regen(regeninfo: RegenInfo, meson_command: T.List[str], backend: str) -> None:
-    cmd = meson_command + ['--internal',
-                           'regenerate',
-                           regeninfo.build_dir,
-                           regeninfo.source_dir,
-                           '--backend=' + backend]
+def regen(regeninfo: RegenInfo) -> None:
+    cmd = regeninfo.meson_command + ['--internal',
+                                     'regenerate',
+                                     regeninfo.build_dir,
+                                     regeninfo.source_dir,
+                                     '--backend=' + regeninfo.backend]
     subprocess.check_call(cmd)
 
 def run(args: T.List[str]) -> int:
     private_dir = args[0]
     dumpfile = os.path.join(private_dir, 'regeninfo.dump')
-    coredata_file = os.path.join(private_dir, 'coredata.dat')
     with open(dumpfile, 'rb') as f:
         regeninfo = pickle.load(f)
         assert isinstance(regeninfo, RegenInfo)
-    with open(coredata_file, 'rb') as f:
-        coredata = pickle.load(f)
-        assert isinstance(coredata, CoreData)
-    backend = coredata.optstore.get_value_for(OptionKey('backend'))
-    assert isinstance(backend, str)
     regen_timestamp = os.stat(dumpfile).st_mtime
     if need_regen(regeninfo, regen_timestamp):
-        regen(regeninfo, coredata.meson_command, backend)
+        regen(regeninfo)
     return 0
 
 if __name__ == '__main__':
