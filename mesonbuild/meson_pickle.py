@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2026 The Meson development team
 
-"""Pickling of objects that refer to the Environment.
+"""Pickling of objects that refer to the Environment, CoreData and compilers.
 
 The CoreData is saved in its own file.  The Environment that owns it is saved
 through the Build object, without the CoreData which is added separately by
@@ -40,6 +40,7 @@ if T.TYPE_CHECKING:
     _PL = T.TypeVar('_PL', bound=T.Union[_EnvPickleLoadable, _VerPickleLoadable])
 
 _ENVIRONMENT = 'environment'
+_COMPILER = 'compiler'
 
 
 class MesonPickler(pickle.Pickler):
@@ -79,7 +80,9 @@ class CoreDataPickler(MesonPickler):
 class BuildPickler(MesonPickler):
     """Pickler that saves the Environment of a Build object as an object.
 
-    All references must be to the Environment of the Build.
+    All references must be to the Environment of the Build, and
+    compilers are saved as persistent IDs that will be later resolved
+    from the CoreData.
     """
 
     def __init__(self, file: T.IO[bytes], env: Environment) -> None:
@@ -89,12 +92,16 @@ class BuildPickler(MesonPickler):
     def persistent_id(self, obj: object) -> T.Optional[T.Tuple[T.Any, ...]]:
         from .environment import Environment
         from .coredata import CoreData
+        from .compilers import Compiler
 
         if isinstance(obj, Environment):
             if obj is not self.env:
                 raise pickle.PicklingError('reference to unknown Environment')
         elif isinstance(obj, CoreData):
             raise pickle.PicklingError('CoreData must not be included in build.dat')
+        elif isinstance(obj, Compiler):
+            if self.env.coredata.compilers[obj.for_machine].get(obj.language) is obj:
+                return (_COMPILER, obj.for_machine.value, obj.language)
         return None
 
 
@@ -114,6 +121,12 @@ class Unpickler(pickle.Unpickler):
             raise pickle.UnpicklingError(f'reference to {kind} without an Environment')
         if kind == _ENVIRONMENT:
             return self.env
+        if kind == _COMPILER:
+            from .mesonlib import MachineChoice
+            try:
+                return self.env.coredata.compilers[MachineChoice(pid[1])][pid[2]]
+            except KeyError:
+                raise pickle.UnpicklingError(f'compiler {pid!r} is not in the CoreData')
         raise pickle.UnpicklingError(f'unsupported persistent ID {pid!r}')
 
 
