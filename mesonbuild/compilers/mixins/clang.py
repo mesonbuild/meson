@@ -204,6 +204,20 @@ class ClangCompiler(GnuLikeCompiler):
             return [f'-fuse-ld={linker}']
         return super().use_linker_args(linker, version)
 
+    def has_arguments(self, args: T.List[str], code: str,
+                      mode: CompileCheckMode) -> T.Tuple[bool, bool]:
+        new_args: T.List[str] = []
+        for arg in args:
+            # Workaround for a bug in Clang where it only returns a warning,
+            # not an error, for -msse4.2. Fortunately, it still correctly
+            # returns an error for -mno-sse4.2
+            # https://github.com/llvm/llvm-project/issues/70143
+            if arg == '-msse4.2':
+                new_args.append('-mno-sse4.2')
+                continue
+            new_args.append(arg)
+        return super().has_arguments(new_args, code, mode)
+
     def get_has_func_attribute_extra_args(self, name: str) -> T.List[str]:
         # Clang only warns about unknown or ignored attributes, so force an
         # error.
