@@ -3854,11 +3854,5 @@ def load(build_dir: str) -> Build:
 
 
 def save(obj: Build, filename: str) -> None:
-    # Exclude coredata because we pickle it separately already
-    cdata = obj.environment.coredata
-    obj.environment.coredata = None
-    try:
-        with open(filename, 'wb') as f:
-            pickle.dump(obj, f)
-    finally:
-        obj.environment.coredata = cdata
+    with open(filename, 'wb') as f:
+        pickle.dump(obj, f)
