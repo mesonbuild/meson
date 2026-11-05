@@ -31,7 +31,7 @@ import mesonbuild.modules.pkgconfig
 
 
 from run_tests import (
-    Backend, get_backend_commands,
+    Backend, get_backend_commands, get_fake_env,
     get_builddir_target_args, get_meson_script, run_configure_inprocess,
     run_mtest_inprocess, handle_meson_skip_test,
 )
@@ -328,6 +328,9 @@ class BasePlatformTests(TestCase):
             if x.get('name') == optname:
                 return x.get('value')
         self.fail(f'Option {optname} not found')
+
+    def load_coredata(self) -> mesonbuild.coredata.CoreData:
+        return mesonbuild.coredata.load(self.builddir)
 
     def wipe(self):
         windows_proof_rmtree(self.builddir)
