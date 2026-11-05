@@ -586,7 +586,10 @@ class Build:
     def copy(self) -> Build:
         other = Build.__new__(Build)
         for k, v in self.__dict__.items():
-            other.__dict__[k] = copy.copy(v)
+            if k == 'environment':
+                other.environment = self.environment
+            else:
+                other.__dict__[k] = copy.copy(v)
         return other
 
     def copy_for_build_machine(self) -> Build:
@@ -610,7 +613,7 @@ class Build:
             if k in {'machine_map', 'for_machine'}:
                 continue
             # These are not modified in subprojects
-            if k in {'global_args', 'global_link_args'}:
+            if k in {'global_args', 'global_link_args', 'environment'}:
                 continue
 
             if isinstance(v, PerMachine):
