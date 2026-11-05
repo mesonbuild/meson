@@ -61,12 +61,12 @@ def get_genvs_default_buildtype_list() -> list[str]:
     return options.buildtypelist[1:-2]
 
 
-class MesonVersionMismatchException(MesonException):
+class MesonVersionMismatchException(meson_pickle.PickleLoadException):
     '''Build directory generated with Meson version is incompatible with current version'''
-    def __init__(self, old_version: str, current_version: str, extra_msg: str = '') -> None:
+    def __init__(self, old_version: str, current_version: str, suggest_reconfigure: bool = False) -> None:
         super().__init__(f'Build directory has been generated with Meson version {old_version}, '
-                         f'which is incompatible with the current version {current_version}.'
-                         + extra_msg)
+                         f'which is incompatible with the current version {current_version}.',
+                         suggest_reconfigure)
         self.old_version = old_version
         self.current_version = current_version
 
