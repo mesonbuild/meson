@@ -209,6 +209,7 @@ class LLVMDependencyConfigTool(ConfigToolDependency):
         self.provided_modules: T.List[str] = []
         self.required_modules: mesonlib.OrderedSet[str] = mesonlib.OrderedSet()
         self.module_details:   T.List[str] = []
+        self._llvm_dir_paths: T.Optional[T.List[str]] = None
         if not self.is_found:
             return
 
@@ -250,10 +251,31 @@ class LLVMDependencyConfigTool(ConfigToolDependency):
                 new_args.append(arg.lstrip('-l'))
             elif arg.startswith('-LIBPATH:'):
                 cpp = self.env.coredata.compilers[self.for_machine]['cpp']
-                new_args.extend(cpp.get_linker_search_args(arg.lstrip('-LIBPATH:')))
+                # removeprefix, not lstrip: lstrip takes a *set* of characters,
+                # so -LIBPATH:PATH\foo becomes \foo.
+                new_args.extend(cpp.get_linker_search_args(arg.removeprefix('-LIBPATH:')))
             else:
                 new_args.append(arg)
         return new_args
+
+    def _config_dir_paths(self) -> T.List[str]:
+        if self._llvm_dir_paths is None:
+            cached: T.List[str] = []
+            for flag, stage in (('--libdir', 'link_args'), ('--includedir', 'compile_args')):
+                d = self.get_config_output([flag], stage)
+                if d:
+                    cached.append(d)
+            self._llvm_dir_paths = cached
+        return self._llvm_dir_paths
+
+    def get_config_value(self, args: T.List[str], stage: str, required: bool = False) -> T.List[str]:
+        raw = self.get_config_output(args, stage, required=required)
+        if not raw:
+            return []
+        # These are a single directory; split_args would break "C:\Program Files\...".
+        if args in (['--libdir'], ['--includedir']):
+            return [raw]
+        return mesonlib.split_args_protecting(raw, self._config_dir_paths())
 
     def __check_libfiles(self, shared: bool) -> None:
         """Use llvm-config's --libfiles to check if libraries exist."""
