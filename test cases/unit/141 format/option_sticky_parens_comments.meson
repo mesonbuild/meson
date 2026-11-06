@@ -1,0 +1,22 @@
+# format-test: sticky_parens = true
+# format-test: indent_by = '  '
+
+# comment of last operand is moved to the end of the line of the closing parenthesis
+x = (a
+  or b  # comment
+) + c
+
+foo((a
+  or b  # comment
+),  # other
+  1)
+
+# not moved when closing parenthesis has its own comment, or with several comment lines
+x = (a
+  or b  # comment
+)  # other
+
+x = (a
+  or b  # comment
+  # more
+)

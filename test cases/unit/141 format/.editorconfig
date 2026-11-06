@@ -1,0 +1,4 @@
+# Snippets are test data: keep their whitespace exactly as written
+[*]
+trim_trailing_whitespace = false
+insert_final_newline = false

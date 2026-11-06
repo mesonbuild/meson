@@ -1,0 +1,26 @@
+a = [
+    # comment
+]
+
+a = [
+    # comment
+    1,
+]
+
+a = {
+    # comment
+}
+
+a = foo(
+    [
+        1,
+        # comment
+    ],
+)
+
+if true
+    a = [
+        1,
+        # comment
+    ]
+endif

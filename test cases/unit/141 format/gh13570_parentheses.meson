@@ -1,0 +1,10 @@
+# issue #13570: sticky parentheses
+if (cc.links('''
+    void do_func(int foo) { return INT_MAX - foo; }
+    '''))
+  deps += dependency('foo')
+endif
+
+if (not cc.compiles('int main(void) { return 0; }') or cc.has_header('foo.h') or cc.has_header('bar.h') or cc.has_header('baz.h'))
+  message('long condition')
+endif

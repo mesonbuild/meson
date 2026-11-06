@@ -1,0 +1,14 @@
+a = 1
+opts.set('cpp_std', 'c++14')  # xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+foo(
+    'argument',  # xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+    other,
+)
+
+# the line break after the comment is not needed anymore
+x = (a or  # xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+    b)
+
+# short comments are not moved
+x = 1  # comment

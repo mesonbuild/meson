@@ -450,8 +450,8 @@ current directory is analyzed.
 
 The following options are recognized:
 
-- max_line_length (int): When an array, a dict, a function or a method
-    would be longer that this, it is formatted one argument per line
+- max_line_length (int): When a line would be longer than this, we try to split
+    arrays, dicts, function or method arguments to make the line shorter
     (Default is 80).
 - indent_by (str): Indentation to use (Default is four spaces `'    '`).
 - space_array (bool): Whether to add spaces between `[]` and array
@@ -482,8 +482,8 @@ The following options are recognized:
     [naturally](Style-guide.md#sorting-source-paths) rather than
     alphabetically.
 - group_arg_value (bool): When true, string argument with `--` prefix
-    followed by string argument without `--` prefix are grouped on the
-    same line, in multiline arguments (default is false).
+    followed by any argument that is not a string with `-` prefix are grouped on
+    the same line, in multiline arguments (default is false).
 - use_editor_config (bool): When true, also uses config from .editorconfig .
 - sticky_parens (bool): *Since 1.13.0*. When true, parentheses stay on
     the same line as the expression, the expression gets double indentation,

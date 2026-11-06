@@ -1,0 +1,7 @@
+# comments around an operator, inside parentheses
+x = (
+    # a
+    1  # b
+    # c
+    + 2
+)

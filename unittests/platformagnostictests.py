@@ -3,6 +3,8 @@
 # Copyright © 2024-2025 Intel Corporation
 
 from __future__ import annotations
+import argparse
+import difflib
 import json
 import os
 import pickle
@@ -17,6 +19,7 @@ from pathlib import Path
 from .baseplatformtests import BasePlatformTests
 from .helpers import skip_if_not_language, skip_if_no_cmake, IS_CI
 from mesonbuild.mesonlib import EnvironmentVariables, ExecutableSerialisation, MesonException, is_linux, python_command, windows_proof_rmtree
+from mesonbuild import mformat
 from mesonbuild.mformat import Formatter, match_path
 from mesonbuild.interpreterbase import InvalidArguments
 from mesonbuild.optinterpreter import OptionInterpreter, OptionException
@@ -419,92 +422,97 @@ class PlatformAgnosticTests(BasePlatformTests):
         with self.assertRaises(MesonException):
             formatter.load_editor_config(editorconfig)
 
-    def test_format_empty_file(self) -> None:
+    def check_format_snippets(self, testdir: Path, use_editor_config: bool) -> None:
+        """Format each snippet of testdir, and compare with the expected output.
+
+        foo.meson must be formatted as foo.expected.meson, or must be unchanged
+        if there is no expected file. Options are read from the
+        "# format-test: key = value" comments of the snippet. All snippets
+        are checked, and the failures are reported together.
+        """
+        tmpdir = tempfile.mkdtemp()
+        self.addCleanup(windows_proof_rmtree, tmpdir)
+        config = Path(tmpdir, 'meson.format')
+        failures = []
+        for source in sorted(testdir.rglob('*.meson')):
+            if source.name.endswith('.expected.meson'):
+                continue
+            name = source.relative_to(testdir).as_posix()
+            code = source.read_text(encoding='utf-8')
+            options = [line.partition('format-test:')[2] for line in code.splitlines()
+                       if line.startswith('# format-test:')]
+            config.write_text('\n'.join(options) + '\n', encoding='utf-8')
+            expected_file = source.with_suffix('.expected.meson')
+            expected = expected_file.read_text(encoding='utf-8') if expected_file.exists() else code
+            expected_name = expected_file.relative_to(testdir).as_posix() if expected_file.exists() else name
+            try:
+                formatter = Formatter(config, use_editor_config=use_editor_config, fetch_subdirs=False)
+                formatted = formatter.format(code, source)
+                if formatted == expected:
+                    name = f'{expected_name} formatted again'
+                    formatted = formatter.format(expected, source)
+            except MesonException as e:
+                failures.append(f'{name}: {e}\n')
+                continue
+            if formatted != expected:
+                failures.extend(difflib.unified_diff(expected.splitlines(keepends=True), formatted.splitlines(keepends=True),
+                                                     expected_name, f'{name} (formatted)'))
+        if failures:
+            self.fail('formatted snippets differ from expected:\n' + ''.join(failures))
+
+    def test_format_snippets(self) -> None:
+        self.check_format_snippets(Path(self.unit_test_dir, '141 format'), use_editor_config=False)
+
+    def test_format_editorconfig(self) -> None:
+        testdir = Path(self.unit_test_dir, '142 format editorconfig')
+        # enabled from the use_editor_config option of the snippets, then from the -e argument
+        self.check_format_snippets(testdir, use_editor_config=False)
+        self.check_format_snippets(testdir, use_editor_config=True)
+
+    def test_format_end_of_line(self) -> None:
+        dirpath = tempfile.mkdtemp()
+        self.addCleanup(windows_proof_rmtree, dirpath)
+        source = Path(dirpath, 'source.meson')
+        source.write_bytes(b'x=1\ny=2\n')
+        output = Path(dirpath, 'output.meson')
+        config = Path(dirpath, 'meson.format')
+        editorconfig = Path(dirpath, '.editorconfig')
+
+        parser = argparse.ArgumentParser()
+        mformat.add_arguments(parser)
+
+        def format_file(*args: str) -> bytes:
+            mformat.run(parser.parse_args([*args, '-c', str(config), '-o', str(output), str(source)]))
+            return output.read_bytes()
+
+        cases = [('lf', b'\n'), ('crlf', b'\r\n'), ('cr', b'\r'), ('native', os.linesep.encode())]
+        for end_of_line, newline in cases:
+            expected = b'x = 1' + newline + b'y = 2' + newline
+            config.write_text(f'end_of_line = {end_of_line}\n', encoding='utf-8')
+            self.assertEqual(expected, format_file(), f'end_of_line = {end_of_line}')
+
+            if end_of_line != 'native':
+                config.write_text('', encoding='utf-8')
+                editorconfig.write_text(f'root = true\n[*]\nend_of_line = {end_of_line}\n', encoding='utf-8')
+                self.assertEqual(expected, format_file('-e'), f'end_of_line = {end_of_line} in .editorconfig')
+
+    def test_format_find_configuration(self) -> None:
+        """meson.format is found in the parent directories of the source file"""
+        dirpath = tempfile.mkdtemp()
+        self.addCleanup(windows_proof_rmtree, dirpath)
+        Path(dirpath, 'meson.format').write_text("indent_by = '  '\n", encoding='utf-8')
+        source = Path(dirpath, 'subdir', 'meson.build')
+        source.parent.mkdir()
+        source.write_text('if true\nx = 1\nendif\n', encoding='utf-8')
+        output = Path(dirpath, 'output.meson')
+
+        parser = argparse.ArgumentParser()
+        mformat.add_arguments(parser)
+        mformat.run(parser.parse_args(['-o', str(output), str(source)]))
+        self.assertEqual('if true\n  x = 1\nendif\n', output.read_text(encoding='utf-8'))
+
+    def test_format_directive_errors(self) -> None:
         formatter = Formatter(None, use_editor_config=False, fetch_subdirs=False)
-        for code in ('', '\n'):
-            formatted = formatter.format(code, Path())
-            self.assertEqual('\n', formatted)
-
-    def test_format_indent_comment_in_brackets(self) -> None:
-        """Ensure comments in arrays and dicts are correctly indented"""
-        formatter = Formatter(None, use_editor_config=False, fetch_subdirs=False)
-        code = 'a = [\n    # comment\n]\n'
-        formatted = formatter.format(code, Path())
-        self.assertEqual(code, formatted)
-
-        code = 'a = [\n    # comment\n    1,\n]\n'
-        formatted = formatter.format(code, Path())
-        self.assertEqual(code, formatted)
-
-        code = 'a = {\n    # comment\n}\n'
-        formatted = formatter.format(code, Path())
-        self.assertEqual(code, formatted)
-
-    def test_format_sticky_parens(self) -> None:
-        fd, fname = tempfile.mkstemp(suffix='.ini', text=True)
-        self.addCleanup(os.unlink, fname)
-
-        with os.fdopen(fd, 'w', encoding='utf-8') as handle:
-            handle.write("sticky_parens = true\nindent_by = '  '\nend_of_line = lf\n")
-
-        formatter = Formatter(Path(fname), use_editor_config=False, fetch_subdirs=False)
-        cases = [
-            ('if (\n  a\n  or b\n)\n  x = 1\nendif\n',
-             'if (a\n    or b)\n  x = 1\nendif\n'),
-            ('if (a or  # comment\n    b)\n  x = 1\nendif\n',
-             'if (a\n    or  # comment\n    b)\n  x = 1\nendif\n'),
-            ('x = (  # comment\n  a or b)\n',
-             'x = (  # comment\n    a\n    or b)\n'),
-            ('x = ((aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa or bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb) and ccccccccccccccc)\n',
-             'x = ((aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa or bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb)\n    and ccccccccccccccc)\n'),
-            ("x = (a.get_variable(cmake: 'LLVM_ENABLE_RTTI') == 'ON') == (b.get_variable(configtool: 'has-rtti') == 'YES')\n",
-             "x = (a.get_variable(cmake: 'LLVM_ENABLE_RTTI') == 'ON') == (b.get_variable(\n  configtool: 'has-rtti',\n) == 'YES')\n"),
-        ]
-        for code, expected in cases:
-            formatted = formatter.format(code, Path())
-            self.assertEqual(expected, formatted)
-            # formatting must be stable
-            self.assertEqual(expected, formatter.format(formatted, Path()))
-
-    def test_format_directives(self) -> None:
-        formatter = Formatter(None, use_editor_config=False, fetch_subdirs=False)
-        cases = [
-            # off/on pair
-            ('x=[1,2]\n# meson-format off\ny  =  [1,\n  2]\n# meson-format on\nz=[1,2]\n',
-             'x = [1, 2]\n# meson-format off\ny  =  [1,\n  2]\n# meson-format on\nz = [1, 2]\n'),
-            # lone off disables formatting until the end of file
-            ('x=[1,2]\n# meson-format off\ny  =  [1,\n  2]',
-             'x = [1, 2]\n# meson-format off\ny  =  [1,\n  2]'),
-            # lone on and duplicated off are no-ops
-            ('# meson-format on\nx=[1,2]\n',
-             '# meson-format on\nx = [1, 2]\n'),
-            ('# meson-format off\nx=[1,2]\n# meson-format off\ny=[1,2]\n# meson-format on\nz=[1,2]\n',
-             '# meson-format off\nx=[1,2]\n# meson-format off\ny=[1,2]\n# meson-format on\nz = [1, 2]\n'),
-            # indented and loosely spelled directives
-            ('if true\n#meson-format   off\n  y  =  [1,\n  2]\n    #  meson-format on\nz=1\nendif\n',
-             'if true\n    #meson-format   off\n  y  =  [1,\n  2]\n    #  meson-format on\n    z = 1\nendif\n'),
-            # muon compatible directives
-            ('# fmt: off\nx  =  [1,2]\n#fmt:on\ny=[1,2]\n',
-             '# fmt: off\nx  =  [1,2]\n#fmt:on\ny = [1, 2]\n'),
-            ('# fmt:off\nx  =  [1,2]\n# meson-format on\ny=[1,2]\n',
-             '# fmt:off\nx  =  [1,2]\n# meson-format on\ny = [1, 2]\n'),
-            # not a directive
-            ('# meson-format offset\nx=[1,2]\n',
-             '# meson-format offset\nx = [1, 2]\n'),
-            ('# fmt off\nx=[1,2]\n',
-             '# fmt off\nx = [1, 2]\n'),
-            # directives inside strings are ignored
-            ("s='''\n# meson-format off\n'''\ny=[1,2]\n",
-             "s = '''\n# meson-format off\n'''\ny = [1, 2]\n"),
-            ("s='# meson-format off'\ny=[1,2]\n",
-             "s = '# meson-format off'\ny = [1, 2]\n"),
-        ]
-        for code, expected in cases:
-            with self.subTest(code=code):
-                formatted = formatter.format(code, Path())
-                self.assertEqual(expected, formatted)
-                self.assertEqual(formatted, formatter.format(formatted, Path()))
-
         errors = [
             ('x = [1, 2]  # meson-format off\n', 1, 12, 'must be on its own line'),
             ('if true\n    x = 1 # meson-format on\nendif\n', 2, 10, 'must be on its own line'),
