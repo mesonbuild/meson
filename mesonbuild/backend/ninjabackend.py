@@ -666,6 +666,10 @@ class NinjaBackend(backends.Backend):
                 if 'cuda' in self.environment.coredata.compilers[for_machine]:
                     mlog.debug('cuda enabled globally, disabling thin archives for {}, since nvcc/nvlink cannot handle thin archives natively'.format(for_machine))
                     self.allow_thin_archives[for_machine] = False
+                # zig ar can create thin archives, but Zig's linker cannot read them.
+                if any(c.linker is not None and c.linker.id == 'ld.zigcc'
+                       for c in self.environment.coredata.compilers[for_machine].values()):
+                    self.allow_thin_archives[for_machine] = False
 
         ninja = tooldetect.detect_ninja_command_and_version(log=True)
         if self.environment.coredata.optstore.get_value_for(OptionKey('vsenv')):
