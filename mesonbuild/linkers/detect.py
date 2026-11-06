@@ -235,19 +235,26 @@ def guess_nix_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
     # First might be apple clang, second is for real gcc, the third is icc.
     # Note that "ld: unknown option: " sometimes instead is "ld: unknown options:".
     elif e.endswith('(use -v to see invocation)\n') or 'macosx_version' in e or 'ld: unknown option' in e:
-        cmd = compiler + comp_class.LINKER_OPTION_STYLE.wrap(['-v']) + extra_args
+        cmd = compiler + override + comp_class.LINKER_OPTION_STYLE.wrap(['-v']) + extra_args
         _, newo, newerr = Popen_safe_logged(cmd, msg='Detecting Apple linker via')
 
-        for line in newerr.split('\n'):
+        for line in (newo + newerr).split('\n'):
+            if 'mold-macho' in line:
+                v = search_version(line)
+                linker = linkers.MoldMachODynamicLinker(
+                    compiler, env, for_machine, comp_class.LINKER_OPTION_STYLE, override,
+                    system=system, version=v
+                )
+                break
             if 'PROJECT:ld' in line or 'PROJECT:dyld' in line:
                 v = line.split('-')[1]
+                linker = linkers.AppleDynamicLinker(
+                    compiler, env, for_machine, comp_class.LINKER_OPTION_STYLE, override,
+                    system=system, version=v
+                )
                 break
         else:
             __failed_to_detect_linker(compiler, check_args, o, e)
-        linker = linkers.AppleDynamicLinker(
-            compiler, env, for_machine, comp_class.LINKER_OPTION_STYLE, override,
-            system=system, version=v
-        )
     elif 'ld.exe: unrecognized option' in e or 'ld: unrecognized option' in e:
         linker = linkers.OS2AoutDynamicLinker(
             compiler, env, for_machine, comp_class.LINKER_OPTION_STYLE, override,
