@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import os
+import posixpath
 import shutil
 import typing as T
 import xml.etree.ElementTree as ET
@@ -925,7 +926,7 @@ class QtBaseModule(ExtensionModule):
         qml_sources_paths = self._source_to_files(state, kwargs['qml_sources'])
         for s in qml_sources_paths:
             source_basename = os.path.basename(s.fname)
-            ressource_path = os.path.join('/', kwargs['module_prefix'], source_basename)
+            ressource_path = posixpath.join('/', kwargs['module_prefix'], source_basename)
             cachegen_inputs.append(ressource_path)
 
         cmd: CommandList = \
@@ -1070,7 +1071,7 @@ class QtBaseModule(ExtensionModule):
 
         module_prefix_list: T.List[str] = module_name.split('.')
         module_prefix: str = os.path.join(*module_prefix_list)
-        module_prefix_full: str = os.path.join(*(kwargs['resources_prefix'].split('/') + module_prefix_list))
+        module_prefix_full: str = posixpath.join(*(kwargs['resources_prefix'].split('/') + module_prefix_list))
 
         #same format as the one derived from qmltyperegistrar
         target_name = re.sub(r'[^A-Za-z0-9]', '_', module_name)
