@@ -51,7 +51,7 @@ if T.TYPE_CHECKING:
     from ..interpreter.type_checking import SourcesVarargsType
     from ..utils.universal import FileOrString
 
-    from typing_extensions import Literal, TypedDict
+    from typing_extensions import Literal, TypedDict, NotRequired
 
     ArgsType = T.TypeVar('ArgsType')
 
@@ -66,6 +66,13 @@ if T.TYPE_CHECKING:
     FuncTest = FuncRustTest[CommandTypes]
     FuncDoctest = FuncRustTest[str]
 
+    class _BindgenList(TypedDict):
+        file: NotRequired[list[str]]
+        function: NotRequired[list[str]]
+        item: NotRequired[list[str]]
+        type: NotRequired[list[str]]
+        var: NotRequired[list[str]]
+
     class FuncBindgen(TypedDict):
 
         args: T.List[str]
@@ -77,6 +84,10 @@ if T.TYPE_CHECKING:
         dependencies: T.List[T.Union[Dependency, ExternalLibrary]]
         language: T.Optional[Literal['c', 'cpp']]
         bindgen_version: T.List[str]
+        allowlist: _BindgenList
+        blocklist: _BindgenList
+        clang_macro_fallback: bool
+
 
     class FuncCBindgen(TypedDict):
 
@@ -144,6 +155,27 @@ _RUST_ABI: KwargInfo[str | None] = KwargInfo(
 
 _STR_STRUCT_OARG = OptArgInfo((str, StructuredSources))
 _STRUCT_OARG = OptArgInfo(StructuredSources)
+
+
+def _bindgen_list_validator(arg: dict[str, object]) -> str | None:
+    for key, value in arg.items():
+        if key not in {'file', 'function', 'item', 'type', 'var'}:
+            return 'key must be one of file, function, item, type, var'
+        if not isinstance(value, list):
+            return f'value for {key} must be a list'
+        for item in value:
+            if not isinstance(item, str):
+                return f'all items in the list for {key} must be strings'
+    return None
+
+
+_BINDGEN_ALLOWLIST: KwargInfo[_BindgenList] = KwargInfo(
+    'allowlist',
+    ContainerTypeInfo(dict, list),
+    default={},
+    validator=_bindgen_list_validator,
+    since='1.13.0',
+)
 
 
 def no_spaces_validator(arg: T.Optional[T.Union[str, T.List]]) -> T.Optional[str]:
@@ -880,6 +912,9 @@ class RustModule(ExtensionModule):
                 since='1.4.0',
             ),
             DEPENDENCIES_KW.evolve(since='1.0.0'),
+            _BINDGEN_ALLOWLIST,
+            _BINDGEN_ALLOWLIST.evolve(name='blocklist'),
+            KwargInfo('clang_macro_fallback', bool, default=False, since='1.13.0'),
         ],
     )
     def bindgen(self, state: ModuleState, args: T.List, kwargs: FuncBindgen) -> ModuleReturnValue:
@@ -1033,6 +1068,13 @@ class RustModule(ExtensionModule):
                 '--wrap-static-fns-path', os.path.join(state.environment.build_dir, '@OUTPUT1@')
             ]
 
+        if mesonlib.version_compare(state.environment.coredata.version, '>= 1.13.0'):
+            if '--clang-macro-fallback' in kwargs['args']:
+                mlog.warning('Consider using the clang_macro_fallback keyword '
+                             'argument instead of passing --clang-macro-fallback in args. ',
+                             'It handles corner cases such as setting --clang-macro-fallback-build-dir.',
+                             fatal=False, location=state.current_node)
+
         cmd = self._bindgen_bin.get_command() + \
             [
                 '@INPUT@', '--output',
@@ -1049,6 +1091,19 @@ class RustModule(ExtensionModule):
             assert isinstance(rust_std, str), 'for mypy'
             if rust_std != 'none':
                 cmd.extend(['--rust-edition', rust_std])
+
+        # Fill in the --blocklist-* and --allowlist-* arguments for bindgen
+        for b in ('allowlist', 'blocklist'):
+            for key, value in kwargs[b].items():
+                # Neither mypy nor pyright can figure out that value is a list[str]
+                for v in T.cast('list[str]', value):
+                    cmd.extend([f'--{b}-{key}', v])
+
+        # Set up clang macro fallback if requested, also set the private directory
+        if kwargs['clang_macro_fallback']:
+            cmd.extend(['--clang-macro-fallback',
+                        '--clang-macro-fallback-build-dir', '@PRIVATE_DIR@'])
+
         cmd.append('--')
         cmd.extend(kwargs['c_args'])
         cmd.extend(clang_args)
