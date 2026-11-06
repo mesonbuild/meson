@@ -205,7 +205,7 @@ class Vs2010Backend(backends.Backend):
             else:
                 sole_output = ''
             infilename = os.path.join(down, curfile.rel_to_builddir(self.build_to_src, self.get_target_private_dir(target)))
-            deps = self.get_target_depend_files(genlist, True)
+            deps = self.get_target_depend_files(genlist, self.absolute_command_paths())
             deps += self.get_paths_for_dep_outputs(target, genlist.extra_depends)
             base_args = generator.get_arglist(infilename)
             outfiles_rel = genlist.get_outputs_for(curfile)
@@ -554,12 +554,19 @@ class Vs2010Backend(backends.Backend):
                 headers.append(i)
         return sources, headers, objects, languages
 
-    def target_to_build_root(self, target: build.BuildTargetProto) -> str:
+    def target_to_build_root(self, target: build.AnyTargetProto) -> str:
         if self.get_target_dir(target) == '':
             return ''
 
         directories = os.path.normpath(self.get_target_dir(target)).split(os.sep)
         return os.sep.join(['..'] * len(directories))
+
+    def get_target_dir_command_paths(self, target: build.AnyTargetProto) -> backends.CommandPaths:
+        '''Paths for a command that runs from the target dir.'''
+        build_root = self.target_to_build_root(target)
+        if not build_root:
+            return self.relative_command_paths()
+        return backends.CommandPaths(os.path.normpath(os.path.join(build_root, self.build_to_src)), build_root)
 
     def quote_arguments(self, arr: list[str]) -> list[str]:
         return ['"%s"' % i for i in arr]
@@ -685,7 +692,9 @@ class Vs2010Backend(backends.Backend):
                                                         temp_dir=target.get_id(),
                                                         guid=guid,
                                                         gen_manifest=self.get_gen_manifest(target))
-        depend_files = self.get_target_depend_files(target)
+        # The command runs from the build root, but MSBuild resolves inputs
+        # from the directory of the project file.
+        depend_files = self.get_target_depend_files(target, self.get_target_dir_command_paths(target))
 
         if not target.command:
             # This is an alias target and thus doesn't run any command. It's
@@ -721,10 +730,11 @@ class Vs2010Backend(backends.Backend):
                                                         guid=guid,
                                                         target_platform=platform,
                                                         gen_manifest=self.get_gen_manifest(target))
-        # We need to always use absolute paths because our invocation is always
-        # from the target dir, not the build root.
-        (srcs, ofilenames, cmd) = self.eval_custom_target_command(target, self.absolute_command_paths())
-        depend_files = self.get_target_depend_files(target, True)
+        # The command runs from the target dir, which is also the directory of
+        # the project file: MSBuild resolves inputs and outputs from there.
+        paths = self.get_target_dir_command_paths(target)
+        (srcs, ofilenames, cmd) = self.eval_custom_target_command(target, paths)
+        depend_files = self.get_target_depend_files(target, paths)
         # Always use a wrapper because MSBuild eats random characters when
         # there are many arguments.
         tdir_abs = os.path.join(self.environment.get_build_dir(), self.get_target_dir(target))

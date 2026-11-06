@@ -4,6 +4,7 @@
 import subprocess
 import re
 import os
+import pickle
 import shutil
 from unittest import mock, SkipTest, skipUnless, skipIf
 from glob import glob
@@ -546,3 +547,33 @@ class WindowsTests(BasePlatformTests):
         # should be in extra_paths (so the DLL can be found at runtime).
         self.assertTrue(any('lib' in p for p in extra_paths) and len(extra_paths) == 1,
             f'extra_paths should contain a lib directory and nothing else: {extra_paths}')
+
+    def test_vs_custom_target_relative_paths(self):
+        '''
+        The VS backend runs custom target commands from the directory of the
+        project file, and passes them paths relative to that directory.
+        '''
+        if self.backend is not Backend.vs:
+            raise SkipTest('Only for the VS backend')
+        testdir = os.path.join(self.common_test_dir, '307 custom target paths in subdir')
+        self.init(testdir)
+
+        cmd = None
+        for fname in glob(os.path.join(self.privatedir, 'meson_exe_*.dat')):
+            with open(fname, 'rb') as f:
+                es = pickle.load(f)
+            if '--custom-target-arg' in es.cmd_args:
+                cmd = es
+                break
+        self.assertIsNotNone(cmd, 'check_paths command not found')
+
+        self.assertEqual(os.path.normcase(cmd.workdir),
+                         os.path.normcase(os.path.join(self.builddir, 'sub', 'dir')))
+        builddir = os.path.normcase(self.builddir).replace('\\', '/')
+        for arg in cmd.cmd_args[1:]:
+            self.assertNotIn(builddir, os.path.normcase(arg).replace('\\', '/'))
+        args = dict(zip(cmd.cmd_args, cmd.cmd_args[1:]))
+        self.assertEqual(args['--build-root'], '../..')
+        self.assertEqual(args['--custom-target-arg'], '../../gen/gen.txt')
+
+        self.build()

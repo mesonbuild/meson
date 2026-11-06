@@ -245,10 +245,14 @@ class CommandPaths:
     build_root: str
 
     def build(self, path: str) -> str:
-        """Rebase a path relative to the build root."""
+        """Rebase a path relative to the build root.
+
+        Paths relative to the build root are kept untouched, so that they
+        match the paths used elsewhere by the backend. Others are normalized.
+        """
         if self.build_root == '.':
             return path
-        return os.path.join(self.build_root, path)
+        return os.path.normpath(os.path.join(self.build_root, path))
 
 
 def get_backend_from_name(backend: str, build: T.Optional[build.Build] = None) -> Backend:
@@ -1643,15 +1647,13 @@ class Backend:
                     deps.append(os.path.join(self.get_target_dir(i), output))
         return deps
 
-    def get_target_depend_files(self, target: T.Union[build.Target, build.GeneratedList], absolute_paths: bool = False) -> T.List[str]:
-        deps: T.List[str] = []
-        for i in target.depend_files:
-            if absolute_paths:
-                deps.append(i.absolute_path(self.environment.get_source_dir(),
-                                            self.environment.get_build_dir()))
-            else:
-                deps.append(i.rel_to_builddir(self.build_to_src))
-        return deps
+    def get_target_depend_files(self, target: T.Union[build.Target, build.GeneratedList],
+                                paths: CommandPaths | None = None) -> T.List[str]:
+        '''Paths to the depend_files of target, as seen from the directory
+        described by paths (by default, relative to the build root).'''
+        if paths is None:
+            paths = self.relative_command_paths()
+        return [paths.build(i.rel_to_builddir(self.build_to_src)) for i in target.depend_files]
 
     def get_custom_target_output_dir(self, target: build.AnyTargetProto) -> str:
         # The XCode backend is special. A target foo/bar does
@@ -1704,8 +1706,8 @@ class Backend:
         file_paths = self.get_command_paths(target, paths)
         source_root = paths.source_root
         build_root = paths.build_root
-        outdir = paths.build(self.get_custom_target_output_dir(target))
-        outputs = [os.path.join(outdir, i) for i in target.get_outputs()]
+        outdir = self.get_custom_target_output_dir(target)
+        outputs = [paths.build(os.path.join(outdir, i)) for i in target.get_outputs()]
         inputs = self.get_custom_target_sources(target, paths)
         # Evaluate the command list
         cmd: T.List[str | programs.Program] = []
@@ -1736,7 +1738,7 @@ class Backend:
                         msg = f'Custom target {target.name!r} has @DEPFILE@ but no depfile ' \
                               'keyword argument.'
                         raise MesonException(msg)
-                    dfilename = os.path.join(outdir, target.get_dep_outname(inputs, target.get_outputs()))
+                    dfilename = paths.build(os.path.join(outdir, target.get_dep_outname(inputs, target.get_outputs())))
                     i = i.replace('@DEPFILE@', dfilename)
                 if '@PRIVATE_DIR@' in i:
                     assert isinstance(target, build.CustomTarget)
