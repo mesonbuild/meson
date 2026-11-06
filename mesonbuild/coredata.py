@@ -205,9 +205,6 @@ class CMakeStateCache:
         return set(self.__cache.keys())
 
 
-# Can't bind this near the class method it seems, sadly.
-_V = T.TypeVar('_V')
-
 # This class contains all data that must persist over multiple
 # invocations of Meson. It is roughly the same thing as
 # cmakecache.

@@ -230,8 +230,6 @@ else:
     CommandTargetProto = object
 
 
-_T = T.TypeVar('_T')
-
 DEFAULT_STATIC_LIBRARY_NAMES: T.Mapping[str, T.Tuple[str, str]] = {
     'unix': ('lib', 'a'),
     'windows': ('', 'lib'),
