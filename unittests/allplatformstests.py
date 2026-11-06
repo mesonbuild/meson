@@ -460,8 +460,6 @@ class AllPlatformTests(BasePlatformTests):
         env = get_fake_env(testdir, self.builddir, self.prefix)
         cc = detect_c_compiler(env, MachineChoice.HOST)
         static_linker = detect_static_linker(env, cc)
-        if is_windows():
-            raise SkipTest('https://github.com/mesonbuild/meson/issues/1526')
         if not isinstance(static_linker, linkers.ArLinker):
             raise SkipTest('static linker is not `ar`')
         # Configure

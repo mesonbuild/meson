@@ -72,12 +72,8 @@ FORTRAN_USE_PAT = r"^\s*use,?\s*(?:non_intrinsic)?\s*(?:::)?\s*(\w+)"
 # (see https://ninja-build.org/manual.html#ref_rule_command)
 if mesonlib.is_windows():
     quote_func = cmd_quote
-    execute_wrapper = ['cmd', '/c']  # unused
-    rmfile_prefix = ['del', '/f', '/s', '/q', '{}', '&&']
 else:
     quote_func = quote_arg
-    execute_wrapper = []
-    rmfile_prefix = ['rm', '-f', '{}', '&&']
 
 # a conservative estimate of the command-line length limit
 rsp_threshold = mesonlib.get_rsp_threshold()
@@ -2498,15 +2494,16 @@ class NinjaBackend(backends.Backend):
             rule = 'STATIC_LINKER{}'.format(self.get_rule_suffix(for_machine))
             cmdlist: CommandArgs = []
             args = ['$in']
-            # FIXME: Must normalize file names with pathlib.Path before writing
-            #        them out to fix this properly on Windows. See:
-            # https://github.com/mesonbuild/meson/issues/1517
-            # https://github.com/mesonbuild/meson/issues/1526
-            if isinstance(static_linker, ArLikeLinker) and not mesonlib.is_windows():
+            if isinstance(static_linker, ArLikeLinker):
                 # `ar` has no options to overwrite archives. It always appends,
                 # which is never what we want. Delete an existing library first if
                 # it exists. https://github.com/mesonbuild/meson/issues/1355
-                cmdlist = execute_wrapper + [c.format('$out') for c in rmfile_prefix]
+                if mesonlib.is_windows():
+                    # Ninja runs commands without a shell on Windows, and del
+                    # cannot take the forward slashes in $out.
+                    cmdlist = self.environment.get_build_command() + ['--internal', 'arwrapper', '$out']
+                else:
+                    cmdlist = ['rm', '-f', '$out', '&&']
             cmdlist += static_linker.get_exelist()
             cmdlist += ['$LINK_ARGS']
             cmdlist += NinjaCommandArg.list(static_linker.get_output_args('$out'), Quoting.none)
