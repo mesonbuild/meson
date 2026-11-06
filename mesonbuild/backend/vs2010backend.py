@@ -724,7 +724,7 @@ class Vs2010Backend(backends.Backend):
         # We need to always use absolute paths because our invocation is always
         # from the target dir, not the build root.
         target.absolute_paths = True
-        (srcs, ofilenames, cmd) = self.eval_custom_target_command(target, True)
+        (srcs, ofilenames, cmd) = self.eval_custom_target_command(target, self.absolute_command_paths())
         depend_files = self.get_target_depend_files(target, True)
         # Always use a wrapper because MSBuild eats random characters when
         # there are many arguments.
