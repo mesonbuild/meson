@@ -5,7 +5,6 @@ from __future__ import annotations
 
 from .. import mparser
 from .exceptions import InvalidCode, InvalidArguments
-from .helpers import flatten
 from .operator import MesonOperator
 from ..mesonlib import HoldableObject, MesonBugException, SimpleABC, SubProject, ROOT_SUBPROJECT
 import textwrap
@@ -14,7 +13,7 @@ import typing as T
 from contextlib import AbstractContextManager
 
 if T.TYPE_CHECKING:
-    from typing_extensions import TypeAlias
+    from typing_extensions import Literal, TypeAlias
 
     # Object holders need the actual interpreter
     from ..interpreter import Interpreter
@@ -29,6 +28,9 @@ TYPE_key_resolver = T.Callable[[mparser.BaseNode], str]
 TYPE_op_arg = T.TypeVar('TYPE_op_arg', bound='TYPE_var', contravariant=True)
 TYPE_op_func = T.Callable[[TYPE_op_arg, TYPE_op_arg], TYPE_var]
 TYPE_method_func = T.Callable[['InterpreterObject', T.List[TYPE_var], TYPE_kwargs], TYPE_var | None]
+
+# For functions decorated with @noKwargs, which ignore their keyword arguments.
+NoKwArgs = T.Mapping[str, object]
 
 class InterpreterObject:
     TRIVIAL_OPERATORS: T.Dict[
@@ -46,7 +48,7 @@ class InterpreterObject:
         TYPE_method_func,
     ] = {}
 
-    def __init_subclass__(cls: T.Type[InterpreterObject], **kwargs: T.Any) -> None:
+    def __init_subclass__(cls: T.Type[InterpreterObject], **kwargs: object) -> None:
         super().__init_subclass__(**kwargs)
         saved_trivial_operators = cls.TRIVIAL_OPERATORS
 
@@ -114,8 +116,6 @@ class InterpreterObject:
             ) -> TYPE_var | None:
         if method_name in self.METHODS:
             method = self.METHODS[method_name]
-            if not getattr(method, 'no-args-flattening', False):
-                args = flatten(args)
             return method(self, args, kwargs)
 
         ustr = f'Unknown method "{method_name}" in object {self} of type {type(self).__name__}.'
@@ -125,7 +125,27 @@ class InterpreterObject:
             ustr += f' Did you mean "{close_matches[0]}"?'
         raise InvalidCode(ustr)
 
-    def operator_call(self, operator: MesonOperator, other: TYPE_var) -> TYPE_var:
+    @T.overload
+    def operator_call(self, operator: Literal[MesonOperator.PLUS, MesonOperator.MINUS,
+                                              MesonOperator.TIMES, MesonOperator.DIV,
+                                              MesonOperator.MOD, MesonOperator.INDEX], other: TYPE_var) -> TYPE_var: ...
+
+    @T.overload
+    def operator_call(self, operator: Literal[MesonOperator.EQUALS, MesonOperator.NOT_EQUALS,
+                                              MesonOperator.GREATER, MesonOperator.LESS,
+                                              MesonOperator.GREATER_EQUALS, MesonOperator.LESS_EQUALS,
+                                              MesonOperator.IN, MesonOperator.NOT_IN], other: TYPE_var) -> bool: ...
+
+    @T.overload
+    def operator_call(self, operator: Literal[MesonOperator.UMINUS], other: None) -> TYPE_var: ...
+
+    @T.overload
+    def operator_call(self, operator: Literal[MesonOperator.BOOL, MesonOperator.NOT], other: None) -> bool: ...
+
+    @T.overload
+    def operator_call(self, operator: MesonOperator, other: TYPE_var) -> TYPE_var: ...
+
+    def operator_call(self, operator: MesonOperator, other: TYPE_var | None) -> TYPE_var:
         if operator in self.TRIVIAL_OPERATORS:
             op = self.TRIVIAL_OPERATORS[operator]
             if op[0] is None and other is not None:

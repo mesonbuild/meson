@@ -28,7 +28,7 @@ from ..programs import ExternalProgram, NonExistingExternalProgram, Program
 from ..dependencies import Dependency
 from ..depfile import DepFile
 from ..interpreterbase import ContainerTypeInfo, InterpreterBase, KwargInfo, TypedArgs, PosArgInfo, OptArgInfo, VarArgInfo
-from ..interpreterbase import noArgsFlattening, unholder_return
+from ..interpreterbase import unholder_return
 from .decorators import apply_machine_map
 from ..interpreterbase import InterpreterException, InvalidArguments, InvalidCode, SubdirDoneRequest
 from ..interpreterbase import Disabler, disablerIfNotFound
@@ -227,6 +227,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     def __init__(
                 self,
                 _build: build.Build,
+                user_defined_options: SharedCMDOptions,
                 backend: T.Optional[Backend] = None,
                 subproject: SubProject = mesonlib.ROOT_SUBPROJECT,
                 subdir: str = '',
@@ -234,7 +235,6 @@ class Interpreter(InterpreterBase, HoldableObject):
                 invoker_method_default_options: T.Optional[OptionDict] = None,
                 ast: T.Optional[mparser.CodeBlockNode] = None,
                 relaxations: T.Optional[T.Dict[InterpreterRuleRelaxation, T.Optional[FeatureCheckBase]]] = None,
-                user_defined_options: T.Optional[SharedCMDOptions] = None,
                 cargo: T.Optional[cargo.Interpreter] = None,
             ) -> None:
         super().__init__(_build.environment.get_source_dir(), subdir, subproject, subproject_dir, _build.environment)
@@ -611,8 +611,8 @@ class Interpreter(InterpreterBase, HoldableObject):
     def func_import(self, node: mparser.BaseNode, args: T.Tuple[str],
                     kwargs: 'kwtypes.FuncImportModule') -> T.Union[ExtensionModule, NewExtensionModule, NotFoundExtensionModule]:
         modname = args[0]
-        disabled, required, _ = extract_required_kwarg(kwargs, self.subproject)
-        if disabled:
+        required, disabled_by_feature = extract_required_kwarg(kwargs, self.subproject)
+        if disabled_by_feature:
             return NotFoundExtensionModule(modname)
 
         # Always report implementation detail modules don't exist
@@ -915,16 +915,16 @@ class Interpreter(InterpreterBase, HoldableObject):
 
     def do_subproject(self, subp_name: SubProject, kwargs: kwtypes.DoSubproject, force_method: T.Optional[wrap.Method] = None,
                       forced_options: T.Optional[OptionDict] = None) -> SubprojectHolder:
-        disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
+        required, disabled_by_feature = extract_required_kwarg(kwargs, self.subproject)
         # kwargs['for_machine'] is used to choose between Build.copy() and
         # Build.copy_for_build_machine(), while for_machine is used to
         # look up and register the subproject.
         kwargs.setdefault('for_machine', MachineChoice.HOST)
         for_machine = self.build.machine_map[kwargs['for_machine']]
 
-        if disabled:
-            mlog.log('Subproject', mlog.bold(subp_name), ':', 'skipped: feature', mlog.bold(feature), 'disabled')
-            return self.disabled_subproject(subp_name, for_machine, disabled_feature=feature)
+        if disabled_by_feature:
+            mlog.log('Subproject', mlog.bold(subp_name), ':', 'skipped: feature', mlog.bold(disabled_by_feature), 'disabled')
+            return self.disabled_subproject(subp_name, for_machine, disabled_feature=disabled_by_feature)
 
         default_options = kwargs['default_options']
 
@@ -933,9 +933,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         # command line.
         if forced_options:
             for k, v in forced_options.items():
-                # FIXME: this should have no business poking at augments[],
-                # but set_option() does not do what we want
-                self.coredata.optstore.augments[k.evolve(subproject=subp_name)] = v
+                self.coredata.optstore.set_runtime_option(k.evolve(subproject=subp_name), v)
             default_options = {**forced_options, **default_options}
 
         if subp_name == '':
@@ -1054,9 +1052,8 @@ class Interpreter(InterpreterBase, HoldableObject):
             if ast:
                 self._save_ast(for_machine.get_prefix() + subdir, ast)
 
-            subi = Interpreter(new_build, self.backend, subp_name, subdir, self.subproject_dir,
-                               default_options, ast=ast, relaxations=relaxations,
-                               user_defined_options=self.user_defined_options,
+            subi = Interpreter(new_build, self.user_defined_options, self.backend, subp_name, subdir,
+                               self.subproject_dir, default_options, ast=ast, relaxations=relaxations,
                                cargo=cargo)
             # Those lists are shared by all interpreters. That means that
             # even if the subproject fails, any modification that the subproject
@@ -1218,9 +1215,9 @@ class Interpreter(InterpreterBase, HoldableObject):
                 mlog.log('Auto detected Visual Studio backend:', mlog.bold(self.backend.name))
             if not self.environment.first_invocation:
                 raise MesonBugException(f'Backend changed from {backend_name} to {self.backend.name}')
-            self.coredata.optstore.set_option(OptionKey('backend'), self.backend.name, first_invocation=True)
+            self.coredata.optstore.set_detected_option(OptionKey('backend'), self.backend.name)
 
-        self.environment.init_backend_options(backend_name)
+        self.coredata.init_backend_options(backend_name)
 
     def _validate_languages(self, langs: T.List[str], required: bool, node: mparser.BaseNode) -> T.List[Language]:
         valid: T.List[Language] = []
@@ -1279,18 +1276,13 @@ class Interpreter(InterpreterBase, HoldableObject):
         self._load_option_file()
 
         self.project_default_options = kwargs['default_options']
-        if self.environment.first_invocation or (self.subproject != '' and self.subproject not in self.coredata.initialized_subprojects):
-            if self.subproject == '':
-                self.coredata.optstore.initialize_from_top_level_project_call(self.project_default_options,
-                                                                              self.user_defined_options.cmd_line_options,
-                                                                              self.environment.options)
-            else:
-                self.coredata.optstore.initialize_from_subproject_call(self.subproject,
-                                                                       self.invoker_method_default_options,
-                                                                       self.project_default_options,
-                                                                       self.user_defined_options.cmd_line_options,
-                                                                       self.environment.options)
-                self.coredata.initialized_subprojects.add(self.subproject)
+        if self.subproject == '':
+            self.coredata.optstore.initialize_from_top_level_project_call(self.project_default_options)
+        else:
+            self.coredata.optstore.initialize_from_subproject_call(self.subproject,
+                                                                   self.invoker_method_default_options,
+                                                                   self.project_default_options)
+            self.coredata.initialized_subprojects.add(self.subproject)
 
         if not self.is_subproject():
             # We have to activate VS before adding languages and before calling
@@ -1301,12 +1293,14 @@ class Interpreter(InterpreterBase, HoldableObject):
             assert backend is None or isinstance(backend, str), 'for mypy'
             vsenv = self.coredata.optstore.get_value_for(OptionKey('vsenv'))
             assert isinstance(vsenv, bool), 'for mypy'
+            if self.environment.first_invocation:
+                # Compilers are detected in the Visual Studio environment and
+                # are not detected again, so the value must not change later.
+                self.coredata.optstore.lock_readonly_option(OptionKey('vsenv'), vsenv)
             force_vsenv = vsenv or backend.startswith('vs')
             mesonlib.setup_vsenv(force_vsenv)
         self.set_backend()
 
-        if not self.is_subproject():
-            self.build.project_name = proj_name
         self.active_projectname = proj_name
 
         version = kwargs['version']
@@ -1327,7 +1321,8 @@ class Interpreter(InterpreterBase, HoldableObject):
         else:
             self.project_version = version
 
-        if self.build.project_version is None:
+        if not self.is_subproject():
+            self.build.project_name = proj_name
             self.build.project_version = self.project_version
 
         if kwargs['license'] is None:
@@ -1406,14 +1401,14 @@ class Interpreter(InterpreterBase, HoldableObject):
         ],
     )
     def func_add_languages(self, node: mparser.FunctionNode, args: T.Tuple[T.List[str]], kwargs: 'kwtypes.FuncAddLanguages') -> bool:
-        disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
+        required, disabled_by_feature = extract_required_kwarg(kwargs, self.subproject)
         for_machine = kwargs['native']
 
         langs = self._validate_languages(args[0], required, node)
 
-        if disabled:
+        if disabled_by_feature:
             for lang in sorted(langs, key=compilers.sort_clink):
-                mlog.log('Compiler for language', mlog.bold(lang), 'skipped: feature', mlog.bold(feature), 'disabled')
+                mlog.log('Compiler for language', mlog.bold(lang), 'skipped: feature', mlog.bold(disabled_by_feature), 'disabled')
             return False
         if for_machine is not None:
             return self.add_languages(langs, required, for_machine)
@@ -1436,8 +1431,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         except InvalidArguments as e:
             raise InvalidArguments(f'{func_name}(): {str(e)}')
 
-    @noArgsFlattening
-    @TypedArgs('message', var_types=OBJ_VARG.evolve(variadic_since='0.54.0'))
+    @TypedArgs('message', var_types=OBJ_VARG.evolve(variadic_since='0.54.0'), flatten=False)
     def func_message(self, node: mparser.BaseNode, args: tuple[list[TYPE_var]], kwargs: TYPE_kwargs) -> None:
         args_str = self._stringify_user_arguments(args[0], 'message')
         self.message_impl(args_str)
@@ -1445,7 +1439,6 @@ class Interpreter(InterpreterBase, HoldableObject):
     def message_impl(self, args: mlog.TV_LoggableList | list[str]) -> None:
         mlog.log(mlog.bold('Message:'), *args)
 
-    @noArgsFlattening
     @FeatureNew('summary', '0.53.0')
     @TypedArgs(
         'summary',
@@ -1456,6 +1449,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             KwargInfo('bool_yn', bool, default=False),
             KwargInfo('list_sep', (str, NoneType), since='0.54.0')
         ],
+        flatten=False,
     )
     def func_summary(self, node: mparser.BaseNode, args: T.Tuple[T.Union[str, T.Dict[str, T.Any]], T.Optional[T.Any]],
                      kwargs: 'kwtypes.Summary') -> None:
@@ -1539,22 +1533,19 @@ class Interpreter(InterpreterBase, HoldableObject):
                     project.dump_summary()
         self.current_build_project().dump_summary()
 
-    @noArgsFlattening
     @FeatureNew('warning', '0.44.0')
-    @TypedArgs('warning', var_types=OBJ_VARG.evolve(variadic_since='0.54.0'))
+    @TypedArgs('warning', var_types=OBJ_VARG.evolve(variadic_since='0.54.0'), flatten=False)
     def func_warning(self, node: mparser.BaseNode, args: tuple[list[TYPE_var]], kwargs: TYPE_kwargs) -> None:
         args_str = self._stringify_user_arguments(args[0], 'warning')
         mlog.warning(*args_str, location=node)
 
-    @noArgsFlattening
-    @TypedArgs('error', var_types=OBJ_VARG.evolve(variadic_since='0.54.0'))
+    @TypedArgs('error', var_types=OBJ_VARG.evolve(variadic_since='0.54.0'), flatten=False)
     def func_error(self, node: mparser.BaseNode, args: tuple[list[TYPE_var]], kwargs: TYPE_kwargs) -> T.NoReturn:
         args_str = self._stringify_user_arguments(args[0], 'error')
         raise InterpreterException('Problem encountered: ' + ' '.join(args_str))
 
-    @noArgsFlattening
     @FeatureNew('debug', '0.63.0')
-    @TypedArgs('debug', var_types=OBJ_VARG)
+    @TypedArgs('debug', var_types=OBJ_VARG, flatten=False)
     def func_debug(self, node: mparser.BaseNode, args: tuple[list[TYPE_var]], kwargs: TYPE_kwargs) -> None:
         args_str = self._stringify_user_arguments(args[0], 'debug')
         mlog.debug('Debug:', *args_str)
@@ -1946,9 +1937,9 @@ class Interpreter(InterpreterBase, HoldableObject):
     def func_find_program(self, node: mparser.BaseNode, args: T.Tuple[T.List[mesonlib.FileOrString]],
                           kwargs: 'kwtypes.FindProgram',
                           ) -> Program:
-        disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
-        if disabled:
-            mlog.log('Program', mlog.bold(' '.join(str(a) for a in args[0])), 'skipped: feature', mlog.bold(feature), 'disabled')
+        required, disabled_by_feature = extract_required_kwarg(kwargs, self.subproject)
+        if disabled_by_feature:
+            mlog.log('Program', mlog.bold(' '.join(str(a) for a in args[0])), 'skipped: feature', mlog.bold(disabled_by_feature), 'disabled')
             return self.notfound_program(args[0])
 
         search_dirs = extract_search_dirs(kwargs)
@@ -1976,14 +1967,14 @@ class Interpreter(InterpreterBase, HoldableObject):
         df.set_fallback(kwargs['fallback'])
         not_found_message = kwargs['not_found_message']
 
-        disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
-        if disabled:
+        required, disabled_by_feature = extract_required_kwarg(kwargs, self.subproject)
+        if disabled_by_feature:
             name = names[0]
             if kwargs['modules']:
                 name = name + '(modules: {})'.format(', '.join(kwargs['modules']))
             mlog.log('Dependency', mlog.bold(name),
                      'for', mlog.bold(for_machine.get_lower_case_name()), 'machine',
-                     'skipped: feature', mlog.bold(feature), 'disabled')
+                     'skipped: feature', mlog.bold(disabled_by_feature), 'disabled')
             return dependencies.NotFoundDependency(names[0], self.environment)
 
         nkwargs = T.cast('dependencies.base.DependencyObjectKWs', kwargs.copy())
@@ -2210,6 +2201,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             install_dir=install_dir,
             install_mode=install_mode,
             install_tag=install_tag,
+            backend=self.backend,
         )
         self.add_target(tg.name, tg)
         return tg
@@ -2262,7 +2254,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         ],
     )
     @apply_machine_map
-    def func_custom_target(self, node: mparser.FunctionNode, args: T.Tuple[str],
+    def func_custom_target(self, node: mparser.FunctionNode, args: T.Tuple[T.Optional[str]],
                            kwargs: 'kwtypes.CustomTarget') -> build.CustomTarget:
         if kwargs['depfile'] and ('@BASENAME@' in kwargs['depfile'] or '@PLAINNAME@' in kwargs['depfile']):
             FeatureNew.single_use('substitutions in custom_target depfile', '0.47.0', self.subproject, location=node)
@@ -2287,8 +2279,6 @@ class Interpreter(InterpreterBase, HoldableObject):
         # These are nullable so that we can know whether they're explicitly
         # set or not. If they haven't been overwritten, set them to their true
         # default
-        if build_by_default is None:
-            build_by_default = False
         if build_always_stale is None:
             build_always_stale = False
 
@@ -2647,8 +2637,8 @@ class Interpreter(InterpreterBase, HoldableObject):
         'structured_sources',
         pos_types=[TGT_PARG],
         opt_types=[OptArgInfo(dict)],  # TODO: ContainerType cannot represent dict[str, list[...Ts]]
+        flatten=False,
     )
-    @noArgsFlattening
     def func_structured_sources(
             self, node: mparser.BaseNode,
             args: T.Tuple[list[str | mesonlib.File | build.GeneratedTypes], T.Optional[T.Dict[str, object]]],
@@ -3339,11 +3329,11 @@ class Interpreter(InterpreterBase, HoldableObject):
         for lang in kwargs['language']:
             argsdict[lang] = argsdict.get(lang, []) + args
 
-    @noArgsFlattening
     @TypedArgs(
         'environment',
         opt_types=[OptArgInfo((str, list, dict), since='0.52.0')],
         kw_types=[ENV_METHOD_KW, ENV_SEPARATOR_KW.evolve(since='0.62.0')],
+        flatten=False,
     )
     def func_environment(self, node: mparser.FunctionNode, args: T.Tuple[T.Union[None, str, T.List['TYPE_var'], T.Dict[str, 'TYPE_var']]],
                          kwargs: kwtypes.FuncEnvironment) -> EnvironmentVariables:
@@ -4248,8 +4238,8 @@ class Interpreter(InterpreterBase, HoldableObject):
             STR_PARG.evolve(validator=lambda x: f'Invalid variable name: "{x}"' if mparser.IDENT_RE.fullmatch(x) is None else None),
             PosArgInfo((object, DefaultObject), accept_second_level_holder=True),
         ],
+        flatten=False,
     )
-    @noArgsFlattening
     def func_set_variable(self, node: mparser.BaseNode, args: T.Tuple[str, TYPE_var | InterpreterObject], kwargs: 'TYPE_kwargs') -> None:
         self.set_variable(*args, holderify=True)
 
@@ -4257,8 +4247,8 @@ class Interpreter(InterpreterBase, HoldableObject):
         'get_variable',
         pos_types=[PosArgInfo((str, Disabler, DefaultObject))],
         opt_types=[OBJ_OARG],
+        flatten=False,
     )
-    @noArgsFlattening
     @unholder_return
     def func_get_variable(self, node: mparser.BaseNode, args: T.Tuple[T.Union[str, Disabler], T.Optional[TYPE_var | InterpreterObject]],
                           kwargs: 'TYPE_kwargs') -> TYPE_var | InterpreterObject:

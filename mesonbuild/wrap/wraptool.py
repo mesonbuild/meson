@@ -87,8 +87,7 @@ def get_latest_version(name: str, allow_insecure: bool) -> T.Tuple[str, str]:
     version, revision = latest_version.rsplit('-', 1)
     return version, revision
 
-def install_one(name: str, allow_insecure: bool) -> None:
-    subproject_dir_name = mesonlib.get_subproject_dir()
+def install_one(name: str, subproject_dir_name: str, allow_insecure: bool) -> None:
     if os.path.isdir(os.path.join(subproject_dir_name, name)):
         raise SystemExit('Subproject directory for this project already exists.')
     wrapfile = os.path.join(subproject_dir_name, name + '.wrap')
@@ -109,7 +108,7 @@ def install(options: 'argparse.Namespace') -> None:
 
     for name in dict.fromkeys(options.name):
         try:
-            install_one(name, options.allow_insecure)
+            install_one(name, subproject_dir_name, options.allow_insecure)
         except WrapException as e:
             print(str(e), file=sys.stderr)
             failed += 1

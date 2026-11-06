@@ -226,8 +226,6 @@ class CompilerHolder(ObjectHolder['Compiler']):
         if not names:
             return endl
         tpl = msg_many if len(names) > 1 else msg_single
-        if endl is None:
-            endl = ''
         return tpl.format(', '.join(names)) + endl
 
     @TypedArgs('compiler.version')
@@ -290,10 +288,10 @@ class CompilerHolder(ObjectHolder['Compiler']):
         code = args[0]
         testname = kwargs['name']
 
-        disabled, required, feature = extract_required_kwarg(kwargs, self.subproject, default=False)
-        if disabled:
+        required, disabled_by_feature = extract_required_kwarg(kwargs, self.subproject, default=False)
+        if disabled_by_feature:
             if testname:
-                mlog.log('Checking if', mlog.bold(testname, True), 'runs:', 'skipped: feature', mlog.bold(feature), 'disabled')
+                mlog.log('Checking if', mlog.bold(testname, True), 'runs:', 'skipped: feature', mlog.bold(disabled_by_feature), 'disabled')
             return RunResult(compiled=True, returncode=0, stdout='', stderr='', cached=False)
 
         if isinstance(code, mesonlib.File):
@@ -301,7 +299,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
             code = mesonlib.File.from_absolute_file(
                 code.rel_to_builddir(self.environment.source_dir))
         extra_args = functools.partial(self._determine_args, kwargs)
-        deps, msg = self._determine_dependencies(kwargs['dependencies'], compile_only=False, endl=None)
+        deps, msg = self._determine_dependencies(kwargs['dependencies'], compile_only=False, endl='')
         result = self.compiler.run(code, extra_args=extra_args, dependencies=deps)
         if required and result.returncode != 0:
             raise InterpreterException(f'Could not run {testname if testname else "code"}')
@@ -344,9 +342,9 @@ class CompilerHolder(ObjectHolder['Compiler']):
     @InterpreterObject.method('has_member')
     def has_member_method(self, args: T.Tuple[str, str], kwargs: 'HasKW') -> bool:
         typename, membername = args
-        disabled, required, feature = extract_required_kwarg(kwargs, self.subproject, default=False)
-        if disabled:
-            mlog.log('Type', mlog.bold(typename, True), 'has member', mlog.bold(membername, True), 'skipped: feature', mlog.bold(feature), 'disabled')
+        required, disabled_by_feature = extract_required_kwarg(kwargs, self.subproject, default=False)
+        if disabled_by_feature:
+            mlog.log('Type', mlog.bold(typename, True), 'has member', mlog.bold(membername, True), 'skipped: feature', mlog.bold(disabled_by_feature), 'disabled')
             return False
         extra_args = functools.partial(self._determine_args, kwargs)
         deps, msg = self._determine_dependencies(kwargs['dependencies'])
@@ -373,9 +371,9 @@ class CompilerHolder(ObjectHolder['Compiler']):
     def has_members_method(self, args: T.Tuple[str, T.List[str]], kwargs: 'HasKW') -> bool:
         typename, membernames = args
         members = mlog.bold(', '.join([f'"{m}"' for m in membernames]))
-        disabled, required, feature = extract_required_kwarg(kwargs, self.subproject, default=False)
-        if disabled:
-            mlog.log('Type', mlog.bold(typename, True), 'has members', members, 'skipped: feature', mlog.bold(feature), 'disabled')
+        required, disabled_by_feature = extract_required_kwarg(kwargs, self.subproject, default=False)
+        if disabled_by_feature:
+            mlog.log('Type', mlog.bold(typename, True), 'has members', members, 'skipped: feature', mlog.bold(disabled_by_feature), 'disabled')
             return False
         extra_args = functools.partial(self._determine_args, kwargs)
         deps, msg = self._determine_dependencies(kwargs['dependencies'])
@@ -397,9 +395,9 @@ class CompilerHolder(ObjectHolder['Compiler']):
     @InterpreterObject.method('has_function')
     def has_function_method(self, args: T.Tuple[str], kwargs: 'HasKW') -> bool:
         funcname = args[0]
-        disabled, required, feature = extract_required_kwarg(kwargs, self.subproject, default=False)
-        if disabled:
-            mlog.log('Has function', mlog.bold(funcname, True), 'skipped: feature', mlog.bold(feature), 'disabled')
+        required, disabled_by_feature = extract_required_kwarg(kwargs, self.subproject, default=False)
+        if disabled_by_feature:
+            mlog.log('Has function', mlog.bold(funcname, True), 'skipped: feature', mlog.bold(disabled_by_feature), 'disabled')
             return False
         extra_args = self._determine_args(kwargs)
         deps, msg = self._determine_dependencies(kwargs['dependencies'], compile_only=False)
@@ -420,9 +418,9 @@ class CompilerHolder(ObjectHolder['Compiler']):
     @InterpreterObject.method('has_type')
     def has_type_method(self, args: T.Tuple[str], kwargs: 'HasKW') -> bool:
         typename = args[0]
-        disabled, required, feature = extract_required_kwarg(kwargs, self.subproject, default=False)
-        if disabled:
-            mlog.log('Has type', mlog.bold(typename, True), 'skipped: feature', mlog.bold(feature), 'disabled')
+        required, disabled_by_feature = extract_required_kwarg(kwargs, self.subproject, default=False)
+        if disabled_by_feature:
+            mlog.log('Has type', mlog.bold(typename, True), 'skipped: feature', mlog.bold(disabled_by_feature), 'disabled')
             return False
         extra_args = functools.partial(self._determine_args, kwargs)
         deps, msg = self._determine_dependencies(kwargs['dependencies'])
@@ -493,7 +491,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
     def has_define_method(self, args: T.Tuple[str], kwargs: 'CommonKW') -> bool:
         define_name = args[0]
         extra_args = functools.partial(self._determine_args, kwargs)
-        deps, msg = self._determine_dependencies(kwargs['dependencies'], endl=None)
+        deps, msg = self._determine_dependencies(kwargs['dependencies'], endl='')
         has_value, cached = self.compiler.has_define(define_name, kwargs['prefix'],
                                                      extra_args=extra_args,
                                                      dependencies=deps)
@@ -509,10 +507,10 @@ class CompilerHolder(ObjectHolder['Compiler']):
         code = args[0]
         testname = kwargs['name']
 
-        disabled, required, feature = extract_required_kwarg(kwargs, self.subproject, default=False)
-        if disabled:
+        required, disabled_by_feature = extract_required_kwarg(kwargs, self.subproject, default=False)
+        if disabled_by_feature:
             if testname:
-                mlog.log('Checking if', mlog.bold(testname, True), 'compiles:', 'skipped: feature', mlog.bold(feature), 'disabled')
+                mlog.log('Checking if', mlog.bold(testname, True), 'compiles:', 'skipped: feature', mlog.bold(disabled_by_feature), 'disabled')
             return False
 
         if isinstance(code, mesonlib.File):
@@ -520,7 +518,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
             code = mesonlib.File.from_absolute_file(
                 code.absolute_path(self.environment.source_dir, self.environment.build_dir))
         extra_args = functools.partial(self._determine_args, kwargs)
-        deps, msg = self._determine_dependencies(kwargs['dependencies'], endl=None)
+        deps, msg = self._determine_dependencies(kwargs['dependencies'], endl='')
         result, cached = self.compiler.compiles(code,
                                                 extra_args=extra_args,
                                                 dependencies=deps)
@@ -542,10 +540,10 @@ class CompilerHolder(ObjectHolder['Compiler']):
         code = args[0]
         testname = kwargs['name']
 
-        disabled, required, feature = extract_required_kwarg(kwargs, self.subproject, default=False)
-        if disabled:
+        required, disabled_by_feature = extract_required_kwarg(kwargs, self.subproject, default=False)
+        if disabled_by_feature:
             if testname:
-                mlog.log('Checking if', mlog.bold(testname, True), 'links:', 'skipped: feature', mlog.bold(feature), 'disabled')
+                mlog.log('Checking if', mlog.bold(testname, True), 'links:', 'skipped: feature', mlog.bold(disabled_by_feature), 'disabled')
             return False
 
         compiler = None
@@ -566,7 +564,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
                     compiler = clist[SUFFIX_TO_LANG[suffix]]
 
         extra_args = functools.partial(self._determine_args, kwargs)
-        deps, msg = self._determine_dependencies(kwargs['dependencies'], compile_only=False, endl=None)
+        deps, msg = self._determine_dependencies(kwargs['dependencies'], compile_only=False, endl='')
         result, cached = self.compiler.links(code,
                                              compiler=compiler,
                                              extra_args=extra_args,
@@ -588,9 +586,9 @@ class CompilerHolder(ObjectHolder['Compiler']):
     @InterpreterObject.method('check_header')
     def check_header_method(self, args: T.Tuple[str], kwargs: 'HeaderKW') -> bool:
         hname = args[0]
-        disabled, required, feature = extract_required_kwarg(kwargs, self.subproject, default=False)
-        if disabled:
-            mlog.log('Check usable header', mlog.bold(hname, True), 'skipped: feature', mlog.bold(feature), 'disabled')
+        required, disabled_by_feature = extract_required_kwarg(kwargs, self.subproject, default=False)
+        if disabled_by_feature:
+            mlog.log('Check usable header', mlog.bold(hname, True), 'skipped: feature', mlog.bold(disabled_by_feature), 'disabled')
             return False
         extra_args = functools.partial(self._determine_args, kwargs)
         deps, msg = self._determine_dependencies(kwargs['dependencies'])
@@ -608,9 +606,9 @@ class CompilerHolder(ObjectHolder['Compiler']):
         return haz
 
     def _has_header_impl(self, hname: str, kwargs: 'HeaderKW') -> bool:
-        disabled, required, feature = extract_required_kwarg(kwargs, self.subproject, default=False)
-        if disabled:
-            mlog.log('Has header', mlog.bold(hname, True), 'skipped: feature', mlog.bold(feature), 'disabled')
+        required, disabled_by_feature = extract_required_kwarg(kwargs, self.subproject, default=False)
+        if disabled_by_feature:
+            mlog.log('Has header', mlog.bold(hname, True), 'skipped: feature', mlog.bold(disabled_by_feature), 'disabled')
             return False
         extra_args = functools.partial(self._determine_args, kwargs)
         deps, msg = self._determine_dependencies(kwargs['dependencies'])
@@ -635,9 +633,9 @@ class CompilerHolder(ObjectHolder['Compiler']):
     @InterpreterObject.method('has_header_symbol')
     def has_header_symbol_method(self, args: T.Tuple[str, str], kwargs: 'HeaderKW') -> bool:
         hname, symbol = args
-        disabled, required, feature = extract_required_kwarg(kwargs, self.subproject, default=False)
-        if disabled:
-            mlog.log('Header', mlog.bold(hname, True), 'has symbol', mlog.bold(symbol, True), 'skipped: feature', mlog.bold(feature), 'disabled')
+        required, disabled_by_feature = extract_required_kwarg(kwargs, self.subproject, default=False)
+        if disabled_by_feature:
+            mlog.log('Header', mlog.bold(hname, True), 'has symbol', mlog.bold(symbol, True), 'skipped: feature', mlog.bold(disabled_by_feature), 'disabled')
             return False
         extra_args = functools.partial(self._determine_args, kwargs)
         deps, msg = self._determine_dependencies(kwargs['dependencies'])
@@ -680,9 +678,9 @@ class CompilerHolder(ObjectHolder['Compiler']):
         # TODO add dependencies support?
         libname = args[0]
 
-        disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
-        if disabled:
-            mlog.log('Library', mlog.bold(libname), 'skipped: feature', mlog.bold(feature), 'disabled')
+        required, disabled_by_feature = extract_required_kwarg(kwargs, self.subproject)
+        if disabled_by_feature:
+            mlog.log('Library', mlog.bold(libname), 'skipped: feature', mlog.bold(disabled_by_feature), 'disabled')
             return self.notfound_library(libname)
 
         # This could be done with a comprehension, but that confuses the type
@@ -706,9 +704,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
             libtype = mesonlib.LibType.STATIC
         elif kwargs['static'] is False:
             libtype = mesonlib.LibType.SHARED
-        # kwargs['static']'s "| None" is invisible until this module is compiled
-        # with strict_optional.
-        elif prefer_static: # type: ignore[unreachable]
+        elif prefer_static:
             libtype = mesonlib.LibType.PREFER_STATIC
         else:
             libtype = mesonlib.LibType.PREFER_SHARED
@@ -739,9 +735,9 @@ class CompilerHolder(ObjectHolder['Compiler']):
             'arguments {}:'.format(' '.join(arguments)),
         ]
         kwargs = kwargs or {'required': False}
-        disabled, required, feature = extract_required_kwarg(kwargs, self.subproject, default=False)
-        if disabled:
-            logargs += ['skipped: feature', mlog.bold(feature), 'disabled']
+        required, disabled_by_feature = extract_required_kwarg(kwargs, self.subproject, default=False)
+        if disabled_by_feature:
+            logargs += ['skipped: feature', mlog.bold(disabled_by_feature), 'disabled']
             mlog.log(*logargs)
             return False
         if mode is _TestMode.LINKER:
@@ -847,9 +843,9 @@ class CompilerHolder(ObjectHolder['Compiler']):
             f'Compiler for {self.compiler.get_display_language()} supports function attribute {attr}:',
         ]
         kwargs = kwargs or {'required': False}
-        disabled, required, feature = extract_required_kwarg(kwargs, self.subproject, default=False)
-        if disabled:
-            logargs += ['skipped: feature', mlog.bold(feature), 'disabled']
+        required, disabled_by_feature = extract_required_kwarg(kwargs, self.subproject, default=False)
+        if disabled_by_feature:
+            logargs += ['skipped: feature', mlog.bold(disabled_by_feature), 'disabled']
             mlog.log(*logargs)
             return False
         had, cached = self.compiler.has_func_attribute(attr)

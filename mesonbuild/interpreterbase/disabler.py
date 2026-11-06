@@ -16,7 +16,7 @@ class Disabler(MesonInterpreterObject):
             return False
         return Disabler()
 
-def _is_arg_disabled(arg: T.Any) -> bool:
+def _is_arg_disabled(arg: object) -> bool:
     if isinstance(arg, Disabler):
         return True
     if isinstance(arg, list):
@@ -25,7 +25,7 @@ def _is_arg_disabled(arg: T.Any) -> bool:
                 return True
     return False
 
-def is_disabled(args: T.Sequence[T.Any], kwargs: T.Dict[str, T.Any]) -> bool:
+def is_disabled(args: T.Sequence[object], kwargs: T.Dict[str, T.Any]) -> bool:
     for i in args:
         if _is_arg_disabled(i):
             return True

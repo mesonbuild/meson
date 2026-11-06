@@ -44,19 +44,6 @@ BUILD_TARGET_FUNCTIONS = [
     'static_library', 'both_libraries'
 ]
 
-class IntrospectionHelper:
-    # mimic an argparse namespace
-    def __init__(self, cross_file: T.Optional[str]):
-        self.cross_file = [cross_file] if cross_file is not None else []
-        self.native_file: T.List[str] = []
-        self.cmd_line_options: T.Dict[OptionKey, str] = {}
-        self.builtin_keys: T.Set[OptionKey] = set()
-        self.d_keys: T.Set[OptionKey] = set()
-        self.projectoptions: T.List[str] = []
-
-    def __eq__(self, other: object) -> bool:
-        return NotImplemented
-
 class IntrospectionInterpreter(AstInterpreter):
     # If you run `meson setup ...` the `Interpreter`-class walks over the AST.
     # If you run `meson rewrite ...` and `meson introspect meson.build ...`,
@@ -73,7 +60,7 @@ class IntrospectionInterpreter(AstInterpreter):
                  subproject_dir: str = 'subprojects',
                  env: T.Optional[environment.Environment] = None,
                  invoker_method_default_options: T.Optional[OptionDict] = None):
-        options = IntrospectionHelper(cross_file)
+        options = environment.EmptyCMDOptions(cross_file)
         env_ = env or environment.Environment(source_root, None, options)
         super().__init__(source_root, subdir, subproject, subproject_dir, env_, visitors=visitors)
 
@@ -105,7 +92,7 @@ class IntrospectionInterpreter(AstInterpreter):
     def _get_default_options(self, kwargs: T.Dict[str, TYPE_var]) -> OptionDict:
         raw_options = self.flatten_kwargs(kwargs).get('default_options', {})
 
-        def has_unknown_value(value: T.Any) -> bool:
+        def has_unknown_value(value: object) -> bool:
             if isinstance(value, UnknownValue):
                 return True
             if isinstance(value, list):
@@ -163,15 +150,11 @@ class IntrospectionInterpreter(AstInterpreter):
                 self.subproject,
                 self.invoker_method_default_options,
                 self.project_default_options,
-                {},
-                self.environment.options,
             )
         else:
-            self.coredata.optstore.initialize_from_top_level_project_call(
-                self.project_default_options,
-                {},
-                self.environment.options,
-            )
+            self.coredata.optstore.set_user_options({})
+            self.coredata.optstore.set_machine_file_options(self.environment.options)
+            self.coredata.optstore.initialize_from_top_level_project_call(self.project_default_options)
 
         if not self.is_subproject() and 'subproject_dir' in kwargs:
             # Like flatten_args_hack(), the values are really TYPE_nvar.
@@ -181,7 +164,7 @@ class IntrospectionInterpreter(AstInterpreter):
         if not self.is_subproject():
             self.project_data['subprojects'] = []
 
-        self.environment.init_backend_options(self.backend)
+        self.coredata.init_backend_options(self.backend)
 
         self._add_languages(proj_langs, True, MachineChoice.HOST)
         self._add_languages(proj_langs, True, MachineChoice.BUILD)

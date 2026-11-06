@@ -110,5 +110,5 @@ class JavaModule(NewExtensionModule):
 
         return ModuleReturnValue(target, [target])
 
-def initialize(*args: T.Any, **kwargs: T.Any) -> JavaModule:
-    return JavaModule(*args, **kwargs)
+def initialize(interp: Interpreter) -> JavaModule:
+    return JavaModule(interp)

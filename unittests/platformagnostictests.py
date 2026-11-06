@@ -11,7 +11,7 @@ import tempfile
 import textwrap
 import shutil
 import sys
-from unittest import skipIf, SkipTest
+from unittest import mock, skipIf, SkipTest
 from pathlib import Path
 
 from .baseplatformtests import BasePlatformTests
@@ -22,6 +22,7 @@ from mesonbuild.interpreterbase import InvalidArguments
 from mesonbuild.optinterpreter import OptionInterpreter, OptionException
 from mesonbuild.options import OptionStore
 from run_tests import Backend
+import mesonbuild.build
 
 @skipIf(IS_CI and not is_linux(), "Run only on fast platforms")
 class PlatformAgnosticTests(BasePlatformTests):
@@ -633,6 +634,27 @@ class PlatformAgnosticTests(BasePlatformTests):
         self.setconf('-Dneg_int_opt=-10')
         self.assertEqual(self.getconf('neg_int_opt'), -10)
 
+    def test_unset_project_options(self) -> None:
+        """Removing a project option from the command line makes the yielded
+           value, or the value from default_options, effective again."""
+        testdir = os.path.join(self.unit_test_dir, '140 unset project options')
+        self.init(testdir, extra_args=['-Dsub:yielding=cmdline', '-Dsub:plain=cmdline'])
+        self.assertEqual(self.getconf('sub:yielding'), 'cmdline')
+        self.assertEqual(self.getconf('sub:plain'), 'cmdline')
+
+        self.setconf(['-U', 'sub:yielding'])
+        self.assertEqual(self.getconf('sub:yielding'), 'toplevel')
+
+        self.setconf(['-U', 'sub:plain'])
+        self.assertEqual(self.getconf('sub:plain'), 'project')
+
+    def test_unknown_build_option_native(self) -> None:
+        """Unknown build-machine options are an error when building natively too."""
+        testdir = os.path.join(self.unit_test_dir, '140 unset project options')
+        self.init(testdir)
+        with self.assertRaises(subprocess.CalledProcessError):
+            self.setconf('-Dbuild.nonexistent=1', will_build=False)
+
     def test_configure_options_file_deleted(self) -> None:
         """Deleting all option files should make seting a project option an error."""
         testdir = self.copy_srcdir(os.path.join(self.common_test_dir, '40 options'))
@@ -797,3 +819,19 @@ class PlatformAgnosticTests(BasePlatformTests):
         self.utime(os.path.join(testdir, 'depfile'))
         ret = self.build(stderr=False)
         self.assertIn('The Meson build system', ret)
+
+    def test_build_dat_environment_consistent(self):
+        testdir = os.path.join(self.common_test_dir, '1 trivial')
+        self.init(testdir)
+        # The Environment is the one that was saved, it is not created again.
+        with mock.patch.object(mesonbuild.environment.Environment, '__init__',
+                               side_effect=AssertionError('Environment was created')):
+            b = mesonbuild.build.load(self.builddir)
+        env = b.environment
+        targets = [t for t in b.get_targets().values() if isinstance(t, mesonbuild.build.BuildTarget)]
+        self.assertTrue(targets)
+        for t in targets:
+            self.assertTrue(t.compilers)
+            for lang, compiler in t.compilers.items():
+                self.assertIs(compiler, env.coredata.compilers[t.for_machine][lang])
+                self.assertIs(compiler.environment, env)

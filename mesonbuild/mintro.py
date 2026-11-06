@@ -23,12 +23,27 @@ from . import build, environment, mesonlib, options, coredata as cdata
 from .ast import IntrospectionInterpreter, AstConditionLevel, AstIDGenerator, AstIndentationGenerator, AstJSONPrinter
 from .backend import backends
 from .interpreterbase import UnknownValue
+from .mesonlib import unwrap
 from .options import OptionKey
 
 if T.TYPE_CHECKING:
     import argparse
+    from typing_extensions import TypedDict
 
     from .dependencies import Dependency
+
+    class TestIntrospectionData(TypedDict):
+        cmd: T.List[str]
+        env: T.Dict[str, str]
+        name: str
+        workdir: T.Optional[str]
+        timeout: T.Optional[int]
+        suite: T.List[str]
+        is_parallel: bool
+        priority: int
+        protocol: str
+        depends: T.List[str]
+        extra_paths: T.List[str]
 
 class IntrospectionEncoder(json.JSONEncoder):
     def default(self, obj: T.Any) -> T.Any:
@@ -249,21 +264,17 @@ def _list_buildoptions(coredata: cdata.CoreData, subprojects: T.Optional[T.List[
 
     def add_keys(opts: T.Union[options.MutableKeyedOptionDictType, options.OptionStore], section: str) -> None:
         for key, opt in sorted(opts.items()):
-            # Replicated per-subproject keys resolve through augments and
-            # yielding to report the value in effect for that subproject.
-            # Project options keep their stored value as before.
-            if key.subproject and not coredata.optstore.is_project_option(key):
-                value = coredata.optstore.get_value_for(key)
-            else:
-                value = opt.value
-            optdict = {'name': str(key), 'value': value, 'section': section,
+            value = coredata.optstore.get_value_for(key)
+            # Project options of the toplevel project are listed without a colon.
+            name = key.evolve(subproject=None) if key.subproject == '' else key
+            optdict = {'name': str(name), 'value': value, 'section': section,
                        'machine': key.machine.get_lower_case_name() if coredata.optstore.is_per_machine_option(key) else 'any'}
             if isinstance(opt, options.UserStringOption):
                 typestr = 'string'
             elif isinstance(opt, options.UserBooleanOption):
                 typestr = 'boolean'
             elif isinstance(opt, options.UserComboOption):
-                optdict['choices'] = opt.printable_choices()
+                optdict['choices'] = unwrap(opt.printable_choices())
                 typestr = 'combo'
             elif isinstance(opt, options.UserUmaskOption):
                 # do not print 0o22
@@ -294,14 +305,7 @@ def _list_buildoptions(coredata: cdata.CoreData, subprojects: T.Optional[T.List[
     )
     add_keys(dir_options, 'directory')
 
-    def project_option_key_to_introname(key: OptionKey) -> OptionKey:
-        assert key.subproject is not None
-        if key.subproject == '':
-            return key.evolve(subproject=None)
-        return key
-
-    add_keys({project_option_key_to_introname(k): v
-              for k, v in coredata.optstore.items() if coredata.optstore.is_project_option(k)}, 'user')
+    add_keys({k: v for k, v in coredata.optstore.items() if coredata.optstore.is_project_option(k)}, 'user')
     add_keys(test_options, 'test')
     return optlist
 
@@ -383,29 +387,26 @@ def list_deps(coredata: cdata.CoreData, builddata: build.Build, backend: backend
 
     return list(result.values())
 
-def get_test_list(testdata: T.List[backends.TestSerialisation]) -> T.List[T.Dict[str, T.Union[str, int, T.List[str], T.Dict[str, str]]]]:
-    result: T.List[T.Dict[str, T.Union[str, int, T.List[str], T.Dict[str, str]]]] = []
-    for t in testdata:
-        to: T.Dict[str, T.Union[str, int, T.List[str], T.Dict[str, str]]] = {}
-        to['cmd'] = t.fname + t.cmd_args
-        to['env'] = t.env.get_env({}) if t.env else {}
-        to['name'] = t.name
-        to['workdir'] = t.workdir
-        to['timeout'] = t.timeout
-        to['suite'] = t.suite
-        to['is_parallel'] = t.is_parallel
-        to['priority'] = t.priority
-        to['protocol'] = str(t.protocol)
-        to['depends'] = t.depends
-        to['extra_paths'] = t.extra_paths
-        result.append(to)
-    return result
+def get_test_list(testdata: T.List[backends.TestSerialisation]) -> T.List[TestIntrospectionData]:
+    return [{
+            'cmd': t.fname + t.cmd_args,
+            'env': t.env.get_env({}) if t.env else {},
+            'name': t.name,
+            'workdir': t.workdir,
+            'timeout': t.timeout,
+            'suite': t.suite,
+            'is_parallel': t.is_parallel,
+            'priority': t.priority,
+            'protocol': str(t.protocol),
+            'depends': t.depends,
+            'extra_paths': t.extra_paths,
+        } for t in testdata]
 
-def list_tests(coredata: cdata.CoreData, builddata: build.Build, backend: backends.Backend) -> T.List[T.Dict[str, T.Union[str, int, T.List[str], T.Dict[str, str]]]]:
+def list_tests(coredata: cdata.CoreData, builddata: build.Build, backend: backends.Backend) -> T.List[TestIntrospectionData]:
     testdata = backend.create_test_serialisation(builddata.get_tests())
     return get_test_list(testdata)
 
-def list_benchmarks(coredata: cdata.CoreData, builddata: build.Build, backend: backends.Backend) -> T.List[T.Dict[str, T.Union[str, int, T.List[str], T.Dict[str, str]]]]:
+def list_benchmarks(coredata: cdata.CoreData, builddata: build.Build, backend: backends.Backend) -> T.List[TestIntrospectionData]:
     benchdata = backend.create_test_serialisation(builddata.get_benchmarks())
     return get_test_list(benchdata)
 

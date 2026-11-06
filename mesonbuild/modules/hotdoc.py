@@ -30,7 +30,7 @@ if T.TYPE_CHECKING:
     from ..environment import Environment
     from ..interpreter import Interpreter
     from ..interpreter.kwargs import TargetDepends
-    from ..interpreterbase import TYPE_kwargs, TYPE_var
+    from ..interpreterbase import TYPE_kwargs, TYPE_var, NoKwArgs
 
     _T = T.TypeVar('_T')
 
@@ -378,7 +378,7 @@ class HotdocTargetBuilder:
 class HotdocTargetHolder(_CustomTargetHolder['HotdocTarget']):
     @TypedArgs('hotdoc_target.config_path')
     @InterpreterObject.method('config_path')
-    def config_path_method(self, *args: T.Any, **kwargs: T.Any) -> str:
+    def config_path_method(self, *args: object, **kwargs: NoKwArgs) -> str:
         conf = self.held_object.hotdoc_conf.absolute_path(self.interpreter.environment.source_dir,
                                                           self.interpreter.environment.build_dir)
         return conf

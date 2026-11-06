@@ -28,7 +28,6 @@ __all__ = [
     'Feature',
     'FeatureValue',
 
-    'noArgsFlattening',
     'unholder_return',
     'disablerIfNotFound',
     'typed_operator',
@@ -54,6 +53,7 @@ __all__ = [
     'TYPE_HoldableTypes',
 
     'HoldableTypes',
+    'NoKwArgs',
 
     'UnknownValue',
     'UndefinedVariable',
@@ -72,6 +72,7 @@ from .baseobjects import (
     TYPE_elementary,
     TYPE_var,
     TYPE_kwargs,
+    NoKwArgs,
     TYPE_key_resolver,
     TYPE_HoldableTypes,
 
@@ -82,7 +83,6 @@ from .baseobjects import (
 )
 
 from .decorators import (
-    noArgsFlattening,
     unholder_return,
     disablerIfNotFound,
     ContainerTypeInfo,

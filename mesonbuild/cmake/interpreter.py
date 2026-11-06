@@ -20,11 +20,10 @@ from .traceparser import CMakeTraceParser
 from .tracetargets import resolve_cmake_trace_targets
 from .. import mlog, mesonlib
 from .. import options
-from ..mesonlib import MachineChoice, OrderedSet, path_is_in_root, relative_to_if_possible
+from ..mesonlib import MachineChoice, OrderedSet, path_is_in_root, relative_to_if_possible, unwrap
 from ..options import OptionKey
 from ..mesondata import DataFile
 from ..compilers.compilers import assembler_suffixes, lang_suffixes, header_suffixes, obj_suffixes, lib_suffixes, is_header
-from ..programs import ExternalProgram
 from ..coredata import FORBIDDEN_TARGET_NAMES
 from ..mparser import (
     Token,
@@ -708,8 +707,7 @@ class ConverterCustomTarget:
                     # When cross compiling, binaries have to be executed with an exe_wrapper (for instance wine for mingw-w64)
                     if not self.env.can_run_binaries(self.for_machine) and \
                             self.env.properties[self.for_machine].get_cmake_use_exe_wrapper():
-                        assert isinstance(self.env.exe_wrapper, ExternalProgram)
-                        cmd += self.env.exe_wrapper.get_command()
+                        cmd += unwrap(self.env.exe_wrapper).get_command()
                     cmd += [target]
                     continue
                 elif j in trace.targets:

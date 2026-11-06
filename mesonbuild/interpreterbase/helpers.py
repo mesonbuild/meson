@@ -10,7 +10,6 @@ from .exceptions import InterpreterException, InvalidArguments
 from ..mesonlib import HoldableObject
 
 
-import collections.abc
 import typing as T
 
 if T.TYPE_CHECKING:
@@ -18,9 +17,7 @@ if T.TYPE_CHECKING:
     from ..mesonlib import SubProject
 
 
-def flatten(args: T.Union['TYPE_var', T.List['TYPE_var']]) -> T.List['TYPE_var']:
-    if not isinstance(args, collections.abc.Sequence):
-        return [args]
+def flatten(args: T.List['TYPE_var']) -> T.List['TYPE_var']:
     result: T.List['TYPE_var'] = []
     for a in args:
         if isinstance(a, list):

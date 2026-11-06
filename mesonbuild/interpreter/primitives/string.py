@@ -15,7 +15,6 @@ from ...interpreterbase import (
     ObjectHolder,
     FeatureNew,
     typed_operator,
-    noArgsFlattening,
     InvalidArguments,
     FeatureBroken,
     TypedArgs,
@@ -61,8 +60,7 @@ class StringHolder(ObjectHolder[str]):
     def endswith_method(self, args: T.Tuple[str], kwargs: TYPE_kwargs) -> bool:
         return self.held_object.endswith(args[0])
 
-    @noArgsFlattening
-    @TypedArgs('str.format', var_types=OBJ_VARG)
+    @TypedArgs('str.format', var_types=OBJ_VARG, flatten=False)
     @InterpreterObject.method('format')
     def format_method(self, args: T.Tuple[T.List[TYPE_var]], kwargs: TYPE_kwargs) -> str:
         arg_strings: T.List[str] = []

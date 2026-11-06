@@ -13,11 +13,31 @@ from .. import envconfig
 from .. import mlog
 from ..compilers import compilers
 from ..compilers.detect import defaults as compiler_names
+from ..mesonlib import unwrap
 
 if T.TYPE_CHECKING:
     import argparse
 
+    from typing_extensions import Literal, Protocol
+
     from ..compilers.compilers import Language
+
+    class Arguments(Protocol):
+        """Typing information for the object returned by argparse."""
+
+        cross: bool
+        native: bool
+        android: bool
+        debarch: T.Optional[str]
+        gccsuffix: str
+        outfile: str
+        use_for_build: bool
+        system: T.Optional[str]
+        subsystem: T.Optional[str]
+        kernel: T.Optional[str]
+        cpu: T.Optional[str]
+        cpu_family: T.Optional[str]
+        endian: Literal['big', 'little']
 
 # Note: when adding arguments, please also add them to the completion
 # scripts in $MESONSRC/data/shell-completions/
@@ -190,16 +210,16 @@ def deb_compiler_lookup(infos: MachineInfo, compilerstems: T.List[T.Tuple[str, s
         except ValueError:
             pass
 
-def detect_cross_debianlike(options: T.Any) -> MachineInfo:
+def detect_cross_debianlike(options: Arguments) -> MachineInfo:
     if options.debarch == 'auto':
         cmd = ['dpkg-architecture']
     else:
-        cmd = ['dpkg-architecture', '-a' + options.debarch]
+        cmd = ['dpkg-architecture', '-a' + unwrap(options.debarch)]
     output = subprocess.check_output(cmd, universal_newlines=True,
                                      stderr=subprocess.DEVNULL)
     return dpkg_architecture_to_machine_info(output, options)
 
-def dpkg_architecture_to_machine_info(output: str, options: T.Any) -> MachineInfo:
+def dpkg_architecture_to_machine_info(output: str, options: Arguments) -> MachineInfo:
     data = {}
     for line in output.split('\n'):
         line = line.strip()
@@ -378,7 +398,7 @@ def detect_properties_from_envvars(infos: MachineInfo, envvar_suffix: str = '') 
     if var is not None:
         infos.properties['sys_root'] = var
 
-def detect_cross_system(infos: MachineInfo, options: T.Any) -> None:
+def detect_cross_system(infos: MachineInfo, options: Arguments) -> None:
     for optname in ('system', 'subsystem', 'kernel', 'cpu', 'cpu_family', 'endian'):
         v = getattr(options, optname)
         if not v:
@@ -386,7 +406,7 @@ def detect_cross_system(infos: MachineInfo, options: T.Any) -> None:
             sys.exit(1)
         setattr(infos, optname, v)
 
-def detect_cross_env(options: T.Any) -> MachineInfo:
+def detect_cross_env(options: Arguments) -> MachineInfo:
     if options.debarch:
         print('Detecting cross environment via dpkg-architecture.')
         infos = detect_cross_debianlike(options)
@@ -429,7 +449,7 @@ def detect_missing_native_binaries(infos: MachineInfo) -> None:
         if exe:
             infos.binaries[toolname] = [exe]
 
-def detect_native_env(options: T.Any) -> MachineInfo:
+def detect_native_env(options: Arguments) -> MachineInfo:
     if options.use_for_build:
         mlog.log('Using _FOR_BUILD envvars for detection (native file for use during cross compilation)')
         esuffix = '_FOR_BUILD'
@@ -451,7 +471,7 @@ ANDROID_CPU_TO_MESON_CPU_FAMILY: dict[str, str] = {
 }
 
 class AndroidDetector:
-    def __init__(self, options: T.Any):
+    def __init__(self, options: Arguments):
         import platform
         self.platform = platform.system().lower()
         self.options = options
@@ -537,7 +557,7 @@ class AndroidDetector:
                 ofile.write("endian = 'little'\n")
 
 
-def run(options: argparse.Namespace) -> int:
+def run(options: Arguments) -> int:
     mlog.notice('This functionality is experimental and subject to change.')
     if options.cross:
         if options.use_for_build:

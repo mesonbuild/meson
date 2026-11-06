@@ -16,7 +16,7 @@ import zipfile
 
 from . import mlog
 from .ast import IntrospectionInterpreter
-from .mesonlib import as_posix, quiet_git, GitException, Popen_safe, MesonException, windows_proof_rmtree
+from .mesonlib import as_posix, quiet_git, GitException, Popen_safe, MesonException, unwrap, windows_proof_rmtree
 from .wrap.wrap import (Resolver, WrapException, WrapType,
                         parse_patch_url, update_wrap_file, get_releases)
 
@@ -329,13 +329,13 @@ class Runner:
                 self.log('Pass --reset option to delete directory and redownload.')
                 return False
         revision_val = self.wrap.values.get('revision')
-        revision = revision_val if revision_val.upper() != 'HEAD' else 'HEAD'
         url = self.wrap.values.get('url')
-        push_url = self.wrap.values.get('push-url')
-        if not revision or not url:
+        if not revision_val or not url:
             # It could be a detached git submodule for example.
             self.log('  -> No revision or URL specified.')
             return True
+        revision = revision_val if revision_val.upper() != 'HEAD' else 'HEAD'
+        push_url = self.wrap.values.get('push-url')
         try:
             origin_url = self.git_output(['remote', 'get-url', 'origin']).strip()
         except GitException as e:
@@ -528,7 +528,7 @@ class Runner:
             return True
 
         if self.wrap.redirected:
-            wrapfile = Path(self.wrap.original_filename).resolve()
+            wrapfile = Path(unwrap(self.wrap.original_filename)).resolve()
             if options.confirm:
                 wrapfile.unlink()
             mlog.log(f'Deleting {wrapfile}')
@@ -644,7 +644,7 @@ def add_common_arguments(p: argparse.ArgumentParser) -> None:
     p.add_argument('--allow-insecure', default=False, action='store_true',
                    help='Allow insecure server connections.')
 
-def add_subprojects_argument(p: argparse.ArgumentParser, name: str = None) -> None:
+def add_subprojects_argument(p: argparse.ArgumentParser, name: str | None = None) -> None:
     helpstr = 'Patterns of subprojects to operate on (default: all)'
     if name:
         p.add_argument(name, dest='subprojects', metavar='pattern', nargs=1, action='append',
