@@ -826,7 +826,7 @@ def rebuild_all(wd: str, backend: str) -> bool:
         print("Can't find ninja, can't rebuild test.")
         return False
 
-    def drop_privileges() -> T.Tuple[T.Optional[EnvironOrDict], T.Optional[T.Callable[[], None]]]:
+    def drop_privileges() -> T.Tuple[T.Optional[EnvironOrDict], T.Optional[int], T.Optional[int]]:
         if not is_windows() and os.geteuid() == 0:
             import pwd
             env = os.environ.copy()
@@ -839,41 +839,36 @@ def rebuild_all(wd: str, backend: str) -> bool:
                     homedir = pwd.getpwuid(int(orig_uid)).pw_dir
                 except KeyError:
                     # `sudo chroot` leaves behind stale variable and builds as root without a user
-                    return None, None
+                    return None, None, None
             elif os.environ.get('DOAS_USER') is not None:
                 orig_user = env.pop('DOAS_USER')
                 try:
                     pwdata = pwd.getpwnam(orig_user)
                 except KeyError:
                     # `doas chroot` leaves behind stale variable and builds as root without a user
-                    return None, None
+                    return None, None, None
                 orig_uid = pwdata.pw_uid
                 orig_gid = pwdata.pw_gid
                 homedir = pwdata.pw_dir
             else:
-                return None, None
+                return None, None, None
 
             if os.stat(os.path.join(wd, 'build.ninja')).st_uid != int(orig_uid):
                 # the entire build process is running with sudo, we can't drop privileges
-                return None, None
+                return None, None, None
 
             env['USER'] = orig_user
             env['HOME'] = homedir
+            print(f'Dropping privileges to {orig_user!r} before running ninja...')
 
-            def wrapped() -> None:
-                print(f'Dropping privileges to {orig_user!r} before running ninja...')
-                if orig_gid is not None:
-                    os.setgid(int(orig_gid))
-                if orig_uid is not None:
-                    os.setuid(int(orig_uid))
-
-            return env, wrapped
+            uid = int(orig_uid) if orig_uid is not None else None
+            gid = int(orig_gid) if orig_gid is not None else None
+            return env, uid, gid
         else:
             return None, None
 
-    # TODO: python 3.9 adds user=, group= kwargs to Popen, which can avoid needing preexec_fn.
-    env, preexec_fn = drop_privileges()
-    ret = subprocess.run(ninja + ['-C', wd], env=env, preexec_fn=preexec_fn).returncode
+    env, user, group = drop_privileges()
+    ret = subprocess.run(ninja + ['-C', wd], env=env, user=user, group=group).returncode
     if ret != 0:
         print(f'Could not rebuild {wd}')
         return False
