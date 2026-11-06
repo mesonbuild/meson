@@ -450,8 +450,8 @@ current directory is analyzed.
 
 The following options are recognized:
 
-- max_line_length (int): When an array, a dict, a function or a method
-    would be longer that this, it is formatted one argument per line
+- max_line_length (int): When a line would be longer than this, we try to split
+    arrays, dicts, function or method arguments to make the line shorter
     (Default is 80).
 - indent_by (str): Indentation to use (Default is four spaces `'    '`).
 - space_array (bool): Whether to add spaces between `[]` and array

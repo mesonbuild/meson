@@ -11,7 +11,13 @@ meson_files = {
 }
 
 # Ensure empty function are formatted correctly on long lines
-a = '@0@@1@@2@@3@@4@'.format('one', 'two', 'three', 'four', 'five').strip().strip()
+a = '@0@@1@@2@@3@@4@'.format(
+    'one',
+    'two',
+    'three',
+    'four',
+    'five',
+).strip().strip()
 
 _opt = get_option('opt') \
     .disable_if(
