@@ -439,6 +439,208 @@ InstalledDir: /usr/bin'''), '14.0.0-1ubuntu1.1')
                 self.assertEqual(comp.get_option_compile_args(None),
                                  ref.get_option_compile_args(None))
 
+    def test_detect_clang_scan_deps(self):
+        from mesonbuild.compilers.detect import _detect_clang_scan_deps
+        env = get_fake_env()
+        installed = {'clang++-19': '/llvm/bin/clang++-19',
+                     'clang-scan-deps-19': '/llvm/bin/clang-scan-deps-19',
+                     'clang-scan-deps': '/usr/bin/clang-scan-deps'}
+
+        def which(cmd, path=None):
+            found = installed.get(os.path.basename(cmd))
+            if found is None or (path is not None and os.path.dirname(found) != path):
+                return None
+            return found
+
+        def detect(compiler):
+            with mock.patch('shutil.which', which), mock.patch('os.path.realpath', lambda p: p):
+                return _detect_clang_scan_deps(env, MachineChoice.HOST, [compiler])
+
+        # Next to the compiler, with the same version
+        self.assertEqual(detect('clang++-19'), ['/llvm/bin/clang-scan-deps-19'])
+        # Not found next to the compiler, search in PATH
+        installed['clang++-18'] = '/llvm18/bin/clang++-18'
+        self.assertEqual(detect('clang++-18'), ['/usr/bin/clang-scan-deps'])
+        # Nothing found
+        del installed['clang-scan-deps']
+        del installed['clang-scan-deps-19']
+        self.assertIsNone(detect('clang++-18'))
+        installed['clang-scan-deps-19'] = '/llvm/bin/clang-scan-deps-19'
+        # The machine file has the last word
+        env.binaries[MachineChoice.HOST].binaries['clang-scan-deps'] = ['/custom/scan-deps']
+        self.assertEqual(detect('clang++-19'), ['/custom/scan-deps'])
+
+    def test_cpp_modules_scan_command_clang(self):
+        env = get_fake_env()
+
+        cc = ClangCPPCompiler(['ccache'], ['clang++'], '19.1.0', MachineChoice.HOST, env)
+        # Without clang-scan-deps
+        self.assertIsNone(cc.get_cpp_modules_scan_command())
+        cc.scan_deps = ['clang-scan-deps']
+        self.assertEqual(cc.get_cpp_modules_scan_command(),
+                         ['clang-scan-deps', '-format=p1689', '-o', '$out', '--',
+                          'clang++', '$ARGS', '-MD', '-MQ', '$out', '-MF', '$DEPFILE',
+                          '-c', '-o', '$OBJ', '$in'])
+
+        cc = ClangCPPCompiler([], ['clang++'], '18.1.3', MachineChoice.HOST, env)
+        cc.scan_deps = ['clang-scan-deps']
+        self.assertIsNone(cc.get_cpp_modules_scan_command())
+
+    def test_depaccumulate(self):
+        from mesonbuild.scripts import depaccumulate
+        with tempfile.TemporaryDirectory() as tmpdir:
+            def write(name, *rules):
+                path = os.path.join(tmpdir, name)
+                with open(path, 'w', encoding='utf-8') as f:
+                    json.dump({'version': 1, 'revision': 0, 'rules': list(rules)}, f)
+                return path
+
+            # Descriptions as written by the compilers, without the path of the compiled modules
+            a = write('a.json', {'primary-output': 'a.o', 'provides': [{'logical-name': 'a'}],
+                                 'requires': [{'logical-name': 'a:part'}, {'logical-name': 'lib'}]})
+            part = write('part.json', {'primary-output': 'part.o', 'provides': [{'logical-name': 'a:part'}],
+                                       'requires': []})
+            main = write('main.json', {'primary-output': 'main.o', 'requires': [{'logical-name': 'a'}]})
+            lib = write('lib.json', {'primary-output': 'lib.o', 'provides': [{'logical-name': 'lib'}]})
+            out = os.path.join(tmpdir, 'out.dd')
+
+            self.assertEqual(depaccumulate.run(['--own', '3', '--bmi-pattern', '{module}.ifc', out,
+                                                a, part, main, lib]), 0)
+            with open(out, encoding='utf-8') as f:
+                lines = [line for line in f.read().splitlines() if line]
+            self.assertEqual(lines, ['ninja_dyndep_version = 1',
+                                     # Modules of the target use the compiled module, others use the object
+                                     'build a.o | a.ifc: dyndep | a-part.ifc lib.o',
+                                     'build part.o | a-part.ifc: dyndep ',
+                                     'build main.o : dyndep | a.ifc'])
+
+    def test_depaccumulate_directories(self):
+        from mesonbuild.scripts import depaccumulate
+        with tempfile.TemporaryDirectory() as tmpdir:
+            def write(name, *rules):
+                path = os.path.join(tmpdir, name)
+                with open(path, 'w', encoding='utf-8') as f:
+                    json.dump({'version': 1, 'revision': 0, 'rules': list(rules)}, f)
+                return path
+
+            def run(*files, own):
+                out = os.path.join(tmpdir, 'out.dd')
+                args = ['--own', str(own), '--bmi-pattern', '{dir}/{module}.ifc', out, *files]
+                self.assertEqual(depaccumulate.run(args), 0)
+                with open(out, encoding='utf-8') as f:
+                    return [line for line in f.read().splitlines() if line][1:]
+
+            # Two targets provide a module named m, in their own directory
+            app = write('app.json', {'primary-output': 'app.p/main.o', 'requires': [{'logical-name': 'a'}]})
+            liba = write('liba.json', {'primary-output': 'liba.p/a.o', 'provides': [{'logical-name': 'a'}],
+                                       'requires': [{'logical-name': 'a:part'}]})
+            part = write('part.json', {'primary-output': 'liba.p/part.o', 'provides': [{'logical-name': 'a:part'}]})
+            libb = write('libb.json', {'primary-output': 'libb.p/b.o', 'provides': [{'logical-name': 'b'}]})
+            self.assertEqual(run(liba, part, libb, own=2),
+                             ['build liba.p/a.o | liba.p/a.ifc: dyndep | liba.p/a-part.ifc',
+                              'build liba.p/part.o | liba.p/a-part.ifc: dyndep '])
+            # The module of another target is not known by the file, its object file is used
+            self.assertEqual(run(app, liba, part, own=1), ['build app.p/main.o : dyndep | liba.p/a.o'])
+
+            # The same module provided by two targets
+            other = write('other.json', {'primary-output': 'libb.p/a.o', 'provides': [{'logical-name': 'a'}]})
+            with self.assertRaisesRegex(RuntimeError, 'Module a, required by app.p/main.o, is provided by several targets'):
+                run(app, liba, other, own=1)
+            # ... which does not matter if it is not required
+            self.assertEqual(run(libb, liba, other, own=1), ['build libb.p/b.o | libb.p/b.ifc: dyndep '])
+            # The same module provided by two sources of a target
+            with self.assertRaisesRegex(RuntimeError, 'Module a is provided by several sources'):
+                run(liba, other, own=2)
+
+    def test_cpp_modules_bmi_args(self):
+        env = get_fake_env()
+        linker = linkers.MSVCDynamicLinker(env, MachineChoice.HOST, [])
+
+        # MSVC writes the modules of a target to its directory, and searches the ones of its dependencies
+        msvc = VisualStudioCPPCompiler([], ['cl'], '19.32', MachineChoice.HOST, env, 'x64', linker=linker)
+        self.assertEqual(msvc.get_cpp_modules_bmi_args('app.p', []),
+                         ['/ifcOutput', 'app.p/', '/ifcSearchDir', 'app.p'])
+        self.assertEqual(msvc.get_cpp_modules_bmi_args('app.p', ['liba.p', 'libb.p', 'liba.p']),
+                         ['/ifcOutput', 'app.p/', '/ifcSearchDir', 'app.p',
+                          '/ifcSearchDir', 'liba.p', '/ifcSearchDir', 'libb.p'])
+
+        self.assertIsNone(msvc.get_cpp_modules_mapper('app.p'))
+
+        # GCC is told where the modules are by a file, written after the scan, with all of them
+        gcc = GnuCPPCompiler([], ['g++'], '14.1', MachineChoice.HOST, env)
+        self.assertEqual(gcc.get_cpp_modules_mapper('app.p'), 'app.p/depscan.map')
+        self.assertEqual(gcc.get_cpp_modules_bmi_args('app.p', ['liba.p']), ['-fmodule-mapper=app.p/depscan.map'])
+        # ... which does not exist yet when the sources are scanned
+        self.assertEqual(gcc.filter_cpp_modules_scan_args(['-O2', '-fmodule-mapper=app.p/depscan.map', '-Ia']),
+                         ['-O2', '-Ia'])
+        self.assertEqual(msvc.filter_cpp_modules_scan_args(['/O2', '/ifcOutput', 'app.p/']),
+                         ['/O2', '/ifcOutput', 'app.p/'])
+
+    def test_depaccumulate_module_map(self):
+        from mesonbuild.scripts import depaccumulate
+        with tempfile.TemporaryDirectory() as tmpdir:
+            def write(name, *rules):
+                path = os.path.join(tmpdir, name)
+                with open(path, 'w', encoding='utf-8') as f:
+                    json.dump({'version': 1, 'revision': 0, 'rules': list(rules)}, f)
+                return path
+
+            app = write('app.json', {'primary-output': 'app.p/main.o', 'requires': [{'logical-name': 'a:part'}]})
+            liba = write('liba.json', {'primary-output': 'liba.p/a.o', 'provides': [{'logical-name': 'a'}]})
+            part = write('part.json', {'primary-output': 'liba.p/part.o', 'provides': [{'logical-name': 'a:part'}]})
+            out = os.path.join(tmpdir, 'out.dd')
+            mapper = os.path.join(tmpdir, 'out.map')
+
+            # The modules of the target and of the targets it links with, and the extra one
+            args = ['--own', '1', '--bmi-pattern', '{dir}/{module}.gcm', '--module-map', mapper,
+                    '--module-map-extra', 'std=gcm.cache/std.gcm', out, app, liba, part]
+            self.assertEqual(depaccumulate.run(args), 0)
+            with open(mapper, encoding='utf-8') as f:
+                self.assertEqual(f.read(), 'a liba.p/a.gcm\na:part liba.p/a-part.gcm\nstd gcm.cache/std.gcm\n')
+
+            # Nothing is written without a file
+            os.remove(mapper)
+            self.assertEqual(depaccumulate.run(['--own', '1', '--bmi-pattern', '{dir}/{module}.gcm',
+                                                '--module-map', '', '--module-map-extra', '', out, app, liba, part]), 0)
+            self.assertFalse(os.path.exists(mapper))
+
+    def test_cpp_modules_bmi_pattern(self):
+        env = get_fake_env()
+        linker = linkers.MSVCDynamicLinker(env, MachineChoice.HOST, [])
+
+        gcc = GnuCPPCompiler([], ['g++'], '14.1', MachineChoice.HOST, env)
+        self.assertEqual(gcc.get_cpp_modules_bmi_pattern().format(dir='app.p', module='a-b'), 'app.p/a-b.gcm')
+
+        msvc = VisualStudioCPPCompiler([], ['cl'], '19.32', MachineChoice.HOST, env, 'x64', linker=linker)
+        self.assertEqual(msvc.get_cpp_modules_bmi_pattern().format(dir='app.p', module='a.b'), 'app.p/a.b.ifc')
+
+        # Clang names the file after the object file, it needs to be told where to write it
+        clang = ClangCPPCompiler([], ['clang++'], '19.1.0', MachineChoice.HOST, env)
+        self.assertIsNone(clang.get_cpp_modules_bmi_pattern())
+
+    def test_cpp_modules_scan_command_visualstudio(self):
+        env = get_fake_env()
+        linker = linkers.MSVCDynamicLinker(env, MachineChoice.HOST, [])
+
+        cc = VisualStudioCPPCompiler(['ccache'], ['cl'], '19.32', MachineChoice.HOST, env, 'x64', linker=linker)
+        self.assertEqual(cc.get_cpp_modules_scan_command(),
+                         ['cl', '$ARGS', '/scanDependencies', '$out', '/Fo$OBJ', '$in'])
+
+        cc = VisualStudioCPPCompiler([], ['cl'], '19.31', MachineChoice.HOST, env, 'x64', linker=linker)
+        self.assertIsNone(cc.get_cpp_modules_scan_command())
+
+    def test_cpp_modules_scan_command_gcc(self):
+        env = get_fake_env()
+
+        cc = GnuCPPCompiler(['ccache'], ['g++'], '14.1', MachineChoice.HOST, env)
+        self.assertEqual(cc.get_cpp_modules_scan_command(),
+                         ['g++', '$ARGS', '-E', '-MD', '-MQ', '$out', '-MF', '$DEPFILE',
+                          '-fdeps-format=p1689r5', '-fdeps-file=$out', '-fdeps-target=$OBJ',
+                          '-o', os.devnull, '$in'])
+
+        cc = GnuCPPCompiler([], ['g++'], '13.3', MachineChoice.HOST, env)
+        self.assertIsNone(cc.get_cpp_modules_scan_command())
+
     def test_msvc_import_std_id(self):
         env = get_fake_env()
         linker = linkers.MSVCDynamicLinker(env, MachineChoice.HOST, [])

@@ -186,6 +186,7 @@ namely ccache, sccache, kache or buildcache, e.g. `c = ['kache', 'cc']`.
 An incomplete list of internally used programs that can be overridden
 here is:
 
+- clang-scan-deps
 - cmake
 - cups-config
 - gnustep-config
