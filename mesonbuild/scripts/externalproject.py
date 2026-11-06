@@ -39,15 +39,19 @@ class ExternalProject:
         with open(self.stampfile, 'w', encoding='utf-8'):
             pass
 
-    def supports_jobs_flag(self) -> bool:
+    def needs_jobs_flag(self) -> bool:
         p, o, e = Popen_safe(self.make + ['--version'])
-        if p.returncode == 0 and ('GNU Make' in o or 'waf' in o):
-            return True
+        if p.returncode == 0:
+            if 'GNU Make' in o:
+                # An explicit -j would override the inherited jobserver.
+                flags = os.environ.get('MAKEFLAGS', '') + ' ' + os.environ.get('GNUMAKEFLAGS', '')
+                return not any(flag.startswith('--jobserver-auth=') for flag in flags.split())
+            return 'waf' in o
         return False
 
     def build(self) -> int:
         make_cmd = self.make.copy()
-        if self.supports_jobs_flag():
+        if self.needs_jobs_flag():
             make_cmd.append(f'-j{determine_worker_count()}')
         rc = self._run('build', make_cmd)
         if rc != 0:
