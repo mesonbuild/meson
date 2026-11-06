@@ -233,6 +233,28 @@ class TestSerialisation:
         return self.fname[0] != self.exe_fname
 
 
+@dataclass(frozen=True, slots=True)
+class CommandPaths:
+    """Location of the source and build roots, as seen from the directory
+    where a custom target command runs.
+
+    Each root is either relative to that directory, or absolute.
+    """
+
+    source_root: str
+    build_root: str
+
+    def build(self, path: str) -> str:
+        """Rebase a path relative to the build root.
+
+        Paths relative to the build root are kept untouched, so that they
+        match the paths used elsewhere by the backend. Others are normalized.
+        """
+        if self.build_root == '.':
+            return path
+        return os.path.normpath(os.path.join(self.build_root, path))
+
+
 def get_backend_from_name(backend: str, build: T.Optional[build.Build] = None) -> Backend:
     if backend == 'ninja':
         from . import ninjabackend
@@ -1561,12 +1583,32 @@ class Backend:
             libs.extend(self.get_custom_target_provided_by_generated_source(t))
         return libs
 
-    def get_custom_target_sources(self, target: build.CommandTargetProto) -> T.List[str]:
+    def relative_command_paths(self) -> CommandPaths:
+        '''Paths for a command that runs from the build root.'''
+        return CommandPaths(self.build_to_src, '.')
+
+    def absolute_command_paths(self) -> CommandPaths:
+        '''Absolute paths, valid whatever the working directory.'''
+        return CommandPaths(self.environment.get_source_dir(), self.environment.get_build_dir())
+
+    def get_command_paths(self, target: build.CommandTargetProto, paths: CommandPaths | None) -> CommandPaths:
+        '''Paths to use for files of a command target.
+
+        A target can request absolute paths, whatever the backend.
+        '''
+        if target.absolute_paths:
+            return self.absolute_command_paths()
+        return paths or self.relative_command_paths()
+
+    def get_custom_target_sources(self, target: build.CommandTargetProto,
+                                  paths: CommandPaths | None = None) -> T.List[str]:
         '''
         Custom target sources can be of various object types; strings, File,
         BuildTarget, even other CustomTargets.
-        Returns the path to them relative to the build root directory.
+        Returns the path to them as seen from the command directory described
+        by paths (by default, relative to the build root directory).
         '''
+        paths = self.get_command_paths(target, paths)
         srcs: T.List[str] = []
         for i in target.get_sources():
             if isinstance(i, build.LocalProgram):
@@ -1585,9 +1627,7 @@ class Backend:
                 fname = [mesonlib.unwrap(i.get_path())]
             else:
                 fname = [i.rel_to_builddir(self.build_to_src)]
-            if target.absolute_paths:
-                fname = [os.path.join(self.environment.get_build_dir(), f) for f in fname]
-            srcs += fname
+            srcs += [paths.build(f) for f in fname]
         return srcs
 
     def get_paths_for_dep_outputs(self, target: build.AnyTargetProto, dep_targets: T.Iterable[build.AnyTargetProto | build.GeneratedList | programs.Program]) -> T.List[str]:
@@ -1607,15 +1647,13 @@ class Backend:
                     deps.append(os.path.join(self.get_target_dir(i), output))
         return deps
 
-    def get_target_depend_files(self, target: T.Union[build.Target, build.GeneratedList], absolute_paths: bool = False) -> T.List[str]:
-        deps: T.List[str] = []
-        for i in target.depend_files:
-            if absolute_paths:
-                deps.append(i.absolute_path(self.environment.get_source_dir(),
-                                            self.environment.get_build_dir()))
-            else:
-                deps.append(i.rel_to_builddir(self.build_to_src))
-        return deps
+    def get_target_depend_files(self, target: T.Union[build.Target, build.GeneratedList],
+                                paths: CommandPaths | None = None) -> T.List[str]:
+        '''Paths to the depend_files of target, as seen from the directory
+        described by paths (by default, relative to the build root).'''
+        if paths is None:
+            paths = self.relative_command_paths()
+        return [paths.build(i.rel_to_builddir(self.build_to_src)) for i in target.depend_files]
 
     def get_custom_target_output_dir(self, target: build.AnyTargetProto) -> str:
         # The XCode backend is special. A target foo/bar does
@@ -1658,19 +1696,19 @@ class Backend:
         return incs
 
     def eval_custom_target_command(
-            self, target: build.CommandTargetProto, absolute_outputs: bool = False) -> \
+            self, target: build.CommandTargetProto, paths: CommandPaths | None = None) -> \
             T.Tuple[T.List[str], T.List[str], T.List[str | programs.Program]]:
-        # We want the outputs to be absolute only when using the VS backend
-        # XXX: Maybe allow the vs backend to use relative paths too?
-        source_root = self.build_to_src
-        build_root = '.'
+        # paths describes where the source and build roots are, as seen from
+        # the directory the command runs from. By default, the command runs
+        # from the build root.
+        if paths is None:
+            paths = self.relative_command_paths()
+        file_paths = self.get_command_paths(target, paths)
+        source_root = paths.source_root
+        build_root = paths.build_root
         outdir = self.get_custom_target_output_dir(target)
-        if absolute_outputs:
-            source_root = self.environment.get_source_dir()
-            build_root = self.environment.get_build_dir()
-            outdir = os.path.join(self.environment.get_build_dir(), outdir)
-        outputs = [os.path.join(outdir, i) for i in target.get_outputs()]
-        inputs = self.get_custom_target_sources(target)
+        outputs = [paths.build(os.path.join(outdir, i)) for i in target.get_outputs()]
+        inputs = self.get_custom_target_sources(target, paths)
         # Evaluate the command list
         cmd: T.List[str | programs.Program] = []
         for i in target.command:
@@ -1678,14 +1716,13 @@ class Backend:
                 cmd += self.build_target_to_cmd_array(i)
                 continue
             elif isinstance(i, (build.CustomTarget, build.CustomTargetIndex)):
-                # GIR scanner will attempt to execute this binary but
-                # it assumes that it is in path, so always give it a full path.
+                # Only the first output is used, e.g. a binary the GIR scanner
+                # will execute. Like any other file, its path must be valid from
+                # the command directory.
                 tmp = i.get_outputs()[0]
-                i = os.path.join(self.get_custom_target_output_dir(i), tmp)
+                i = file_paths.build(os.path.join(self.get_custom_target_output_dir(i), tmp))
             elif isinstance(i, mesonlib.File):
-                i = i.rel_to_builddir(self.build_to_src)
-                if target.absolute_paths or absolute_outputs:
-                    i = os.path.join(self.environment.get_build_dir(), i)
+                i = file_paths.build(i.rel_to_builddir(self.build_to_src))
             # FIXME: str types are blindly added ignoring 'target.absolute_paths'
             # because we can't know if they refer to a file or just a string
             elif isinstance(i, str):
@@ -1701,14 +1738,12 @@ class Backend:
                         msg = f'Custom target {target.name!r} has @DEPFILE@ but no depfile ' \
                               'keyword argument.'
                         raise MesonException(msg)
-                    dfilename = os.path.join(outdir, target.get_dep_outname(inputs, target.get_outputs()))
+                    dfilename = paths.build(os.path.join(outdir, target.get_dep_outname(inputs, target.get_outputs())))
                     i = i.replace('@DEPFILE@', dfilename)
                 if '@PRIVATE_DIR@' in i:
                     assert isinstance(target, build.CustomTarget)
-                    pdir = self.get_target_private_dir_abs(target)
-                    os.makedirs(pdir, exist_ok=True)
-                    if not target.absolute_paths:
-                        pdir = self.get_target_private_dir(target)
+                    os.makedirs(self.get_target_private_dir_abs(target), exist_ok=True)
+                    pdir = file_paths.build(self.get_target_private_dir(target))
                     i = i.replace('@PRIVATE_DIR@', pdir)
             elif isinstance(i, programs.Program):
                 # Let it pass and be extended elsewhere
