@@ -1596,13 +1596,15 @@ class Backend:
             return self.absolute_command_paths()
         return paths or self.relative_command_paths()
 
-    def get_custom_target_sources(self, target: build.CommandTargetProto) -> T.List[str]:
+    def get_custom_target_sources(self, target: build.CommandTargetProto,
+                                  paths: CommandPaths | None = None) -> T.List[str]:
         '''
         Custom target sources can be of various object types; strings, File,
         BuildTarget, even other CustomTargets.
-        Returns the path to them relative to the build root directory.
+        Returns the path to them as seen from the command directory described
+        by paths (by default, relative to the build root directory).
         '''
-        paths = self.get_command_paths(target, None)
+        paths = self.get_command_paths(target, paths)
         srcs: T.List[str] = []
         for i in target.get_sources():
             if isinstance(i, build.LocalProgram):
@@ -1704,7 +1706,7 @@ class Backend:
         build_root = paths.build_root
         outdir = paths.build(self.get_custom_target_output_dir(target))
         outputs = [os.path.join(outdir, i) for i in target.get_outputs()]
-        inputs = self.get_custom_target_sources(target)
+        inputs = self.get_custom_target_sources(target, paths)
         # Evaluate the command list
         cmd: T.List[str | programs.Program] = []
         for i in target.command:
@@ -1712,10 +1714,11 @@ class Backend:
                 cmd += self.build_target_to_cmd_array(i)
                 continue
             elif isinstance(i, (build.CustomTarget, build.CustomTargetIndex)):
-                # GIR scanner will attempt to execute this binary but
-                # it assumes that it is in path, so always give it a full path.
+                # Only the first output is used, e.g. a binary the GIR scanner
+                # will execute. Like any other file, its path must be valid from
+                # the command directory.
                 tmp = i.get_outputs()[0]
-                i = os.path.join(self.get_custom_target_output_dir(i), tmp)
+                i = file_paths.build(os.path.join(self.get_custom_target_output_dir(i), tmp))
             elif isinstance(i, mesonlib.File):
                 i = file_paths.build(i.rel_to_builddir(self.build_to_src))
             # FIXME: str types are blindly added ignoring 'target.absolute_paths'
@@ -1737,10 +1740,8 @@ class Backend:
                     i = i.replace('@DEPFILE@', dfilename)
                 if '@PRIVATE_DIR@' in i:
                     assert isinstance(target, build.CustomTarget)
-                    pdir = self.get_target_private_dir_abs(target)
-                    os.makedirs(pdir, exist_ok=True)
-                    if not target.absolute_paths:
-                        pdir = self.get_target_private_dir(target)
+                    os.makedirs(self.get_target_private_dir_abs(target), exist_ok=True)
+                    pdir = file_paths.build(self.get_target_private_dir(target))
                     i = i.replace('@PRIVATE_DIR@', pdir)
             elif isinstance(i, programs.Program):
                 # Let it pass and be extended elsewhere

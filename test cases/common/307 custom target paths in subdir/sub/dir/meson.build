@@ -13,6 +13,7 @@ custom_target(
     '--private-dir', '@PRIVATE_DIR@',
     '--source-file', files('input.txt'),
     '--built-file', built_file,
+    '--custom-target-arg', gen_txt,
     '--input', '@INPUT@',
     '--output', '@OUTPUT@',
   ],

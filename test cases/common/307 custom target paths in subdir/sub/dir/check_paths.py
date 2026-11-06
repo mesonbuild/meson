@@ -11,6 +11,7 @@ parser.add_argument('--current-source-dir', required=True)
 parser.add_argument('--private-dir', required=True)
 parser.add_argument('--source-file', required=True)
 parser.add_argument('--built-file', required=True)
+parser.add_argument('--custom-target-arg', required=True)
 parser.add_argument('--input', nargs='+', required=True)
 parser.add_argument('--output', required=True)
 args = parser.parse_args()
@@ -29,6 +30,7 @@ check('current source dir', os.path.join(args.current_source_dir, 'check_paths.p
 check('private dir', args.private_dir)
 check('source file', args.source_file)
 check('built file', args.built_file)
+check('custom target argument', args.custom_target_arg)
 for i in args.input:
     check('input', i)
 
