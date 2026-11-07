@@ -10,7 +10,6 @@ import copy
 import hashlib
 import itertools, pathlib
 import os
-import pickle
 import re
 import shutil
 import textwrap
@@ -18,6 +17,7 @@ import typing as T
 
 from . import coredata
 from . import dependencies
+from . import meson_pickle
 from . import mlog
 from . import programs
 from .environment import MachineMap
@@ -27,7 +27,7 @@ from .mesonlib import (
     OrderedSet, classify_unity_sources, ROOT_SUBPROJECT,
     get_filenames_templates_dict, substitute_values, has_path_sep,
     is_parent_path, relpath, PerMachineDefaultable,
-    MesonBugException, EnvironmentVariables, pickle_load, lazy_property,
+    MesonBugException, EnvironmentVariables, lazy_property,
     unwrap,
 )
 from .options import OptionKey
@@ -3843,22 +3843,38 @@ def get_sources_string_names(sources: T.Sequence[CustomTargetSources], backend: 
     return names
 
 def load(build_dir: str) -> Build:
+    # A Build consists of three parts, the Environment, the CoreData
+    # and the Build itself.  While all three are reached from a single
+    # Build object, the CoreData is saved separately so that it can
+    # be reused across reconfigurations.
+    #
+    # The complication is that the CoreData refers to the Environment,
+    # so it can only be loaded when an environment is available.
+    # For this reason, the build.dat file contains two pickles that
+    # share their memo; the first is the Environment, which is needed
+    # to load the CoreData, and the second is the Build, which refers
+    # to the Environment through the memo and to the CoreData through
+    # persistent_ids that are arranged by BuildPickler.
+    #
+    # Ideally, only the Environment would have to be saved, and all the
+    # information that meson needs from build.load() would be available
+    # from introspection data.  But until then, here we are.
     filename = os.path.join(build_dir, 'meson-private', 'build.dat')
     try:
-        b = pickle_load(filename, 'Build data', Build)
-        # We excluded coredata when saving Build object, load it separately
-        b.environment.coredata = coredata.load(build_dir)
-        return b
-    except FileNotFoundError:
-        raise MesonException(f'No such build data file as {filename!r}.')
+        with meson_pickle.open_pickle(filename, 'Build data') as f:
+            unpickler = meson_pickle.Unpickler(f)
+            env = unpickler.load()
+            env.coredata = coredata.load(build_dir, env)
+            unpickler.env = env
+            b = unpickler.load()
+    except FileNotFoundError as e:
+        raise MesonException(f'No such build data file as {e.filename!r}.')
+    return meson_pickle.check_loaded(b, filename, 'Build data', Build)
 
 
 def save(obj: Build, filename: str) -> None:
-    # Exclude coredata because we pickle it separately already
-    cdata = obj.environment.coredata
-    obj.environment.coredata = None
-    try:
-        with open(filename, 'wb') as f:
-            pickle.dump(obj, f)
-    finally:
-        obj.environment.coredata = cdata
+    # See load() for the format.
+    with open(filename, 'wb') as f:
+        pickler = meson_pickle.BuildPickler(f, obj.environment)
+        pickler.dump(obj.environment)
+        pickler.dump(obj)

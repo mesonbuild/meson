@@ -130,7 +130,7 @@ class Conf:
         # Do nothing when using introspection
         if self.default_values_only:
             return
-        coredata.save(self.coredata, self.build_dir)
+        coredata.save(self.coredata, self.build_dir, unwrap(self.build).environment)
         # We don't write the build file because any changes to it
         # are erased when Meson is executed the next time, i.e. when
         # Ninja is run.

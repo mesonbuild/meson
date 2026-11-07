@@ -37,6 +37,7 @@ from mesonbuild import envconfig
 
 if T.TYPE_CHECKING:
     from .compilers.compilers import Compiler, CompilerDict, Language
+    from .coredata import CoreData
     from .options import OptionDict, ElementaryOptionValues
     from .wrap.wrap import Resolver
 
@@ -108,12 +109,27 @@ class MachineMap:
         return [self.build, self.host, self.target][machine.value]
 
 
+class EmptyCMDOptions:
+    # mimic an argparse namespace
+    def __init__(self, cross_file: T.Optional[str] = None):
+        self.cross_file = [cross_file] if cross_file is not None else []
+        self.native_file: T.List[str] = []
+        self.cmd_line_options: T.Dict[OptionKey, T.Optional[str]] = {}
+        self.builtin_keys: T.Set[OptionKey] = set()
+        self.d_keys: T.Set[OptionKey] = set()
+        self.projectoptions: T.List[str] = []
+
+    def __eq__(self, other: object) -> bool:
+        return NotImplemented
+
+
 class Environment:
     private_dir = 'meson-private'
     log_dir = 'meson-logs'
     info_dir = 'meson-info'
 
     exe_wrapper: ExternalProgram | None
+    coredata: mesonlib.late_property[CoreData] = mesonlib.late_property()
 
     def __init__(self, source_dir: str, build_dir: T.Optional[str], cmd_options: cmdline.SharedCMDOptions) -> None:
         self.source_dir = source_dir
@@ -128,7 +144,7 @@ class Environment:
             os.makedirs(self.log_dir, exist_ok=True)
             os.makedirs(self.info_dir, exist_ok=True)
             try:
-                self.coredata: coredata.CoreData = coredata.load(self.get_build_dir(), suggest_reconfigure=False)
+                self.coredata = coredata.load(self.get_build_dir(), self, suggest_reconfigure=False)
                 self.first_invocation = False
             except FileNotFoundError:
                 self.create_new_coredata(cmd_options)
@@ -451,6 +467,12 @@ class Environment:
         # There is a single Environment, objects that refer to it share it.
         return self
 
+    def __getstate__(self) -> T.Dict[str, T.Any]:
+        # The CoreData is restored from coredata.dat, see build.load().
+        state = self.__dict__.copy()
+        del state['coredata']
+        return state
+
     def create_new_coredata(self, options: cmdline.SharedCMDOptions) -> None:
         # WARNING: Don't use any values from coredata in __init__. It gets
         # re-initialized with project options by the interpreter during
@@ -485,12 +507,12 @@ class Environment:
         return path
 
     def dump_coredata(self) -> str:
-        return coredata.save(self.coredata, self.get_build_dir())
+        return coredata.save(self.coredata, self.get_build_dir(), self)
 
     def get_log_dir(self) -> str:
         return self.log_dir
 
-    def get_coredata(self) -> coredata.CoreData:
+    def get_coredata(self) -> CoreData:
         return self.coredata
 
     @staticmethod
