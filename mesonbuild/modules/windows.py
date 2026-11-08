@@ -203,7 +203,7 @@ class WindowsModule(ExtensionModule):
                                     '--Xarg=/EP',
                                     '--Xarg=/nologo',
                                     '--Xarg=/DRC_INVOKED',
-                                    '--Xarg=/Tc@INPUT@',
+                                    '--Xarg=/TC',
                                     ])
                 else:
                     depfile = f'{output}.d'
