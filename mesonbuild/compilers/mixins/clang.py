@@ -150,7 +150,7 @@ class ClangCompiler(GnuLikeCompiler):
         # https://github.com/llvm/llvm-project/issues/33905
         myargs: T.List[str] = ['-Werror=implicit-function-declaration']
         if mode is CompileCheckMode.COMPILE:
-            myargs.extend(['-Werror=unknown-warning-option', '-Werror=unused-command-line-argument'])
+            myargs.extend(['-Werror=unknown-warning-option'])
             if mesonlib.version_compare(self.version, '>=3.6.0'):
                 myargs.append('-Werror=ignored-optimization-argument')
         return super().get_compiler_check_args(mode) + myargs
@@ -203,6 +203,20 @@ class ClangCompiler(GnuLikeCompiler):
                     f'Cannot find linker {linker}.')
             return [f'-fuse-ld={linker}']
         return super().use_linker_args(linker, version)
+
+    def has_arguments(self, args: T.List[str], code: str,
+                      mode: CompileCheckMode) -> T.Tuple[bool, bool]:
+        new_args: T.List[str] = []
+        for arg in args:
+            # Workaround for a bug in Clang where it only returns a warning,
+            # not an error, for -msse4.2. Fortunately, it still correctly
+            # returns an error for -mno-sse4.2
+            # https://github.com/llvm/llvm-project/issues/70143
+            if arg == '-msse4.2':
+                new_args.append('-mno-sse4.2')
+                continue
+            new_args.append(arg)
+        return super().has_arguments(new_args, code, mode)
 
     def get_has_func_attribute_extra_args(self, name: str) -> T.List[str]:
         # Clang only warns about unknown or ignored attributes, so force an
