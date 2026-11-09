@@ -775,10 +775,10 @@ class PlatformAgnosticTests(BasePlatformTests):
         # Make the source directory and all its contents read-only recursively
         # Keep execute permission on directories
         for dir, _, files in os.walk(testdir):
-            os.chmod(dir, 0o555)
+            os.chmod(dir, 0o500)
             for file in files:
                 filepath = os.path.join(dir, file)
-                os.chmod(filepath, 0o444)
+                os.chmod(filepath, 0o400)
 
         self.init(testdir)
         self.build()

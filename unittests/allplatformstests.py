@@ -3258,7 +3258,7 @@ class AllPlatformTests(BasePlatformTests):
             source = os.path.join(srcdir, 'input.txt')
             with open(source, 'w', encoding='utf-8') as f:
                 f.write('hello')
-            os.chmod(source, 0o444)
+            os.chmod(source, 0o400)
             try:
                 with open(os.path.join(srcdir, 'meson.build'), 'w', encoding='utf-8') as f:
                     f.write("project('test', version: '1.0')\n"
@@ -3271,7 +3271,7 @@ class AllPlatformTests(BasePlatformTests):
                                  'configure_file output must preserve source mtime')
                 self.init(srcdir, extra_args=['--reconfigure'])
             finally:
-                os.chmod(source, 0o644)
+                os.chmod(source, 0o600)
 
     def test_dirs(self):
         with tempfile.TemporaryDirectory() as containing:
