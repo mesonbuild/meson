@@ -960,7 +960,7 @@ class RustModule(ExtensionModule):
 
         if self._bindgen_bin is None:
             self._bindgen_bin = state.find_program('bindgen', wanted=kwargs['bindgen_version'])
-            if self._bindgen_rust_target is not None:
+            if self._bindgen_rust_target is not None and self._bindgen_bin.runnable():
                 _, _, err = mesonlib.Popen_safe(self._bindgen_bin.get_command() + ['--rust-target', self._bindgen_rust_target])
                 # < 0.71: Sometimes this is "invalid Rust target" and
                 # sometimes "invalid # rust target"
@@ -1033,7 +1033,12 @@ class RustModule(ExtensionModule):
                 '--wrap-static-fns-path', os.path.join(state.environment.build_dir, '@OUTPUT1@')
             ]
 
-        cmd = self._bindgen_bin.get_command() + \
+        cmd: T.List[CommandTypes] = []
+        if self._bindgen_bin.runnable():
+            cmd.extend(self._bindgen_bin.get_command())
+        else:
+            cmd.append(self._bindgen_bin)
+        cmd += \
             [
                 '@INPUT@', '--output',
                 os.path.join(state.environment.build_dir, '@OUTPUT0@')
