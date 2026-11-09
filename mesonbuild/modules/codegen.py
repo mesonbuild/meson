@@ -8,7 +8,7 @@ import os
 import typing as T
 
 from . import ExtensionModule, ModuleInfo
-from ..build import CustomTarget, CustomTargetIndex, GeneratedList, IncludeDirs
+from ..build import CustomTarget, CustomTargetIndex, GeneratedList, IncludeDirs, LocalProgram
 from ..compilers.compilers import lang_suffixes
 from ..dependencies import Dependency, InternalDependency
 from ..interpreter.decorators import apply_machine_map
@@ -36,7 +36,7 @@ if T.TYPE_CHECKING:
     from . import ModuleState
     from .._typing import ImmutableListProtocol
     from ..interpreter import Interpreter
-    from ..interpreter.kwargs import ExtractRequired
+    from ..interpreter.kwargs import ExtractRequired, TargetDepends
     from ..interpreterbase import TYPE_var, TYPE_kwargs
     from ..mesonlib import MachineChoice
     from ..programs import CommandList
@@ -86,10 +86,12 @@ if T.TYPE_CHECKING:
         args: list[str]
         install: bool
         install_dir: str | None
+        grpc: bool | None
 
     class FindProtocKwargs(ExtractRequired):
 
         dependency: Dependency | None
+        grpc_dependency: Dependency | None
         import_dirs: list[IncludeDirs | str]
         version: list[str]
         args: list[str]
@@ -114,6 +116,24 @@ def _validate_protoc_source(value: str | File | CustomTarget | CustomTargetIndex
         if not isinstance(value.target, CustomTarget):
             return 'comes from a CompileTarget. It cannot be used as protoc source.'
     return None
+
+
+def _protoc_plugin_path(plugin: Program) -> str:
+    """Path of a protoc plugin, for use inside a `--plugin=NAME=PATH` argument.
+
+    The path is embedded in a larger argument, so the program cannot be given
+    to the command as is; the caller must also add the plugin to the target
+    dependencies.
+    """
+    if isinstance(plugin, LocalProgram) and not isinstance(plugin.program, ExternalProgram):
+        target = plugin.program
+        return os.path.join('@BUILD_ROOT@', target.get_builddir(), target.get_filename())
+    command = plugin.get_command()
+    if len(command) != 1:
+        raise MesonException(
+            f'protoc plugin {plugin.name!r} must be a single executable, '
+            f'but its command is {" ".join(command)!r}.')
+    return command[0]
 
 
 def is_subset_validator(choices: T.Set[str]) -> T.Callable[[T.List[str]], T.Optional[str]]:
@@ -351,6 +371,8 @@ class ProtocGenerator(_CodeGenerator):
 
     dependency: Dependency | None = None
     import_dirs: list[IncludeDirs] = dataclasses.field(default_factory=list)
+    grpc_dependency: Dependency | None = None
+    grpc_plugin: Program | None = None
 
 
 class ProtocHolder(ObjectHolder[ProtocGenerator]):
@@ -380,6 +402,7 @@ class ProtocHolder(ObjectHolder[ProtocGenerator]):
             KwargInfo('args', ContainerTypeInfo(list, str), default=[], listify=True),
             INSTALL_KW,
             INSTALL_DIR_KW,
+            KwargInfo('grpc', (bool, NoneType)),
         ],
     )
     @InterpreterObject.method('generate')
@@ -402,6 +425,22 @@ class ProtocHolder(ObjectHolder[ProtocGenerator]):
 
             arguments.append('--cpp_out=' + os.path.join('@BUILD_ROOT@', self.interpreter.current_build_dir(), 'meson-protoc'))
 
+        grpc_dep = self.held_object.grpc_dependency
+        grpc_plugin = self.held_object.grpc_plugin
+        grpc = kwargs['grpc']
+        if grpc is None:
+            grpc = grpc_dep is not None and grpc_dep.found()
+        if grpc:
+            if language != 'cpp':
+                raise MesonException(f'protoc.generate: gRPC generation is not supported for {language!r} language.')
+            if grpc_dep is None or not grpc_dep.found():
+                raise MesonException('protoc.generate: gRPC generation requires a found "grpc_dependency" in codegen.protoc().')
+            if grpc_plugin is None or not grpc_plugin.found():
+                raise MesonException('protoc.generate: gRPC generation requires the grpc_cpp_plugin program, which was not found.')
+
+            arguments.append('--grpc_out=' + os.path.join('@BUILD_ROOT@', self.interpreter.current_build_dir(), 'meson-protoc'))
+            arguments.append('--plugin=protoc-gen-grpc=' + _protoc_plugin_path(grpc_plugin))
+
         extra_deps: OrderedSet[CustomTarget] = OrderedSet()
 
         for imp_gen in kwargs['imports']:
@@ -420,6 +459,8 @@ class ProtocHolder(ObjectHolder[ProtocGenerator]):
         if language == 'cpp':
             includedir = self.interpreter.environment.get_includedir()
             install_dirs: list[str | Literal[False]] = [False, kwargs['install_dir'] or includedir]
+            if grpc:
+                install_dirs *= 2
 
         proto_paths: dict[str, File | CustomTargetIndex] = {}
 
@@ -466,6 +507,12 @@ class ProtocHolder(ObjectHolder[ProtocGenerator]):
             else:
                 raise MesonBugException(f'Unsupported source type {type(proto_source)} in protoc.generate()')
 
+        target_depends: list[TargetDepends] = list(extra_deps)
+        if grpc and grpc_plugin is not None:
+            # The plugin path is embedded in an argument, so the dependency
+            # on the plugin must be explicit.
+            target_depends.append(grpc_plugin)
+
         targets: list[CustomTarget] = []
         for proto_rel_path, proto_file in proto_paths.items():
             name, _ = os.path.splitext(f'codegen-protoc-{proto_rel_path}'.replace('/', '@').replace(os.path.sep, '@'))
@@ -473,6 +520,11 @@ class ProtocHolder(ObjectHolder[ProtocGenerator]):
             if language == 'cpp':
                 rel_output = os.path.join('meson-protoc', os.path.dirname(proto_rel_path))
                 outputs = [os.path.join(rel_output, '@BASENAME@.pb.cc'), os.path.join(rel_output, '@BASENAME@.pb.h')]
+                if grpc:
+                    # grpc_cpp_plugin always writes both files, even for a
+                    # .proto without any service.
+                    outputs += [os.path.join(rel_output, '@BASENAME@.grpc.pb.cc'),
+                                os.path.join(rel_output, '@BASENAME@.grpc.pb.h')]
 
             ct = CustomTarget(
                 name,
@@ -484,7 +536,7 @@ class ProtocHolder(ObjectHolder[ProtocGenerator]):
                 build_project,
 
                 depfile=f'{name}.dep',
-                extra_depends=list(extra_deps),
+                extra_depends=target_depends,
                 install=kwargs['install'],
                 install_dir=install_dirs,
                 description=f'Generating protobuf for {proto_rel_path}',
@@ -497,8 +549,13 @@ class ProtocHolder(ObjectHolder[ProtocGenerator]):
         if language == 'cpp':
             sources = [ct[0] for ct in targets]
             headers = [ct[1] for ct in targets]
+            if grpc:
+                sources += [ct[2] for ct in targets]
+                headers += [ct[3] for ct in targets]
             ext_deps: list[Dependency] = [d for i in kwargs['imports'] if (d := i.dependency) is not None]
             ext_deps.append(protobuf_dep)
+            if grpc and grpc_dep is not None:
+                ext_deps.append(grpc_dep)
             dependency = InternalDependency(
                 protobuf_dep.get_version(),
                 ext_deps = ext_deps,
@@ -693,6 +750,7 @@ class CodeGenModule(ExtensionModule):
         'codegen.protoc',
         kw_types=[
             KwargInfo('dependency', (Dependency, NoneType), default=None),
+            KwargInfo('grpc_dependency', (Dependency, NoneType), default=None),
             _IMPORT_DIRS_KW,
             KwargInfo('version', ContainerTypeInfo(list, str), default=[], listify=True),
             KwargInfo('args', ContainerTypeInfo(list, str), default=[], listify=True),
@@ -719,7 +777,14 @@ class CodeGenModule(ExtensionModule):
         dependency = kwargs['dependency']
         import_dirs = self.interpreter.extract_incdirs(kwargs['import_dirs'])
 
-        return ProtocGenerator(name, bin, kwargs['native'], kwargs['args'], dependency, import_dirs)
+        grpc_dependency = kwargs['grpc_dependency']
+        grpc_plugin: Program | None = None
+        if grpc_dependency is not None and grpc_dependency.found():
+            # The plugin runs alongside protoc, on the same machine.
+            grpc_plugin = state.find_program('grpc_cpp_plugin', required=False, for_machine=kwargs['native'])
+
+        return ProtocGenerator(name, bin, kwargs['native'], kwargs['args'], dependency, import_dirs,
+                               grpc_dependency, grpc_plugin)
 
 
 def initialize(interpreter: Interpreter) -> CodeGenModule:
