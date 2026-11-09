@@ -56,7 +56,7 @@ class MesonBugException(MesonException):
 class HoldableObject:
     ''' Dummy base class for all objects that can be
         held by an interpreter.baseobjects.ObjectHolder '''
-    def __new__(cls, *args: T.Any, **kwargs: T.Any) -> HoldableObject:
+    def __new__(cls, *args: object, **kwargs: object) -> HoldableObject:
         if cls is HoldableObject:
             raise TypeError(f"Can't instantiate abstract class {cls.__name__}")
         return super().__new__(cls)

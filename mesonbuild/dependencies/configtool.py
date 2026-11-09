@@ -4,8 +4,9 @@
 from __future__ import annotations
 
 from .base import ExternalDependency, DependencyException, DependencyTypeName
-from ..mesonlib import listify, Popen_safe, Popen_safe_logged, split_args, version_compare, version_compare_many
+from ..mesonlib import listify, Popen_safe, Popen_safe_logged, split_args, unwrap, version_compare, version_compare_many
 from ..programs import find_external_program
+from .. import mesonlib
 from .. import mlog
 import re
 import typing as T
@@ -30,8 +31,9 @@ class ConfigToolDependency(ExternalDependency):
         Because some tools are stupid and don't return 0
     """
 
-    tools: T.Optional[T.List[str]] = None
-    tool_name: T.Optional[str] = None
+    config: mesonlib.late_property[T.List[str]] = mesonlib.late_property()
+    tools: T.List[str] = []
+    tool_name: mesonlib.late_property[str] = mesonlib.late_property()
     version_arg = '--version'
     skip_version: T.Optional[str] = None
     allow_default_for_cross = False
@@ -39,22 +41,18 @@ class ConfigToolDependency(ExternalDependency):
     type_name = DependencyTypeName('config-tool')
 
     def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs, exclude_paths: T.Optional[T.List[str]] = None):
-        super().__init__(name, environment, kwargs)
         # You may want to overwrite the class version in some cases
-        self.tools = listify(kwargs.get('tools', self.tools))
-        if not self.tool_name:
+        if 'tools' in kwargs:
+            self.tools = listify(kwargs['tools'])
+        if self.tools:
             self.tool_name = self.tools[0]
         if 'version_arg' in kwargs:
             self.version_arg = kwargs['version_arg']
+        super().__init__(name, environment, kwargs)
 
         req_version = kwargs.get('version', [])
         tool, version = self.find_config(req_version, kwargs.get('returncode_value', 0), exclude_paths=exclude_paths)
-        self.config = tool
-        self.is_found = self.report_config(version, req_version)
-        if not self.is_found:
-            self.config = None
-            return
-        self.version = version
+        self.is_found = self.report_config(tool, version, req_version)
 
     def _sanitize_version(self, version: str) -> str:
         """Remove any non-numeric, non-point version suffixes."""
@@ -88,8 +86,8 @@ class ConfigToolDependency(ExternalDependency):
         exclude_paths = [] if exclude_paths is None else exclude_paths
         best_match: T.Tuple[T.Optional[T.List[str]], T.Optional[str]] = (None, None)
         for potential_bin in find_external_program(
-                self.env, self.for_machine, self.tool_name,
-                self.tool_name, self.tools, exclude_paths=exclude_paths,
+                self.env, self.for_machine, unwrap(self.tool_name),
+                unwrap(self.tool_name), unwrap(self.tools), exclude_paths=exclude_paths,
                 allow_default_for_cross=self.allow_default_for_cross):
             if not potential_bin.found():
                 continue
@@ -121,23 +119,26 @@ class ConfigToolDependency(ExternalDependency):
 
         return best_match
 
-    def report_config(self, version: T.Optional[str], req_version: T.List[str]) -> bool:
+    def report_config(self, tool: T.Optional[T.List[str]], version: T.Optional[str], req_version: T.List[str]) -> bool:
         """Helper method to print messages about the tool."""
 
-        found_msg: T.List[T.Union[str, mlog.AnsiDecorator]] = [mlog.bold(self.tool_name), 'found:']
+        found_msg: T.List[T.Union[str, mlog.AnsiDecorator]] = [self.tool_name, 'found:']
 
-        if self.config is None:
+        if tool is None:
+            self.is_found = False
             found_msg.append(mlog.red('NO'))
             if version is not None and req_version:
                 found_msg.append(f'found {version!r} but need {req_version!r}')
             elif req_version:
                 found_msg.append(f'need {req_version!r}')
         else:
-            found_msg += [mlog.green('YES'), '({})'.format(' '.join(self.config)), version]
+            self.is_found = True
+            self.config = tool
+            self.version = unwrap(version)
+            found_msg += [mlog.green('YES'), '({})'.format(' '.join(self.config)), self.version]
 
         mlog.log(*found_msg)
-
-        return self.config is not None
+        return self.is_found
 
     def get_config_value(self, args: T.List[str], stage: str, required: bool = False) -> T.List[str]:
         p, out, err = Popen_safe_logged(self.config + args)

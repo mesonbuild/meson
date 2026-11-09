@@ -35,7 +35,7 @@ class DirectoryLockBase:
     def __enter__(self) -> None:
         mlog.debug('Calling the no-op version of DirectoryLock')
 
-    def __exit__(self, *args: T.Any) -> None:
+    def __exit__(self, *args: object) -> None:
         pass
 
 
@@ -70,7 +70,7 @@ if sys.platform == 'win32':
                 self.lockfile.close()
                 raise MesonException(self.err)
 
-        def __exit__(self, *args: T.Any) -> None:
+        def __exit__(self, *args: object) -> None:
             if self.lockfile is None or self.lockfile.closed:
                 return
             msvcrt.locking(self.lockfile.fileno(), msvcrt.LK_UNLCK, 1)
@@ -110,7 +110,7 @@ else:
                 self.lockfile.close()
                 raise MesonException(f'Failed to lock directory {self.lockpath}: {e.strerror}')
 
-        def __exit__(self, *args: T.Any) -> None:
+        def __exit__(self, *args: object) -> None:
             if self.lockfile is None or self.lockfile.closed:
                 return
             fcntl.flock(self.lockfile, fcntl.LOCK_UN)

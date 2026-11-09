@@ -232,7 +232,7 @@ class CMakeToolchain:
         # Generate the CMakeLists.txt
         mlog.debug('CMake Toolchain: Calling CMake once to generate the compiler state')
         languages = list(self.compilers.keys())
-        lang_ids = [language_map.get(x) for x in languages if x in language_map]
+        lang_ids = [language_map[x] for x in languages if x in language_map]
         cmake_content = dedent(f'''
             cmake_minimum_required(VERSION 3.10)
             project(CompInfo {' '.join(lang_ids)})
@@ -259,9 +259,9 @@ class CMakeToolchain:
         if rc != 0:
             mlog.warning('CMake Toolchain: Failed to determine CMake compilers state')
             mlog.debug(f' -- return code: {rc}')
-            for line in raw_stdout.split('\n'):
+            for line in (raw_stdout or '').split('\n'):
                 mlog.debug(f' -- stdout: {line.rstrip()}')
-            for line in raw_trace.split('\n'):
+            for line in (raw_trace or '').split('\n'):
                 mlog.debug(f' -- stderr: {line.rstrip()}')
             return
 

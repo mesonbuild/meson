@@ -25,11 +25,12 @@ if T.TYPE_CHECKING:
 def mpi_factory(env: 'Environment',
                 kwargs: DependencyObjectKWs,
                 methods: T.List[DependencyMethods]) -> T.List['DependencyGenerator']:
-    language = kwargs.get('language') or 'c'
-    if language not in {'c', 'cpp', 'fortran'}:
+    language_ = kwargs.get('language') or 'c'
+    if language_ not in {'c', 'cpp', 'fortran'}:
         # OpenMPI doesn't work without any other languages
         return []
 
+    language = T.cast('T.Literal["c", "cpp", "fortran"]', language_)
     for_machine = kwargs['native']
 
     candidates: T.List['DependencyGenerator'] = []

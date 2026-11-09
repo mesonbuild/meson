@@ -21,15 +21,14 @@ class Vs2013Backend(Vs2010Backend):
         self.sln_version_comment = '2013'
 
     def detect_toolset(self) -> None:
-        if self.environment is not None:
-            # TODO: we assume host == build
-            comps = self.environment.coredata.compilers.host
-            if comps and all(c.id == 'intel-cl' for c in comps.values()):
-                c = list(comps.values())[0]
-                if c.version.startswith('19'):
-                    self.platform_toolset = 'Intel C++ Compiler 19.0'
-                else:
-                    # We don't have support for versions older than 2019 right now.
-                    raise MesonException('There is currently no support for ICL before 19, patches welcome.')
-            if self.platform_toolset is None:
-                self.platform_toolset = 'v120'
+        # TODO: we assume host == build
+        comps = self.environment.coredata.compilers.host
+        if comps and all(c.id == 'intel-cl' for c in comps.values()):
+            c = list(comps.values())[0]
+            if c.version.startswith('19'):
+                self.platform_toolset = 'Intel C++ Compiler 19.0'
+            else:
+                # We don't have support for versions older than 2019 right now.
+                raise MesonException('There is currently no support for ICL before 19, patches welcome.')
+        if self.platform_toolset is None:
+            self.platform_toolset = 'v120'

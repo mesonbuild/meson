@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 from . import coredata as cdata
+from .environment import Environment, EmptyCMDOptions
 from .mesonlib import MachineChoice
 from .options import OptionKey
 import typing as T
@@ -64,7 +65,9 @@ def run(options: Arguments) -> int:
     print('Do NOT parse, this will change from version to version in incompatible ways')
     print('')
 
-    coredata = cdata.load(options.builddir)
+    # The environment is only needed to attach it to the loaded compilers.
+    env = Environment('', None, EmptyCMDOptions(None))
+    coredata = cdata.load(options.builddir, env)
     backend = coredata.optstore.get_value_for(OptionKey('backend'))
     assert isinstance(backend, str), 'for mypy'
     for k, v in sorted(coredata.__dict__.items()):

@@ -355,7 +355,9 @@ def _local_program_convertor(raw: T.List[T.Union[str, File, BuildTarget, Generat
     result: T.List[CustomTargetInputs] = []
     for i in raw:
         if isinstance(i, LocalProgram):
-            result.append(i.get_target())
+            tgt = i.get_target()
+            assert isinstance(tgt, (BuildTarget, CustomTarget, CustomTargetIndex))
+            result.append(tgt)
         else:
             result.append(i)
     return result

@@ -28,6 +28,7 @@ if T.TYPE_CHECKING:
 
     from . import ModuleState
     from .._typing import ImmutableListProtocol
+    from ..backend.backends import Backend
     from ..interpreter import Interpreter
     from ..interpreter.kwargs import TargetDepends
     from ..interpreterbase import TYPE_var
@@ -102,7 +103,7 @@ class ExternalProject(NewExtensionModule):
 
         self._configure(state)
 
-        self.targets = self._create_targets(extra_depends, state.current_build_project)
+        self.targets = self._create_targets(extra_depends, state.current_build_project, state.backend)
 
     def _cygpath_convert(self, winpath: Path) -> Path:
         # On Cygwin, MSYS2 and GitBash, the configure command and the prefix
@@ -235,7 +236,8 @@ class ExternalProject(NewExtensionModule):
                 print(contents)
             raise MesonException(m)
 
-    def _create_targets(self, extra_depends: T.List[TargetDepends], build_project: build.BuildProject) -> T.List['TYPE_var']:
+    def _create_targets(self, extra_depends: T.List[TargetDepends], build_project: build.BuildProject,
+                        backend: Backend) -> T.List['TYPE_var']:
         cmd = self.env.get_build_command()
         cmd += ['--internal', 'externalproject',
                 '--name', self.name,
@@ -260,6 +262,7 @@ class ExternalProject(NewExtensionModule):
             console=True,
             extra_depends=extra_depends,
             description='Generating external project {}',
+            backend=backend,
         )
 
         idir = build.InstallDir(self.current_build_dir.as_posix(),

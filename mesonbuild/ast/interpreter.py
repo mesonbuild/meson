@@ -117,7 +117,7 @@ class IntrospectionBuildTarget(MesonInterpreterObject):
     installed: T.Union[bool, UnknownValue]
     outputs: T.List[str]
     source_nodes: T.List[BaseNode]
-    extra_files: BaseNode
+    extra_files: T.Optional[BaseNode]
     kwargs: T.Dict[str, TYPE_var]
     node: FunctionNode
 

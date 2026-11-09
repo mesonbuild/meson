@@ -39,14 +39,14 @@ from .rspfile import RSPFileSyntax, rsp_file_contents, rsp_file_flag
 if T.TYPE_CHECKING:
     from .._typing import ImmutableListProtocol
     from ..arglist import CompilerArgs
-    from ..build import ExtractedObjects, TargetSources
+    from ..build import Build, ExtractedObjects, TargetSources
     from ..compilers.compilers import Compiler, Language
     from ..environment import Environment
     from ..interpreter import Test
     from ..interpreter.kwargs import TargetDepends
     from ..linkers import StaticLinker
     from ..mesonlib import InstallScript
-    from ..options import ElementaryOptionValues
+    from ..options import ElementaryOptionValues, UmaskType
 
     from typing_extensions import Literal, TypedDict, NotRequired, TypeAlias
 
@@ -77,6 +77,8 @@ class RegenInfo:
     source_dir: str
     build_dir: str
     depfiles: T.List[str]
+    meson_command: T.List[str]
+    backend: str
 
 class TestProtocol(enum.Enum):
 
@@ -124,9 +126,7 @@ class InstallData:
     prefix: str
     libdir: str
     strip_bin: T.List[str]
-    # TODO: in python 3.8 or with typing_Extensions this could be:
-    # `T.Union[T.Literal['preserve'], int]`, which would be more accurate.
-    install_umask: T.Union[str, int]
+    install_umask: UmaskType
     mesonintrospect: T.List[str]
     version: str
 
@@ -224,10 +224,6 @@ class TestSerialisation:
     # Path of the test program itself.
     exe_fname: str
 
-    def __post_init__(self) -> None:
-        if self.exe_wrapper is not None:
-            assert isinstance(self.exe_wrapper, programs.ExternalProgram)
-
     @property
     def cmd_has_interpreter(self) -> bool:
         return self.fname[0] != self.exe_fname
@@ -282,22 +278,33 @@ def get_genvslite_backend(genvsname: str, build: T.Optional[build.Build] = None)
         return vs2026backend.Vs2026Backend(build, gen_lite = True)
     raise MesonException(f'Unknown genvslite backend {genvsname}')
 
+# make it a separate class because annotations on `def` lines look
+# at the class scope (but not base classes), and any reference to `build.Xyz`
+# would pick the `build` property below if it was declared in Backend
+# itself.  The alternative is to import everything by name from the build
+# module.
+class _BackendState:
+    build: mesonlib.late_property[Build] = mesonlib.late_property()
+    environment: mesonlib.late_property[Environment] = mesonlib.late_property()
+    build_dir: mesonlib.late_property[str] = mesonlib.late_property()
+    source_dir: mesonlib.late_property[str] = mesonlib.late_property()
+    build_to_src: mesonlib.late_property[str] = mesonlib.late_property()
+    src_to_build: mesonlib.late_property[str] = mesonlib.late_property()
+
 # This class contains the basic functionality that is needed by all backends.
 # Feel free to move stuff in and out of it as you see fit.
-class Backend:
+class Backend(_BackendState):
 
-    environment: T.Optional['Environment']
     name = '<UNKNOWN>'
 
     def __init__(self, build: T.Optional[build.Build]):
+        self.processed_targets: T.Set[str] = set()
         # Make it possible to construct a dummy backend
         # This is used for introspection without a build directory
         if build is None:
-            self.environment = None
             return
         self.build = build
         self.environment = build.environment
-        self.processed_targets: T.Set[str] = set()
         self.build_dir = self.environment.get_build_dir()
         self.source_dir = self.environment.get_source_dir()
         self.build_to_src = mesonlib.relpath(self.environment.get_source_dir(),
@@ -574,7 +581,7 @@ class Backend:
                 for obj in target.objects:
                     add_dependency(obj)
             else:
-                raise MesonException(f'Unknown target type for target {target}')
+                raise MesonBugException(f'Unknown target type for target {target}')
 
             for generated in target.get_generated_sources():
                 add_dependency(generated)
@@ -684,39 +691,39 @@ class Backend:
         exe, *raw_cmd_args = cmd
         if isinstance(exe, build.LocalProgram):
             exe = exe.program
-        if isinstance(exe, programs.Program):
+        if isinstance(exe, str):
+            exe_cmd = [exe]
+            exe_for_machine = MachineChoice.BUILD
+        elif isinstance(exe, programs.Program):
             exe_cmd = exe.get_command()
             exe_for_machine = exe.for_machine
-        elif isinstance(exe, build.BuildTarget):
-            exe_cmd = [self.get_target_filename_abs(exe)]
-            exe_for_machine = exe.for_machine
-        elif isinstance(exe, (build.CustomTarget, build.CustomTargetIndex)):
-            # The output of a custom target can either be directly runnable
-            # or not, that is, a script, a native binary or a cross compiled
-            # binary when exe wrapper is available and when it is not.
-            # This implementation is not exhaustive but it works in the
-            # common cases.
-            exe_cmd = [self.get_target_filename_abs(exe)]
-            exe_for_machine = MachineChoice.BUILD
         elif isinstance(exe, mesonlib.File):
             exe_cmd = [exe.rel_to_builddir(self.environment.source_dir)]
             exe_for_machine = MachineChoice.BUILD
         else:
-            exe_cmd = [exe]
-            exe_for_machine = MachineChoice.BUILD
+            exe_cmd = [self.get_target_filename_abs(exe)]
+            if isinstance(exe, (build.CustomTarget, build.CustomTargetIndex)):
+                # The output of a custom target can either be directly runnable
+                # or not, that is, a script, a native binary or a cross compiled
+                # binary when exe wrapper is available and when it is not.
+                # This implementation is not exhaustive but it works in the
+                # common cases.
+                exe_for_machine = MachineChoice.BUILD
+            else:
+                exe_for_machine = exe.for_machine
 
         cmd_args: T.List[str] = []
         for c in raw_cmd_args:
             if isinstance(c, build.LocalProgram):
                 c = c.program
-            if isinstance(c, programs.Program):
+            if isinstance(c, str):
+                cmd_args.append(c)
+            elif isinstance(c, programs.Program):
                 cmd_args += c.get_command()
-            elif isinstance(c, (build.BuildTarget, build.CustomTarget, build.CustomTargetIndex)):
-                cmd_args.append(self.get_target_filename_abs(c))
             elif isinstance(c, mesonlib.File):
                 cmd_args.append(c.rel_to_builddir(self.environment.source_dir))
             else:
-                cmd_args.append(c)
+                cmd_args.append(self.get_target_filename_abs(c))
 
         machine = self.environment.machines[exe_for_machine]
         if machine.is_windows() or machine.is_cygwin():
@@ -1310,10 +1317,10 @@ class Backend:
             exe = t.get_exe()
             if isinstance(exe, build.LocalProgram):
                 exe = exe.program
-            if isinstance(exe, (build.BuildTarget, build.CustomTarget, build.CustomTargetIndex)):
-                cmd = [os.path.join(self.environment.get_build_dir(), self.get_target_filename(exe))]
-            else:
+            if isinstance(exe, programs.Program):
                 cmd = exe.get_command()
+            else:
+                cmd = [os.path.join(self.environment.get_build_dir(), self.get_target_filename(exe))]
 
             if isinstance(exe, (build.BuildTarget, programs.ExternalProgram)):
                 test_for_machine = exe.for_machine
@@ -1367,7 +1374,7 @@ class Backend:
                 elif isinstance(a, programs.ExternalProgram):
                     cmd_args.extend(a.get_command())
                 else:
-                    raise MesonException('Bad object in test command.')
+                    raise MesonBugException('Bad object in test command.')
 
             # set LD_LIBRARY_PATH for
             # a) dependencies, as relying on rpath is not very safe:
@@ -1467,9 +1474,13 @@ class Backend:
 
     def generate_regen_info(self) -> None:
         deps = self.get_regen_filelist()
+        backend = self.environment.coredata.optstore.get_value_for(OptionKey('backend'))
+        assert isinstance(backend, str)
         regeninfo = RegenInfo(self.environment.get_source_dir(),
                               self.environment.get_build_dir(),
-                              deps)
+                              deps,
+                              self.environment.coredata.meson_command,
+                              backend)
         filename = os.path.join(self.environment.get_scratch_dir(),
                                 'regeninfo.dump')
         with open(filename, 'wb') as f:
@@ -1571,20 +1582,20 @@ class Backend:
         for i in target.get_sources():
             if isinstance(i, build.LocalProgram):
                 i = i.program
-            if isinstance(i, build.BuildTarget):
-                fname = [self.get_target_filename(i)]
-            elif isinstance(i, (build.CustomTarget, build.CustomTargetIndex)):
-                fname = [os.path.join(self.get_custom_target_output_dir(i), p) for p in i.get_outputs()]
+            if isinstance(i, programs.Program):
+                assert i.found(), "This shouldn't be possible"
+                fname = [mesonlib.unwrap(i.get_path())]
             elif isinstance(i, build.GeneratedList):
                 assert isinstance(target, build.CustomTarget)
                 fname = [os.path.join(self.get_target_private_dir(target), p) for p in i.get_outputs()]
             elif isinstance(i, build.ExtractedObjects):
                 fname = self.determine_ext_objs(i)
-            elif isinstance(i, programs.Program):
-                assert i.found(), "This shouldn't be possible"
-                fname = [mesonlib.unwrap(i.get_path())]
-            else:
+            elif isinstance(i, File):
                 fname = [i.rel_to_builddir(self.build_to_src)]
+            elif isinstance(i, (build.CustomTarget, build.CustomTargetIndex)):
+                fname = [os.path.join(self.get_custom_target_output_dir(i), p) for p in i.get_outputs()]
+            else:
+                fname = [self.get_target_filename(i)]
             if target.absolute_paths:
                 fname = [os.path.join(self.environment.get_build_dir(), f) for f in fname]
             srcs += fname
@@ -1785,7 +1796,7 @@ class Backend:
                 strip_bin = [detect.defaults['strip'][0]]
 
         umask = self.environment.coredata.optstore.get_value_for(OptionKey('install_umask'))
-        assert isinstance(umask, (str, int)), 'for mypy'
+        umask = T.cast('UmaskType', umask)
 
         d = InstallData(self.environment.get_source_dir(),
                         self.environment.get_build_dir(),
@@ -2041,11 +2052,9 @@ class Backend:
         srcdir = self.environment.get_source_dir()
         builddir = self.environment.get_build_dir()
         for de in data:
-            assert isinstance(de, build.Data)
             subdir = de.install_dir
             subdir_name = de.install_dir_name
             for src_file, dst_name in zip(de.sources, de.rename):
-                assert isinstance(src_file, mesonlib.File)
                 dst_abs = os.path.join(subdir, dst_name)
                 dstdir_name = os.path.join(subdir_name, dst_name)
                 tag = de.install_tag or self.guess_install_tag(dst_abs)
@@ -2057,7 +2066,6 @@ class Backend:
     def generate_symlink_install(self, d: InstallData) -> None:
         links: T.List[build.SymlinkData] = self.build.get_symlinks()
         for l in links:
-            assert isinstance(l, build.SymlinkData)
             install_dir = l.install_dir
             name_abs = os.path.join(install_dir, l.name)
             tag = l.install_tag or self.guess_install_tag(name_abs)

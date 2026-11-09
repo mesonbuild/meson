@@ -1501,7 +1501,7 @@ class VisualStudioLikeLinkerMixin(DynamicLinkerBase):
     def __init__(self, exelist: T.List[str], env: Environment,
                  for_machine: mesonlib.MachineChoice, prefix_arg: T.Optional[LinkerOptionStyle],
                  always_args: T.List[str], *, version: str = 'unknown version',
-                 direct: bool = True, machine: str = 'x86', rsp_syntax:
+                 direct: bool = True, machine: T.Optional[str] = 'x86', rsp_syntax:
                  RSPFileSyntax = RSPFileSyntax.MSVC):
         super().__init__(exelist, env, for_machine, prefix_arg, always_args, version=version)
         self.machine = machine
@@ -1576,7 +1576,7 @@ class MSVCDynamicLinker(VisualStudioLikeLinkerMixin, DynamicLinker):
                  always_args: T.List[str], *,
                  exelist: T.Optional[T.List[str]] = None,
                  prefix: T.Optional[LinkerOptionStyle] = None,
-                 machine: str = 'x86', version: str = 'unknown version',
+                 machine: T.Optional[str] = 'x86', version: str = 'unknown version',
                  direct: bool = True, rsp_syntax: RSPFileSyntax = RSPFileSyntax.MSVC):
         super().__init__(exelist or ['link.exe'], env, for_machine,
                          prefix, always_args, machine=machine, version=version, direct=direct,
@@ -1605,7 +1605,7 @@ class ClangClDynamicLinker(VisualStudioLikeLinkerMixin, DynamicLinker):
                  always_args: T.List[str], *,
                  exelist: T.Optional[T.List[str]] = None,
                  prefix: T.Optional[LinkerOptionStyle] = None,
-                 machine: str = 'x86', version: str = 'unknown version',
+                 machine: T.Optional[str] = 'x86', version: str = 'unknown version',
                  direct: bool = True, rsp_syntax: RSPFileSyntax = RSPFileSyntax.MSVC):
         super().__init__(exelist or ['lld-link.exe'], env, for_machine,
                          prefix, always_args, machine=machine, version=version, direct=direct,
@@ -1639,7 +1639,7 @@ class XilinkDynamicLinker(VisualStudioLikeLinkerMixin, DynamicLinker):
                  always_args: T.List[str], *,
                  exelist: T.Optional[T.List[str]] = None,
                  prefix: T.Optional[LinkerOptionStyle] = None,
-                 machine: str = 'x86', version: str = 'unknown version',
+                 machine: T.Optional[str] = 'x86', version: str = 'unknown version',
                  direct: bool = True):
         super().__init__(['xilink.exe'], env, for_machine, None, always_args, version=version)
 

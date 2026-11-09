@@ -15,9 +15,10 @@ import sys
 import typing as T
 
 from . import build, tooldetect
+from . import meson_pickle
 from .backend.backends import InstallData
 from .mesonlib import (InstallScriptFailure, MesonException, Popen_safe, RealPathAction,
-                       is_windows, setup_vsenv, path_has_root, pickle_load,
+                       is_windows, setup_vsenv, path_has_root,
                        unwrap)
 from .options import OptionKey
 from .scripts import depfixer, destdir_join
@@ -36,6 +37,7 @@ if T.TYPE_CHECKING:
             InstallSymlinkData, TargetInstallData
     )
     from .mesonlib import FileMode, EnvironOrDict, ExecutableSerialisation, InstallScript
+    from .options import UmaskType
 
     try:
         from typing import Protocol
@@ -126,14 +128,14 @@ class DirMaker:
     def __enter__(self) -> 'DirMaker':
         return self
 
-    def __exit__(self, exception_type: T.Type[Exception], value: T.Any, traceback: T.Any) -> None:
+    def __exit__(self, exception_type: T.Type[Exception], value: object, traceback: object) -> None:
         self.dirs.reverse()
         for d in self.dirs:
             append_to_log(self.lf, d)
 
 
 def load_install_data(fname: str) -> InstallData:
-    return pickle_load(fname, 'InstallData', InstallData)
+    return meson_pickle.load(fname, 'InstallData', InstallData)
 
 def is_executable(path: str, follow_symlinks: bool = False) -> bool:
     '''Checks whether any of the "x" bits are set in the source file mode.'''
@@ -209,12 +211,10 @@ def set_chmod(path: str, mode: int, dir_fd: T.Optional[int] = None,
             os.chmod(path, mode, dir_fd=dir_fd)
 
 
-def sanitize_permissions(path: str, umask: T.Union[str, int]) -> None:
-    # TODO: with python 3.8 or typing_extensions we could replace this with
-    # `umask: T.Union[T.Literal['preserve'], int]`, which would be more correct
+def sanitize_permissions(path: str, umask: UmaskType) -> None:
     if umask == 'preserve':
         return
-    assert isinstance(umask, int), 'umask should only be "preserver" or an integer'
+    assert isinstance(umask, int), 'umask should only be "preserve" or an integer'
     new_perms = 0o777 if is_executable(path, follow_symlinks=False) else 0o666
     new_perms &= ~umask
     try:
@@ -223,8 +223,8 @@ def sanitize_permissions(path: str, umask: T.Union[str, int]) -> None:
         print(f'{path!r}: Unable to set permissions {new_perms!r}: {e.strerror}, ignoring...')
 
 
-def set_mode(path: str, mode: T.Optional['FileMode'], default_umask: T.Union[str, int]) -> None:
-    if mode is None or all(m is None for m in [mode.perms_s, mode.owner, mode.group]):
+def set_mode(path: str, mode: FileMode, default_umask: UmaskType) -> None:
+    if all(m is None for m in [mode.perms_s, mode.owner, mode.group]):
         # Just sanitize permissions with the default umask
         sanitize_permissions(path, default_umask)
         return

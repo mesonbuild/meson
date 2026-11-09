@@ -128,7 +128,7 @@ class SwiftCompiler(Compiler):
 
         return opts
 
-    def get_option_std_args(self, target: build.BuildTarget, subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_std_args(self, target: T.Optional[build.BuildTarget], subproject: T.Optional[str] = None) -> T.List[str]:
         args: T.List[str] = []
 
         std = self.get_compileropt_value('std', target, subproject)

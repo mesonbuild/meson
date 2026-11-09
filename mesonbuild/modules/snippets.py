@@ -26,6 +26,7 @@ from .. import mesonlib
 if T.TYPE_CHECKING:
     from typing_extensions import TypedDict
     from . import ModuleState
+    from ..interpreter import Interpreter
 
     class SymbolVisibilityHeaderKW(TypedDict):
         namespace: T.Optional[str]
@@ -104,5 +105,5 @@ class SnippetsModule(NewExtensionModule):
         header_path.write_text(content, encoding='utf-8')
         return mesonlib.File.from_built_file(state.current_build_dir, header_name)
 
-def initialize(*args: T.Any, **kwargs: T.Any) -> SnippetsModule:
+def initialize(interp: Interpreter) -> SnippetsModule:
     return SnippetsModule()

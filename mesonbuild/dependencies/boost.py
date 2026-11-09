@@ -11,6 +11,7 @@ from pathlib import Path
 
 from .. import mlog
 from .. import mesonlib
+from ..mesonlib import unwrap
 from ..options import OptionKey
 
 from .base import DependencyException, SystemDependency
@@ -243,7 +244,8 @@ class BoostLibraryFile():
         other_tags: T.List[str] = []
 
         # Split the current modname into the base name and the version
-        m_cur = BoostLibraryFile.reg_python_mod_split.match(self.mod_name)
+        m_cur = unwrap(BoostLibraryFile.reg_python_mod_split.match(self.mod_name),
+                       'could not parse boost_python name and version')
         cur_name = m_cur.group(1)
         cur_vers = m_cur.group(2)
 
@@ -300,7 +302,7 @@ class BoostLibraryFile():
             return True
         return self.version_lib == version_lib
 
-    def arch_matches(self, arch: str) -> bool:
+    def arch_matches(self, arch: str | None) -> bool:
         # If no version tag is present, assume that it fits
         if not self.arch or not arch:
             return True
@@ -367,8 +369,8 @@ class BoostDependency(SystemDependency):
                 return
 
         # Try figuring out the architecture tag
-        self.arch = environment.machines[self.for_machine].cpu_family
-        self.arch = boost_arch_map.get(self.arch, None)
+        arch: str | None = environment.machines[self.for_machine].cpu_family
+        self.arch = None if arch is None else boost_arch_map.get(arch, None)
 
         # First, look for paths specified in a machine file
         props = self.env.properties[self.for_machine]

@@ -780,7 +780,7 @@ class Interpreter:
         return manifest_
 
     def _add_dependency(self, pkg: PackageState, depname: str, machine: MachineChoice) -> None:
-        cfg = pkg.cfg[machine]
+        cfg: PackageConfiguration = pkg.cfg[machine]
         if depname in cfg.required_deps:
             return
         dep = cfg.dependencies.get(depname)
@@ -800,7 +800,7 @@ class Interpreter:
                 self._enable_feature(dep_pkg, f, dep_machine)
 
     def _enable_feature(self, pkg: PackageState, feature: str, machine: MachineChoice) -> None:
-        cfg = pkg.cfg[machine]
+        cfg: PackageConfiguration = pkg.cfg[machine]
         if feature in cfg.features:
             return
         cfg.features.add(feature)

@@ -50,7 +50,7 @@ def add_arguments(parser: 'argparse.ArgumentParser') -> None:
     parser.add_argument('-U', action=cmdline.KeyNoneAction, dest='cmd_line_options', default={},
                         help='Remove a subproject option.')
 
-def stringify(val: T.Any) -> str:
+def stringify(val: object) -> str:
     if isinstance(val, bool):
         return str(val).lower()
     elif isinstance(val, list):
@@ -130,7 +130,7 @@ class Conf:
         # Do nothing when using introspection
         if self.default_values_only:
             return
-        coredata.save(self.coredata, self.build_dir)
+        coredata.save(self.coredata, self.build_dir, unwrap(self.build).environment)
         # We don't write the build file because any changes to it
         # are erased when Meson is executed the next time, i.e. when
         # Ninja is run.
@@ -207,7 +207,7 @@ class Conf:
         self.choices_col.append(choices)
         self.descr_col.append(descr)
 
-    def add_option(self, key: OptionKey, descr: str, value: T.Any, choices: T.Any) -> None:
+    def add_option(self, key: OptionKey, descr: str, value: object, choices: object) -> None:
         self._add_section()
         value = stringify(value)
         choices = stringify(choices)
@@ -242,7 +242,7 @@ class Conf:
         if title:
             self.add_title(title)
         for k, o in sorted(opts.items()):
-            printable_value = o.printable_value()
+            printable_value = o.printable_value(self.coredata.optstore.get_value_for(k))
             #root = k.as_root()
             #if o.yielding and k.subproject and root in self.coredata.options:
             #    printable_value = '<inherited from main project>'
@@ -355,7 +355,8 @@ class Conf:
         if self.coredata.optstore.augments:
             mlog.log('\nCurrently set option augments:')
             for k, v in self.coredata.optstore.augments.items():
-                mlog.log(f'{k!s:21}{stringify(v):10}')
+                if not self.coredata.optstore.is_project_option(k):
+                    mlog.log(f'{k!s:21}{stringify(v):10}')
         else:
             mlog.log('\nThere are no option augments.')
 
@@ -382,8 +383,10 @@ def run_impl(options: CMDOptions, builddir: str) -> int:
 
         save = False
         if has_option_flags(options):
-            save |= c.coredata.set_from_configure_command(options)
-            cmdline.update_cmd_line_file(builddir, options)
+            if c.coredata.set_from_configure_command(options):
+                c.coredata.optstore.resolve_configured()
+                save = True
+            cmdline.write_cmd_line_file(unwrap(c.build).environment)
         if options.clearcache:
             c.clear_cache()
             save = True

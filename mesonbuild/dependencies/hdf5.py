@@ -8,7 +8,7 @@ import os
 import re
 from pathlib import Path
 
-from ..mesonlib import OrderedSet, join_args
+from ..mesonlib import OrderedSet, join_args, unwrap
 from .base import DependencyCandidate, DependencyException, DependencyMethods
 from .configtool import ConfigToolDependency
 from .detect import packages
@@ -137,7 +137,7 @@ class HDF5ConfigToolDependency(ConfigToolDependency):
 
     def _sanitize_version(self, ver: str) -> str:
         v = re.search(r'\s*HDF5 Version: (\d+\.\d+\.\d+)', ver)
-        return v.group(1)
+        return unwrap(v, f'Unexpected version format "{v}"').group(1)
 
 
 @factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL})

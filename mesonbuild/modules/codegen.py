@@ -304,9 +304,9 @@ class CodeGenModule(ExtensionModule):
     @apply_machine_map
     @disablerIfNotFound
     def lex_method(self, state: ModuleState, args: T.Tuple, kwargs: FindLexKwargs) -> LexGenerator:
-        disabled, required, feature = extract_required_kwarg(kwargs, state.subproject)
-        if disabled:
-            mlog.log('generator lex skipped: feature', mlog.bold(feature), 'disabled')
+        required, disabled_by_feature = extract_required_kwarg(kwargs, state.subproject)
+        if disabled_by_feature:
+            mlog.log('generator lex skipped: feature', mlog.bold(disabled_by_feature), 'disabled')
             return LexGenerator('lex', NonExistingExternalProgram('lex'), kwargs['native'])
 
         names: T.List[LexImpls] = []
@@ -384,9 +384,9 @@ class CodeGenModule(ExtensionModule):
     @apply_machine_map
     @disablerIfNotFound
     def yacc_method(self, state: ModuleState, args: T.Tuple, kwargs: FindYaccKwargs) -> YaccGenerator:
-        disabled, required, feature = extract_required_kwarg(kwargs, state.subproject)
-        if disabled:
-            mlog.log('generator yacc skipped: feature', mlog.bold(feature), 'disabled')
+        required, disabled_by_feature = extract_required_kwarg(kwargs, state.subproject)
+        if disabled_by_feature:
+            mlog.log('generator yacc skipped: feature', mlog.bold(disabled_by_feature), 'disabled')
             return YaccGenerator('yacc', NonExistingExternalProgram('yacc'), kwargs['native'])
         names: T.List[YaccImpls]
         if kwargs['implementations']:

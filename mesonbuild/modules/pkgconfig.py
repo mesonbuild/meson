@@ -292,7 +292,7 @@ class DependenciesHelper:
             elif isinstance(obj, str):
                 processed_libs.append(obj)
             else:
-                raise mesonlib.MesonException(f'library argument of type {type(obj).__name__} not a string, library or dependency object.')
+                raise mesonlib.MesonBugException(f'library argument of type {type(obj).__name__} not a string, library or dependency object.')
 
     def _add_recursive_lib_dependencies(self) -> None:
         visited: T.Set[T.Tuple[object, bool, bool]] = set()

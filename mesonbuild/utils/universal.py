@@ -22,7 +22,6 @@ from itertools import tee
 from tempfile import TemporaryDirectory, NamedTemporaryFile
 import typing as T
 import textwrap
-import pickle
 import errno
 import json
 import dataclasses
@@ -32,20 +31,16 @@ from .core import MesonException, MesonBugException, HoldableObject, ExecutableS
 
 if T.TYPE_CHECKING:
     from typing_extensions import Literal, Protocol, Self
+    from types import TracebackType
 
     from .._typing import ImmutableListProtocol
     from ..build import ConfigurationData
     from ..cmdline import StrOrBytesPath
-    from ..environment import Environment
     from ..compilers.compilers import Compiler
 
-    class _EnvPickleLoadable(Protocol):
-
-        environment: Environment
-
-    class _VerPickleLoadable(Protocol):
-
-        version: str
+    class ConfigGetItemProtocol(Protocol):
+        def __contains__(self, key: str) -> bool: ...
+        def get(self, key: str) -> T.Tuple[str | int | bool, str | None]: ...
 
     class Comparable(Protocol):
         """Protocol for annotating comparable types."""
@@ -55,10 +50,6 @@ if T.TYPE_CHECKING:
         def __le__(self, other: Self) -> bool: ...
         def __ge__(self, other: Self) -> bool: ...
         def __gt__(self, other: Self) -> bool: ...
-
-    # A generic type for pickle_load. This allows any type that has either a
-    # .version or a .environment to be passed.
-    _PL = T.TypeVar('_PL', bound=T.Union[_EnvPickleLoadable, _VerPickleLoadable])
 
     FileLike = T.TypeVar('FileLike', bound='File' | str)
 
@@ -122,7 +113,6 @@ __all__ = [
     'do_conf_str',
     'do_replacement',
     'expand_arguments',
-    'extract_as_list',
     'first',
     'generate_list',
     'get_compiler_for_source',
@@ -166,7 +156,6 @@ __all__ = [
     'partition',
     'path_is_in_root',
     'pathname_sort_key',
-    'pickle_load',
     'Popen_safe',
     'Popen_safe_logged',
     'quiet_git',
@@ -186,6 +175,7 @@ __all__ = [
     'unique_list',
     'unwrap',
     'unwrap_err',
+    'unwrap_property',
     'verbose_git',
     'version_check_to_range',
     'version_compare',
@@ -323,7 +313,7 @@ class SimpleABC(type):
     __abstractmethods__: T.FrozenSet[str]
 
     def __new__(mcs, name: str, bases: T.Tuple[type, ...],
-                namespace: T.Dict[str, T.Any], **kwargs: T.Any) -> SimpleABC:
+                namespace: T.Dict[str, object], **kwargs: object) -> SimpleABC:
         cls = super().__new__(mcs, name, bases, namespace, **kwargs)
         abstracts = {n for n, v in namespace.items()
                      if getattr(v, '__isabstractmethod__', False)}
@@ -334,7 +324,7 @@ class SimpleABC(type):
         cls.__abstractmethods__ = frozenset(abstracts)
         return cls
 
-    def __call__(cls, *args: T.Any, **kwargs: T.Any) -> T.Any:
+    def __call__(cls, *args: object, **kwargs: object) -> T.Any:
         if cls.__abstractmethods__:
             raise TypeError(
                 f"Can't instantiate abstract class {cls.__name__} without an "
@@ -720,7 +710,7 @@ class PerThreeMachineDefaultable(PerMachineDefaultable[T.Optional[_T]], PerThree
 
     target: T.Optional[_T] = None
 
-    def default_missing(self) -> PerThreeMachine[_T]:
+    def default_missing(self) -> PerThreeMachine[_T]: # type: ignore[override]
         """Default host to build and target to host.
 
         This allows just specifying nothing in the native case, just host in the
@@ -828,7 +818,7 @@ def darwin_get_object_archs(objpath: str) -> 'ImmutableListProtocol[str]':
     _, stdo, stderr = Popen_safe(['lipo', '-info', objpath])
     if not stdo:
         mlog.debug(f'lipo {objpath}: {stderr}')
-        return None
+        return []
     stdo = stdo.rsplit(': ', 1)[1]
 
     # Convert from lipo-style archs to meson-style CPUs
@@ -1481,9 +1471,21 @@ def join_args(args: T.Iterable[str]) -> str:
     return ' '.join([quote_arg(x) for x in args])
 
 
+@T.overload
 def do_replacement(regex: T.Pattern[str], line: str,
                    variable_format: Literal['meson', 'cmake', 'cmake@'],
-                   confdata: T.Union[T.Dict[str, T.Tuple[str, T.Optional[str]]], 'ConfigurationData']) -> T.Tuple[str, T.Set[str]]:
+                   confdata: ConfigurationData) -> T.Tuple[str, T.Set[str]]:
+    ...
+
+@T.overload
+def do_replacement(regex: T.Pattern[str], line: str,
+                   variable_format: Literal['meson', 'cmake', 'cmake@'],
+                   confdata: dict[str, tuple[str, str | None]]) -> T.Tuple[str, T.Set[str]]:
+    ...
+
+def do_replacement(regex: T.Pattern[str], line: str, # type: ignore[misc]
+                   variable_format: Literal['meson', 'cmake', 'cmake@'],
+                   confdata: ConfigGetItemProtocol) -> T.Tuple[str, T.Set[str]]:
     if variable_format == 'meson':
         return do_replacement_meson(regex, line, confdata)
     elif variable_format in {'cmake', 'cmake@'}:
@@ -1492,7 +1494,7 @@ def do_replacement(regex: T.Pattern[str], line: str,
         raise MesonException('Invalid variable format')
 
 def do_replacement_meson(regex: T.Pattern[str], line: str,
-                         confdata: T.Union[T.Dict[str, T.Tuple[str, T.Optional[str]]], 'ConfigurationData']) -> T.Tuple[str, T.Set[str]]:
+                         confdata: ConfigGetItemProtocol) -> T.Tuple[str, T.Set[str]]:
     missing_variables: T.Set[str] = set()
 
     def variable_replace(match: T.Match[str]) -> str:
@@ -1525,7 +1527,7 @@ def do_replacement_meson(regex: T.Pattern[str], line: str,
     return re.sub(regex, variable_replace, line), missing_variables
 
 def do_replacement_cmake(line: str, at_only: bool,
-                         confdata: T.Union[T.Dict[str, T.Tuple[str, T.Optional[str]]], 'ConfigurationData']) -> T.Tuple[str, T.Set[str]]:
+                         confdata: ConfigGetItemProtocol) -> T.Tuple[str, T.Set[str]]:
     missing_variables: T.Set[str] = set()
 
     character_regex = re.compile(r'''
@@ -1640,7 +1642,7 @@ def do_define_meson(regex: T.Pattern[str], line: str, confdata: 'ConfigurationDa
     elif isinstance(v, int):
         return '#define %s %d\n' % (varname, v)
     else:
-        raise MesonException('#mesondefine argument "%s" is of unknown type.' % varname)
+        raise MesonBugException('#mesondefine argument "%s" is of unknown type.' % varname)
 
 def do_define_cmake(line: str, confdata: 'ConfigurationData', at_only: bool,
                     subproject: T.Optional[SubProject] = None) -> str:
@@ -1708,7 +1710,7 @@ def get_variable_regex(variable_format: Literal['meson', 'cmake', 'cmake@'] = 'm
 
 def do_conf_str(src: str, data: T.List[str], confdata: 'ConfigurationData',
                 variable_format: Literal['meson', 'cmake', 'cmake@'],
-                subproject: T.Optional[SubProject] = None) -> T.Tuple[T.List[str], T.Set[str], bool]:
+                subproject: SubProject = SubProject('')) -> T.Tuple[T.List[str], T.Set[str], bool]:
     if variable_format == 'meson':
         return do_conf_str_meson(src, data, confdata, subproject)
     elif variable_format in {'cmake', 'cmake@'}:
@@ -1744,7 +1746,7 @@ def do_conf_str_meson(src: str, data: T.List[str], confdata: 'ConfigurationData'
     return result, missing_variables, confdata_useless
 
 def do_conf_str_cmake(src: str, data: T.List[str], confdata: 'ConfigurationData', at_only: bool,
-                      subproject: T.Optional[SubProject] = None) -> T.Tuple[T.List[str], T.Set[str], bool]:
+                      subproject: SubProject) -> T.Tuple[T.List[str], T.Set[str], bool]:
 
     variable_format: Literal['cmake', 'cmake@'] = 'cmake'
     if at_only:
@@ -1778,7 +1780,7 @@ def do_conf_str_cmake(src: str, data: T.List[str], confdata: 'ConfigurationData'
 
 def do_conf_file(src: str, dst: str, confdata: 'ConfigurationData',
                  variable_format: Literal['meson', 'cmake', 'cmake@'],
-                 encoding: str = 'utf-8', subproject: T.Optional[SubProject] = None) -> T.Tuple[T.Set[str], bool]:
+                 encoding: str = 'utf-8', subproject: SubProject = SubProject('')) -> T.Tuple[T.Set[str], bool]:
     try:
         with open(src, encoding=encoding, newline='') as f:
             data = f.readlines()
@@ -1840,7 +1842,7 @@ def _dump_c_header(ofile: T.TextIO,
         elif isinstance(v, (int, str)):
             ofile.write(f'{prefix}define {k} {v}\n\n')
         else:
-            raise MesonException('Unknown data type in configuration file entry: ' + k)
+            raise MesonBugException('Unknown data type in configuration file entry: ' + k)
     if output_format == 'c' and macro_name:
         ofile.write('#endif\n')
 
@@ -1875,15 +1877,16 @@ def replace_if_different(dst: str, dst_tmp: str) -> None:
         os.unlink(dst_tmp)
 
 
-def listify(item: T.Any, flatten: bool = True) -> T.List[T.Any]:
+def listify(item: object, flatten: bool = True) -> T.List[T.Any]:
     '''
     Returns a list with all args embedded in a list if they are not a list.
-    This function preserves order.
+    This function preserves order.  Do not use if possible, as the
+    return type of Any blocks type checking.
     @flatten: Convert lists of lists to a flat list
     '''
     if not isinstance(item, list):
         return [item]
-    result: T.List[T.Any] = []
+    result: T.List[object] = []
     for i in item:
         if flatten and isinstance(i, list):
             result += listify(i, flatten=True)
@@ -1912,18 +1915,7 @@ def listify_array_value(value: object, shlex_split_args: bool = False) -> T.List
     assert isinstance(newvalue, list)
     return newvalue
 
-def extract_as_list(dict_object: T.Dict[_T, _U], key: _T, pop: bool = False) -> T.List[_U]:
-    '''
-    Extracts all values from given dict_object and listifies them.
-    '''
-    fetch: T.Callable[[_T], _U] = dict_object.get
-    if pop:
-        fetch = dict_object.pop
-    # If there's only one key, we don't return a list with one element
-    return listify(fetch(key) or [], flatten=True)
-
-
-def typeslistify(item: 'T.Union[_T, T.Sequence[_T]]',
+def typeslistify(item: T.Union[object, T.Sequence[object]],
                  types: 'T.Union[T.Type[_T], T.Tuple[T.Type[_T]]]') -> T.List[_T]:
     '''
     Ensure that type(@item) is one of @types or a
@@ -1939,7 +1931,7 @@ def typeslistify(item: 'T.Union[_T, T.Sequence[_T]]',
     return item
 
 
-def stringlistify(item: T.Union[T.Any, T.Sequence[T.Any]]) -> T.List[str]:
+def stringlistify(item: T.Union[object, T.Sequence[object]]) -> T.List[str]:
     return typeslistify(item, str)
 
 def underscorify(item: str) -> str:
@@ -2295,7 +2287,7 @@ class TemporaryDirectoryWinProof(TemporaryDirectory):
     windows_proof_rmtree()
     """
 
-    def __exit__(self, exc: T.Any, value: T.Any, tb: T.Any) -> None:
+    def __exit__(self, exc: T.Type[BaseException] | None, value: BaseException | None, tb: TracebackType | None) -> None:
         try:
             super().__exit__(exc, value, tb)
         except OSError:
@@ -2441,59 +2433,7 @@ class LibType(enum.IntEnum):
 
 class ProgressBarFallback(T.Generic[_T]):
     '''
-    Fallback progress bar implementation when tqdm is not foundclass OptionType(enum.IntEnum):
-
-    """Enum used to specify what kind of argument a thing is."""
-
-    BUILTIN = 0
-    BACKEND = 1
-    BASE = 2
-    COMPILER = 3
-    PROJECT = 4
-
-# This is copied from coredata. There is no way to share this, because this
-# is used in the OptionKey constructor, and the coredata lists are
-# OptionKeys...
-_BUILTIN_NAMES = {
-    'prefix',
-    'bindir',
-    'datadir',
-    'includedir',
-    'infodir',
-    'libdir',
-    'licensedir',
-    'libexecdir',
-    'localedir',
-    'localstatedir',
-    'mandir',
-    'sbindir',
-    'sharedstatedir',
-    'sysconfdir',
-    'auto_features',
-    'backend',
-    'buildtype',
-    'debug',
-    'default_library',
-    'errorlogs',
-    'genvslite',
-    'install_umask',
-    'layout',
-    'optimization',
-    'prefer_static',
-    'stdsplit',
-    'strip',
-    'unity',
-    'unity_size',
-    'warning_level',
-    'werror',
-    'wrap_mode',
-    'force_fallback_for',
-    'pkg_config_path',
-    'cmake_prefix_path',
-    'vsenv',
-    'os2_emxomf',
-}
-
+    Fallback progress bar implementation when tqdm is not found
 
     Since this class is not an actual iterator, but only provides a minimal
     fallback, it is safe to ignore the 'Iterator does not return self from
@@ -2574,7 +2514,7 @@ class RealPathAction(argparse.Action):
         super().__init__(option_strings, dest, nargs=None, default=default, **kwargs)
 
     def __call__(self, parser: argparse.ArgumentParser, namespace: argparse.Namespace,
-                 values: T.Union[str, T.Sequence[T.Any], None], option_string: T.Optional[str] = None) -> None:
+                 values: T.Union[str, T.Sequence[object], None], option_string: T.Optional[str] = None) -> None:
         assert isinstance(values, str)
         setattr(namespace, self.dest, os.path.abspath(os.path.realpath(values)))
 
@@ -2669,39 +2609,6 @@ def generate_list(func: T.Callable[_P, T.Generator[_T, None, None]]) -> T.Callab
     return wrapper
 
 
-def pickle_load(filename: str, object_name: str, object_type: T.Type[_PL], suggest_reconfigure: bool = True) -> _PL:
-    load_fail_msg = f'{object_name} file {filename!r} is corrupted.'
-    extra_msg = ' Consider reconfiguring the directory with "meson setup --reconfigure".' if suggest_reconfigure else ''
-    try:
-        with open(filename, 'rb') as f:
-            obj = pickle.load(f)
-    except (pickle.UnpicklingError, EOFError):
-        raise MesonException(load_fail_msg + extra_msg)
-    except (TypeError, ModuleNotFoundError, AttributeError):
-        raise MesonException(
-            f"{object_name} file {filename!r} references functions or classes that don't "
-            "exist. This probably means that it was generated with an old "
-            "version of meson." + extra_msg)
-
-    if not isinstance(obj, object_type):
-        raise MesonException(load_fail_msg + extra_msg)
-
-    # Because these Protocols are not available at runtime (and cannot be made
-    # available at runtime until we drop support for Python < 3.8), we have to
-    # do a bit of hackery so that mypy understands what's going on here
-    version: str
-    if hasattr(obj, 'version'):
-        version = T.cast('_VerPickleLoadable', obj).version
-    else:
-        version = T.cast('_EnvPickleLoadable', obj).environment.coredata.version
-
-    from ..coredata import version as coredata_version
-    from ..coredata import major_versions_differ, MesonVersionMismatchException
-    if major_versions_differ(version, coredata_version):
-        raise MesonVersionMismatchException(version, coredata_version, extra_msg)
-    return obj
-
-
 def first(iter: T.Iterable[_T], predicate: T.Callable[[_T], bool]) -> T.Optional[_T]:
     """Find the first entry in an iterable where the given predicate is true
 
@@ -2765,7 +2672,7 @@ class lazy_property(T.Generic[_T]):
         self.__name: T.Optional[str] = None
         self.__func = func
 
-    def __set_name__(self, owner: T.Any, name: str) -> None:
+    def __set_name__(self, owner: object, name: str) -> None:
         if self.__name is None:
             self.__name = name
         else:
@@ -2773,7 +2680,8 @@ class lazy_property(T.Generic[_T]):
 
     def __get__(self, instance: object, cls: T.Type) -> _T:
         value = self.__func(instance)
-        setattr(instance, self.__name, value)
+        # __set_name__ always called before __get__
+        setattr(instance, T.cast('str', self.__name), value)
         return value
 
 
@@ -2795,8 +2703,47 @@ class late_property(T.Generic[_T]):
         else:
             assert self.__name == name
 
-    def __get__(self, instance: T.Any, cls: type) -> _T:
+    def __get__(self, instance: object, cls: type) -> _T:
         raise MesonBugException(f'Attempted to access attribute {self.__name} before it is set')
+
+
+class unwrap_property(T.Generic[_T]):
+    """Descriptor that allows setting a property to None and raises an error
+    if it is accessed while None.
+
+    This allows a more ergonomically typed equivalent of
+    self.value: T | None = None, since you then don't need to worry about
+    whether self.value is None.  It is less efficient than late_property,
+    but it allows writing None back to the property.
+    """
+
+    def __init__(self) -> None:
+        self.__name: str | None = None
+        self.__key: str | None = None
+
+    def __set_name__(self, owner: object, name: str) -> None:
+        if self.__name is None:
+            self.__name = name
+            self.__key = f'_unwrap_property__{name}'
+        else:
+            assert self.__name == name
+
+    @T.overload
+    def __get__(self, instance: None, cls: type) -> unwrap_property[_T]: ...
+
+    @T.overload
+    def __get__(self, instance: object, cls: type) -> _T: ...
+
+    def __get__(self, instance: T.Optional[object], cls: type) -> T.Union[unwrap_property[_T], _T]:
+        if instance is None:
+            return self
+        value: T.Optional[_T] = instance.__dict__.get(T.cast('str', self.__key))
+        if value is None:
+            raise MesonBugException(f'Attempted to access unset attribute {self.__name}')
+        return value
+
+    def __set__(self, instance: object, value: T.Optional[_T]) -> None:
+        instance.__dict__[T.cast('str', self.__key)] = value
 
 
 def get_subproject_dir(directory: str = '.') -> T.Optional[str]:

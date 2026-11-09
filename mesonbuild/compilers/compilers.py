@@ -549,7 +549,7 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
     # manually searched.
     internal_libs: T.List[str] = []
 
-    LINKER_OPTION_STYLE: T.Optional[LinkerOptionStyle] = None
+    LINKER_OPTION_STYLE: LinkerOptionStyle
 
     # If the compiler is used to fire a separate linking step, environment
     # variables like CFLAGS have to be passed to the linking step as well.
@@ -740,13 +740,13 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
     def get_options(self) -> 'MutableKeyedOptionDictType':
         return {}
 
-    def get_option_compile_args(self, target: 'BuildTarget', subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_compile_args(self, target: T.Optional[BuildTarget], subproject: T.Optional[str] = None) -> T.List[str]:
         return []
 
-    def get_option_std_args(self, target: BuildTarget, subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_std_args(self, target: T.Optional[BuildTarget], subproject: T.Optional[str] = None) -> T.List[str]:
         return []
 
-    def get_option_link_args(self, target: 'BuildTarget', subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_link_args(self, target: T.Optional[BuildTarget], subproject: T.Optional[str] = None) -> T.List[str]:
         return self.linker.get_option_link_args(target, subproject)
 
     def check_header(self, hname: str, prefix: str, *,

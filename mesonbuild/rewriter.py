@@ -936,9 +936,7 @@ class Rewriter:
             self.to_add_nodes += [src_ass_node, tgt_ass_node]
 
         elif cmd['operation'] == 'target_rm':
-            to_remove: BaseNode = self.find_assignment_node(target.node)
-            if to_remove is None:
-                to_remove = target.node
+            to_remove: BaseNode = self.find_assignment_node(target.node) or target.node
             self.to_remove_nodes += [to_remove]
             mlog.log('  -- Removing target', mlog.green(cmd['target']), 'at',
                      mlog.yellow(f'{to_remove.filename}:{to_remove.lineno}'))

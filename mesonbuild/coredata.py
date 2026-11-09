@@ -6,8 +6,9 @@ from __future__ import annotations
 
 import copy
 
+from . import meson_pickle
 from . import mlog, options
-import pickle, os, uuid
+import os, uuid
 import sys
 from collections import OrderedDict
 import textwrap
@@ -15,7 +16,6 @@ import textwrap
 from .mesonlib import (
     MesonException, MachineChoice, PerMachine,
     PerMachineDefaultable,
-    pickle_load
 )
 
 from .options import OptionKey
@@ -32,6 +32,7 @@ if T.TYPE_CHECKING:
     from .options import ElementaryOptionValues, MutableKeyedOptionDictType
     from .build import BuildTarget
     from .cmdline import SharedCMDOptions
+    from .environment import Environment
 
     OptionDictType = T.Dict[str, options.AnyOptionType]
     CompilerCheckCacheKey = T.Tuple[T.Tuple[str, ...], str, FileOrString, T.Tuple[str, ...], CompileCheckMode]
@@ -61,12 +62,12 @@ def get_genvs_default_buildtype_list() -> list[str]:
     return options.buildtypelist[1:-2]
 
 
-class MesonVersionMismatchException(MesonException):
+class MesonVersionMismatchException(meson_pickle.PickleLoadException):
     '''Build directory generated with Meson version is incompatible with current version'''
-    def __init__(self, old_version: str, current_version: str, extra_msg: str = '') -> None:
+    def __init__(self, old_version: str, current_version: str, suggest_reconfigure: bool = False) -> None:
         super().__init__(f'Build directory has been generated with Meson version {old_version}, '
-                         f'which is incompatible with the current version {current_version}.'
-                         + extra_msg)
+                         f'which is incompatible with the current version {current_version}.',
+                         suggest_reconfigure)
         self.old_version = old_version
         self.current_version = current_version
 
@@ -338,6 +339,12 @@ class CoreData:
                 'Default project to execute in Visual Studio',
                 ''))
 
+        # Options for other backends are still pending; report them like
+        # any other unknown option.
+        for key in self.optstore.pending_options:
+            if self.optstore.is_backend_option(key):
+                raise MesonException(f'Unknown option: "{key}".')
+
     def get_option_for_target(self, target: 'BuildTarget', key: T.Union[str, OptionKey]) -> ElementaryOptionValues:
         if isinstance(key, str):
             assert ':' not in key
@@ -459,12 +466,12 @@ def major_versions_differ(v1: str, v2: str) -> bool:
     # Major version differ, or one is development version but not the other.
     return v1_major != v2_major or ('99' in {v1_minor, v2_minor} and v1_minor != v2_minor)
 
-def load(build_dir: str, suggest_reconfigure: bool = True) -> CoreData:
+def load(build_dir: str, env: Environment, suggest_reconfigure: bool = True) -> CoreData:
     filename = os.path.join(build_dir, 'meson-private', 'coredata.dat')
-    return pickle_load(filename, 'Coredata', CoreData, suggest_reconfigure)
+    return meson_pickle.load(filename, 'Coredata', CoreData, suggest_reconfigure, env)
 
 
-def save(obj: CoreData, build_dir: str) -> str:
+def save(obj: CoreData, build_dir: str, env: Environment) -> str:
     filename = os.path.join(build_dir, 'meson-private', 'coredata.dat')
     prev_filename = filename + '.prev'
     tempfilename = filename + '~'
@@ -474,7 +481,7 @@ def save(obj: CoreData, build_dir: str) -> str:
         import shutil
         shutil.copyfile(filename, prev_filename)
     with open(tempfilename, 'wb') as f:
-        pickle.dump(obj, f)
+        meson_pickle.dump(obj, f, env)
         f.flush()
         os.fsync(f.fileno())
     os.replace(tempfilename, filename)

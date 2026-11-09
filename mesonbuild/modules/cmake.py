@@ -29,6 +29,7 @@ from ..interpreterbase import (
     VarArgInfo,
     ContainerTypeInfo,
 )
+from ..mesonlib import FileMode
 
 if T.TYPE_CHECKING:
     from typing_extensions import TypedDict
@@ -317,12 +318,14 @@ class CmakeModule(ExtensionModule):
         if not self.detect_cmake(state):
             raise mesonlib.MesonException('Unable to find cmake')
 
-        pkgroot = pkgroot_name = kwargs['install_dir']
+        pkgroot = kwargs['install_dir']
         if pkgroot is None:
             libdir = state.environment.coredata.optstore.get_value_for(OptionKey('libdir'))
             assert isinstance(libdir, str), 'for mypy'
             pkgroot = os.path.join(libdir, 'cmake', name)
             pkgroot_name = os.path.join('{libdir}', 'cmake', name)
+        else:
+            pkgroot_name = pkgroot
 
         template_file = os.path.join(self.cmake_root, 'Modules', f'BasicConfigVersion-{compatibility}.cmake.in')
         if not os.path.exists(template_file):
@@ -337,7 +340,7 @@ class CmakeModule(ExtensionModule):
         }
         mesonlib.do_conf_file(template_file, version_file, build.ConfigurationData(conf), 'meson')
 
-        res = build.Data([mesonlib.File(True, state.environment.get_scratch_dir(), version_file)], pkgroot, pkgroot_name, None, state.subproject)
+        res = build.Data([mesonlib.File(True, state.environment.get_scratch_dir(), version_file)], pkgroot, pkgroot_name, FileMode(), state.subproject)
         return ModuleReturnValue(res, [res])
 
     def create_package_file(self, infile: str, outfile: str, PACKAGE_RELATIVE_PATH: str, extra: str, confdata: build.ConfigurationData) -> None:
@@ -427,7 +430,7 @@ class CmakeModule(ExtensionModule):
         conffile = os.path.normpath(inputfile.relative_name())
         self.interpreter.build_def_files.add(conffile)
 
-        res = build.Data([mesonlib.File(True, ofile_path, ofile_fname)], install_dir, install_dir, None, state.subproject)
+        res = build.Data([mesonlib.File(True, ofile_path, ofile_fname)], install_dir, install_dir, FileMode(), state.subproject)
         self.interpreter.build.data.append(res)
 
         return res
