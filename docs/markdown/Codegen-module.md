@@ -71,12 +71,12 @@ This function finds the `protoc` protobuf compiler.
 
 Accepts the following keyword arguments:
 
-- `dependency`: the `protobuf` dependency. Required for C++ language, optional for
-                other languages.
-- `grpc_dependency`: the gRPC dependency (e.g. `dependency('grpc++')`). When given and found,
+- `dependency`: the `protobuf` dependency. If not provided, meson will look for `dependency('protobuf')`.
+- `grpc_dependency`: the gRPC dependency. When given and found,
                      the `grpc_cpp_plugin` program is looked up for the same machine as `protoc`
                      (honouring `meson.override_find_program()`), and `generate()` produces gRPC
-                     files by default.
+                     files by default. If not provided, but `protoc.generate(grpc: true)` is called,
+                     meson will look for `dependency('grpc++')`.
 - `version`: a string array of version constraints to apply to the `protoc` binary.
 - `native`: Is this generator for the host or build machine?
 - `required`: A boolean or feature option.
@@ -237,8 +237,8 @@ It additionally takes the following options keyword arguments:
 - `grpc`: Also generate gRPC files (`foo.grpc.pb.cc` and `foo.grpc.pb.h` for C++), in the same
           `protoc` invocation, using `grpc_cpp_plugin`. They are generated for every input, even
           those without a service. Defaults to `true` if a found `grpc_dependency` was given to
-          `codegen.protoc()`, `false` otherwise. Setting it to `true` without a found
-          `grpc_dependency`, or when `grpc_cpp_plugin` cannot be found, is an error. Only supported
+          `codegen.protoc()`, `false` otherwise. Setting it to `true` will cause meson to look
+          for the `grpc++` dependency if `grpc_dependency` was not provided. Only supported
           for the "cpp" language. The gRPC files are part of `sources()`, `headers()` and
           `dependency()`, which also carries the gRPC dependency, and are installed with the
           protobuf headers.

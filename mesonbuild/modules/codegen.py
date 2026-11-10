@@ -7,7 +7,7 @@ import itertools
 import os
 import typing as T
 
-from . import ExtensionModule, ModuleInfo
+from . import ExtensionModule, ModuleInfo, ModuleState
 from ..build import CustomTarget, CustomTargetIndex, GeneratedList, IncludeDirs, LocalProgram
 from ..compilers.compilers import lang_suffixes
 from ..dependencies import Dependency, InternalDependency
@@ -23,7 +23,7 @@ from ..interpreterbase import (
     FeatureNew,
 )
 from ..mesonlib import (
-    File, OrderedSet, MesonException, MesonBugException, Popen_safe,
+    File, OrderedSet, MachineChoice, MesonException, MesonBugException, Popen_safe,
     is_parent_path, relpath, version_compare,
 )
 from ..programs import Program, ExternalProgram, NonExistingExternalProgram
@@ -33,12 +33,10 @@ from .. import mlog
 if T.TYPE_CHECKING:
     from typing_extensions import Literal, TypedDict
 
-    from . import ModuleState
     from .._typing import ImmutableListProtocol
     from ..interpreter import Interpreter
     from ..interpreter.kwargs import ExtractRequired, TargetDepends
     from ..interpreterbase import TYPE_var, TYPE_kwargs
-    from ..mesonlib import MachineChoice
     from ..programs import CommandList
 
     LexImpls = Literal['lex', 'flex', 'reflex', 'win_flex']
@@ -413,6 +411,8 @@ class ProtocHolder(ObjectHolder[ProtocGenerator]):
         arguments: list[str] = []
         language = kwargs['language']
         build_project = self.interpreter.current_build_project()
+        state = ModuleState(self.interpreter)
+        native = self.held_object.for_machine is MachineChoice.BUILD
 
         arguments.append('--proto_path=@CURRENT_SOURCE_DIR@')
         arguments.append('--proto_path=' + os.path.join('@BUILD_ROOT@', self.interpreter.current_build_dir()))  # for generated files
@@ -420,8 +420,11 @@ class ProtocHolder(ObjectHolder[ProtocGenerator]):
 
         if language == 'cpp':
             protobuf_dep = self.held_object.dependency
-            if protobuf_dep is None or not protobuf_dep.found():
-                raise MesonException('protoc.generate requires protobuf "dependency".')
+            if protobuf_dep is None:
+                protobuf_dep = state.dependency('protobuf', native=native, required=False)
+                self.held_object.dependency = protobuf_dep
+            if not protobuf_dep.found():
+                raise MesonException('protobuf dependency not found; install it or pass `dependency:` to codegen.protoc()')
 
             arguments.append('--cpp_out=' + os.path.join('@BUILD_ROOT@', self.interpreter.current_build_dir(), 'meson-protoc'))
 
@@ -433,9 +436,14 @@ class ProtocHolder(ObjectHolder[ProtocGenerator]):
         if grpc:
             if language != 'cpp':
                 raise MesonException(f'protoc.generate: gRPC generation is not supported for {language!r} language.')
-            if grpc_dep is None or not grpc_dep.found():
-                raise MesonException('protoc.generate: gRPC generation requires a found "grpc_dependency" in codegen.protoc().')
-            if grpc_plugin is None or not grpc_plugin.found():
+            if grpc_dep is None:
+                grpc_dep = state.dependency('grpc++', native=native, required=False)
+            if not grpc_dep.found():
+                raise MesonException('grpc dependency not found; install it or pass `grpc_dependency:` to codegen.protoc()')
+            if grpc_plugin is None:
+                grpc_plugin = state.find_program('grpc_cpp_plugin', required=False, for_machine=self.held_object.for_machine)
+                self.held_object.grpc_plugin = grpc_plugin
+            if not grpc_plugin.found():
                 raise MesonException('protoc.generate: gRPC generation requires the grpc_cpp_plugin program, which was not found.')
 
             arguments.append('--grpc_out=' + os.path.join('@BUILD_ROOT@', self.interpreter.current_build_dir(), 'meson-protoc'))

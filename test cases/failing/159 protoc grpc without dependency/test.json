@@ -1,6 +1,0 @@
-{
-    "expect_skip_on_jobname": ["azure", "cygwin", "msys2", "windows"],
-    "stdout": [
-        { "line": "test cases/failing/159 protoc grpc without dependency/meson.build:11:13: ERROR: protoc.generate: gRPC generation requires a found \"grpc_dependency\" in codegen.protoc()." }
-    ]
-}

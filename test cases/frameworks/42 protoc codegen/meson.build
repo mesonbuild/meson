@@ -8,7 +8,6 @@ endif
 codegen = import('unstable-codegen')
 
 protoc = codegen.protoc(
-  dependency: protobuf,
   version: '>=3.0',
   # Smoke test: protoc rejects unknown flags, so this checks that the
   # argument reaches protoc. gcc is the default format.

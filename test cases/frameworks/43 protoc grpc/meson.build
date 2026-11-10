@@ -26,3 +26,18 @@ assert(plain_gen.headers().length() == 1)
 
 e = executable('prog', 'main.cpp', dependencies: [gen.dependency(), plain_gen.dependency()])
 test('grpctest', e)
+
+# Without dependency nor grpc_dependency: both are looked up by generate().
+auto_protoc = codegen.protoc()
+
+# gRPC is not enabled by default, even though grpc++ can be found.
+data_gen = auto_protoc.generate('auto/data.proto')
+assert(data_gen.sources().length() == 1)
+assert(data_gen.headers().length() == 1)
+
+# grpc: true looks up grpc++ and grpc_cpp_plugin by itself.
+echo_gen = auto_protoc.generate('auto/echo.proto', grpc: true)
+assert(echo_gen.sources().length() == 2)
+assert(echo_gen.headers().length() == 2)
+
+static_library('auto', dependencies: [data_gen.dependency(), echo_gen.dependency()])
