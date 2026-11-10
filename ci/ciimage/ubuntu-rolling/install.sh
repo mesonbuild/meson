@@ -20,6 +20,7 @@ pkgs=(
   libclang-dev libclang-rt-dev
   libgcrypt20-dev
   libgpgme-dev
+  libgrpc++-dev protobuf-compiler-grpc
   libhdf5-dev
   libboost-python-dev libboost-regex-dev
   libblocksruntime-dev
