@@ -169,7 +169,8 @@ class DataTests(unittest.TestCase):
                 debug = False
             else:
                 raise RuntimeError(f'Invalid debug value {debug!r} in row:\n{m.group()}')
-            env.coredata.optstore.set_option(OptionKey('buildtype'), buildtype)
+            env.coredata.optstore.set_user_options({OptionKey('buildtype'): buildtype})
+            env.coredata.optstore.initialize_from_top_level_project_call({})
             self.assertEqual(env.coredata.optstore.get_value_for('buildtype'), buildtype)
             self.assertEqual(env.coredata.optstore.get_value_for('optimization'), opt)
             self.assertEqual(env.coredata.optstore.get_value_for('debug'), debug)
@@ -229,7 +230,7 @@ class DataTests(unittest.TestCase):
         # Disable unit test specific syntax
         del os.environ['MESON_RUNNING_IN_PROJECT_TESTS']
         env = get_fake_env()
-        interp = Interpreter(FakeBuild(env))
+        interp = Interpreter(FakeBuild(env), {})
         with open('data/syntax-highlighting/vim/syntax/meson.vim', encoding='utf-8') as f:
             res = re.search(r'syn keyword mesonBuiltin(\s+\\\s\w+)+', f.read(), re.MULTILINE)
             defined = set([a.strip() for a in res.group().split('\\')][1:])
@@ -247,7 +248,7 @@ class DataTests(unittest.TestCase):
         # Disable unit test specific syntax
         del os.environ['MESON_RUNNING_IN_PROJECT_TESTS']
         env = get_fake_env()
-        interp = Interpreter(FakeBuild(env))
+        interp = Interpreter(FakeBuild(env), {})
         astint = AstInterpreter('.', '', '', '', env)
         self.assertEqual(set(interp.funcs.keys()), set(astint.funcs.keys()))
 
