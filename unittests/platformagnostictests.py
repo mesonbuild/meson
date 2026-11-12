@@ -384,6 +384,9 @@ class PlatformAgnosticTests(BasePlatformTests):
 
             ('d/.build', '.build', True),
             ('meson.build', '.build', False),
+            ('config.yml', '*.y{a,}ml', True),
+            ('config.yaml', '*.y{a,}ml', True),
+            ('abc.conf.d/main.cpp', '*.{c,cpp,h,hpp}', True),
         ]
 
         for filename, pattern, expected in cases:
