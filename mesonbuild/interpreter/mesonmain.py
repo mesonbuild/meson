@@ -86,16 +86,24 @@ class MesonMain(MesonInterpreterObject):
         self.interpreter = interpreter
 
     def _find_source_script(
-            self, name: str, prog: T.Union[str, mesonlib.File, build.Executable, Program],
+            self, name: str, prog: build.CommandTypes,
             args: T.List[str], *,
             allow_built_program: bool = False) -> 'ExecutableSerialisation':
-        largs: T.List[T.Union[str, build.Executable, Program]] = []
+        largs: T.List[build.CommandTypes] = []
 
-        if isinstance(prog, (build.Executable, Program)):
-            if not allow_built_program and not (isinstance(prog, Program) and prog.runnable()):
+        if not allow_built_program:
+            if isinstance(prog, build.Executable) or (isinstance(prog, Program) and not prog.runnable()):
                 self.interpreter._compiled_exe_error(prog)
-        elif isinstance(prog, (str, mesonlib.File)):
+        if isinstance(prog, build.LocalProgram):
+            prog = prog.program
+        if isinstance(prog, (str, mesonlib.File)):
             prog = self.interpreter.find_program_impl([prog])
+        elif not isinstance(prog, Program):
+            # This feels really hacky, but I'm not sure how else to fix
+            # this without completely rewriting install script handling.
+            # This is complicated by the fact that the install target
+            # depends on all.
+            prog.get_target().build_by_default = True
 
         largs.append(prog)
         largs.extend(args)
@@ -105,18 +113,23 @@ class MesonMain(MesonInterpreterObject):
 
     def _process_script_args(
             self, name: str, args: T.Sequence[T.Union[
-                str, mesonlib.File, build.BuildTarget, build.CustomTarget,
-                build.CustomTargetIndex, Program,
-            ]]) -> T.List[str]:
+                str, mesonlib.File, build.BuildTargetTypes, Program,
+            ]], *, allow_built_program: bool = False) -> T.List[str]:
         script_args = []  # T.List[str]
         for a in args:
+            if not allow_built_program:
+                if isinstance(a, (build.BuildTarget, build.CustomTarget, build.CustomTargetIndex)) or (
+                        isinstance(a, Program) and not a.runnable()):
+                    self.interpreter._compiled_exe_error(a)
             if isinstance(a, build.LocalProgram):
                 a = a.program
             if isinstance(a, str):
                 script_args.append(a)
             elif isinstance(a, mesonlib.File):
                 script_args.append(a.rel_to_builddir(self.interpreter.environment.source_dir))
-            elif isinstance(a, (build.BuildTarget, build.CustomTarget, build.CustomTargetIndex)):
+            elif isinstance(a, Program):
+                script_args.extend(a.get_command())
+            else:
                 script_args.extend([os.path.join(a.get_subdir(), o) for o in a.get_outputs()])
 
                 # This feels really hacky, but I'm not sure how else to fix
@@ -124,8 +137,6 @@ class MesonMain(MesonInterpreterObject):
                 # This is complicated by the fact that the install target
                 # depends on all.
                 a.get_target().build_by_default = True
-            else:
-                script_args.extend(a.get_command())
         return script_args
 
     @TypedArgs(
@@ -148,7 +159,7 @@ class MesonMain(MesonInterpreterObject):
             kwargs: 'AddInstallScriptKW') -> None:
         if self.interpreter.current_build_project().for_machine is MachineChoice.BUILD:
             return
-        script_args = self._process_script_args('add_install_script', args[1])
+        script_args = self._process_script_args('add_install_script', args[1], allow_built_program=True)
         script = self._find_source_script('add_install_script', args[0], script_args, allow_built_program=True)
         script.skip_if_destdir = kwargs['skip_if_destdir']
         script.tag = kwargs['install_tag']

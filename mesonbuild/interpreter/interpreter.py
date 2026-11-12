@@ -783,8 +783,8 @@ class Interpreter(InterpreterBase, HoldableObject):
                          kwargs: 'kwtypes.RunCommand') -> RunProcess:
         return self.run_command_impl(args, kwargs)
 
-    def _compiled_exe_error(self, cmd: T.Union[Program, build.Executable]) -> T.NoReturn:
-        descr = cmd.name if isinstance(cmd, build.Executable) else cmd.description()
+    def _compiled_exe_error(self, cmd: T.Union[Program, build.BuildTargetTypes]) -> T.NoReturn:
+        descr = cmd.description() if isinstance(cmd, Program) else cmd.name
         for for_machine in MachineChoice:
             for name, exe in self.build.find_overrides[for_machine].items():
                 if cmd == exe:
