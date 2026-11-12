@@ -110,6 +110,8 @@ class MesonMain(MesonInterpreterObject):
             ]]) -> T.List[str]:
         script_args = []  # T.List[str]
         for a in args:
+            if isinstance(a, build.LocalProgram):
+                a = a.program
             if isinstance(a, str):
                 script_args.append(a)
             elif isinstance(a, mesonlib.File):
