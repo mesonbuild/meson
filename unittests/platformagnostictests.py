@@ -381,6 +381,9 @@ class PlatformAgnosticTests(BasePlatformTests):
             ('a99.txt', 'a{0..9}.txt', False),
             ('a099.txt', 'a{0..9}.txt', False),
             ('a-1.txt', 'a{0..10}.txt', False),
+
+            ('d/.build', '.build', True),
+            ('meson.build', '.build', False),
         ]
 
         for filename, pattern, expected in cases:

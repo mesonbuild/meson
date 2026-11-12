@@ -140,6 +140,8 @@ def match_path(filename: str, pattern: str) -> bool:
     pattern_re = re.sub(r'(?<!\\)\{(.*?[^\\])}', curl_replace, pattern_re)  # {}
     if pattern.startswith('/'):
         pattern_re = '^' + pattern_re
+    else:
+        pattern_re = '(?:^|/)' + pattern_re
     pattern_re += '$'
 
     m = re.search(pattern_re, filename)
