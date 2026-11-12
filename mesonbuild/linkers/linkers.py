@@ -1064,7 +1064,9 @@ class LLVMDynamicLinker(GnuLikeDynamicLinkerMixin, PosixDynamicLinkerMixin, Dyna
             (f'unknown argument: {flag}' not in e) and
             (f"unknown argument: '{flag}'" not in e) and
             # TI Arm Clang uses a different message
-            (f'invalid option:  {flag}' not in e)
+            (f'invalid option:  {flag}' not in e) and
+            # Zig uses a different message
+            (f'unsupported linker arg: {flag}' not in e)
         )
 
     def get_allow_undefined_args(self) -> T.List[str]:
@@ -1100,6 +1102,18 @@ class LLVMDynamicLinker(GnuLikeDynamicLinkerMixin, PosixDynamicLinkerMixin, Dyna
 
 class ZigCCDynamicLinker(LLVMDynamicLinker):
     id = 'ld.zigcc'
+
+    def __init__(self, exelist: T.List[str], env: Environment,
+                 for_machine: mesonlib.MachineChoice, prefix_arg: T.Optional[LinkerOptionStyle],
+                 always_args: T.List[str], *, system: str = 'unknown system',
+                 version: str = 'unknown version'):
+        super().__init__(exelist, env, for_machine, prefix_arg, always_args, system=system, version=version)
+        self.has_fatal_warnings = self._supports_flag('--fatal-warnings', always_args)
+
+    def fatal_warnings(self) -> T.List[str]:
+        if self.has_fatal_warnings:
+            return super().fatal_warnings()
+        return []
 
     def get_thinlto_cache_args(self, path: str) -> T.List[str]:
         return []
