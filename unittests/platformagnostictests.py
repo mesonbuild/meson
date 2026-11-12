@@ -419,6 +419,34 @@ class PlatformAgnosticTests(BasePlatformTests):
         with self.assertRaises(MesonException):
             formatter.load_editor_config(editorconfig)
 
+    def test_format_editorconfig_lookup(self) -> None:
+        d = Path(tempfile.mkdtemp(suffix='.cfg'))
+        self.addCleanup(windows_proof_rmtree, d)
+
+        (d / '.editorconfig').write_text(
+            textwrap.dedent('''
+        root = true
+        [*]
+        indent_size = 8
+        [*.{c,h}]
+        indent_size = 4
+        ''')
+        )
+
+        subd = d / 'sub'
+        subd.mkdir()
+
+        (subd / '.editorconfig').write_text(
+            textwrap.dedent('''
+        [meson.build]
+        indent_size = 2
+        ''')
+        )
+
+        formatter = Formatter(None, use_editor_config=True, fetch_subdirs=False)
+        self.assertEqual(formatter.load_editor_config(d / 'meson.build').indent_size, 8)
+        self.assertEqual(formatter.load_editor_config(subd / 'meson.build').indent_size, 2)
+
     def test_format_empty_file(self) -> None:
         formatter = Formatter(None, use_editor_config=False, fetch_subdirs=False)
         for code in ('', '\n'):

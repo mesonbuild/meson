@@ -1068,9 +1068,10 @@ class Formatter:
             cp = DefaultConfigParser(delimiters=('=',))
             cp.read_default(editorconfig_file)
 
-            sections = [section for section in cp.sections() if match_path(source_file.as_posix(), section)]
+            relative_to_editor_config = '/' + source_file.relative_to(p).as_posix()
+            sections = [section for section in cp.sections() if match_path(relative_to_editor_config, section)]
             for f in fields(config):
-                if getattr(cp, f.name, None) is not None:
+                if getattr(config, f.name, None) is not None:
                     continue  # value already set from higher file
 
                 getter = f.metadata['getter']
