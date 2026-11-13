@@ -2779,7 +2779,6 @@ class SharedLibrary(BuildTarget, LibTargetProto):
             import_suffix = None
         filename_tpl = self.basic_filename_tpl
         create_debug_file = False
-        create_debug_file = False
         self.filename_tpl = self.basic_filename_tpl
         import_filename_tpl: str | None = None
         # NOTE: manual prefix/suffix override is currently only tested for C/C++
@@ -2796,12 +2795,31 @@ class SharedLibrary(BuildTarget, LibTargetProto):
             suffix = suffix if suffix is not None else 'dll'
             if self.uses_rust():
                 # Shared library is of the form foo.dll
-                prefix = prefix if prefix is not None else ''
-                # Import library is called foo.dll.lib
-                import_filename_tpl = '{0.prefix}{0.name}.dll.lib'
-                # .pdb file is only created when debug symbols are enabled
-                create_debug_file = self.environment.coredata.optstore.get_value_for(OptionKey("debug"))
-                assert isinstance(create_debug_file, bool), 'for mypy'
+                if self.get_using_msvc():
+                    prefix = prefix if prefix is not None else ''
+                    if self.soversion:
+                        # foo-X.dll.lib
+                        import_filename_tpl = '{0.prefix}{0.name}-{0.soversion}.dll.lib'
+                    else:
+                        # No versioning, foo.dll.lib
+                        import_filename_tpl = '{0.prefix}{0.name}.dll.lib'
+                    # .pdb file is only created when debug symbols are enabled
+                    create_debug_file = self.environment.coredata.optstore.get_value_for(OptionKey("debug"))
+                # Assume GCC-compatible naming
+                else:
+                    # Shared library follows the MSVC nomenclature. The
+                    # import library does NOT -- see below
+                    import_prefix = prefix if prefix is not None else 'lib'
+                    prefix = prefix if prefix is not None else ''
+                    # Import library is called libfoo.dll.a
+                    import_suffix = import_suffix if import_suffix is not None else '.dll.a'
+                    if self.soversion:
+                        # libfoo-X.dll.lib
+                        import_filename_tpl = import_prefix + '{0.name}-{0.soversion}' + import_suffix
+                    else:
+                        # No versioning, libfoo.dll.lib
+                        import_filename_tpl = import_prefix + '{0.name}' + import_suffix
+                    print(prefix, import_filename_tpl)
             elif self.get_using_msvc():
                 # Shared library is of the form foo.dll
                 prefix = prefix if prefix is not None else ''
