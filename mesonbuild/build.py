@@ -3211,6 +3211,7 @@ class CustomTarget(Target, CustomTargetBase, CommandTargetProto):
         self.install_tag = _process_install_tag(install_tag, len(self.outputs))
         self.name = name if name else self.outputs[0]
         self.description = description
+        self._transitive_build_target_deps: T.Optional[T.Set[BuildTargetProto]] = None
 
         # Whether to use absolute paths for all files on the commandline
         self.absolute_paths = absolute_paths
@@ -3265,7 +3266,14 @@ class CustomTarget(Target, CustomTargetBase, CommandTargetProto):
         This is useful for setting PATH on Windows for finding required DLLs.
         F.ex, if you have a python script that loads a C module that links to
         other DLLs in your project.
+
+        The result is cached: the backend asks every custom target, and without
+        the cache a chain of custom targets that each depend on all targets of
+        the previous stage is walked once per path, which is exponential in the
+        number of stages.
         '''
+        if self._transitive_build_target_deps is not None:
+            return self._transitive_build_target_deps
         bdeps: T.Set[BuildTargetProto] = set()
         deps = self.get_target_dependencies()
         for d in deps:
@@ -3273,6 +3281,7 @@ class CustomTarget(Target, CustomTargetBase, CommandTargetProto):
                 bdeps.add(d)
             elif isinstance(d, CustomTarget):
                 bdeps.update(d.get_transitive_build_target_deps())
+        self._transitive_build_target_deps = bdeps
         return bdeps
 
     def get_dependencies(self) -> T.Iterable[BuildTargetProto]:
