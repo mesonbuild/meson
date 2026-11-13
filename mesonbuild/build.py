@@ -2779,7 +2779,6 @@ class SharedLibrary(BuildTarget, LibTargetProto):
             import_suffix = None
         filename_tpl = self.basic_filename_tpl
         create_debug_file = False
-        create_debug_file = False
         self.filename_tpl = self.basic_filename_tpl
         import_filename_tpl: str | None = None
         # NOTE: manual prefix/suffix override is currently only tested for C/C++
@@ -2794,17 +2793,10 @@ class SharedLibrary(BuildTarget, LibTargetProto):
         # For all other targets/platforms import_filename stays None
         elif self.environment.machines[self.for_machine].is_windows():
             suffix = suffix if suffix is not None else 'dll'
-            if self.uses_rust():
+            assert prefix is None or prefix == ''
+            if self.get_using_msvc():
                 # Shared library is of the form foo.dll
-                prefix = prefix if prefix is not None else ''
-                # Import library is called foo.dll.lib
-                import_filename_tpl = '{0.prefix}{0.name}.dll.lib'
-                # .pdb file is only created when debug symbols are enabled
-                create_debug_file = self.environment.coredata.optstore.get_value_for(OptionKey("debug"))
-                assert isinstance(create_debug_file, bool), 'for mypy'
-            elif self.get_using_msvc():
-                # Shared library is of the form foo.dll
-                prefix = prefix if prefix is not None else ''
+                prefix = ''
                 # Import library is called foo.lib
                 import_suffix = import_suffix if import_suffix is not None else 'lib'
                 import_filename_tpl = '{0.prefix}{0.name}.' + import_suffix
@@ -2816,8 +2808,20 @@ class SharedLibrary(BuildTarget, LibTargetProto):
                 # Shared library is of the form libfoo.dll
                 prefix = prefix if prefix is not None else 'lib'
                 # Import library is called libfoo.dll.a
-                import_suffix = import_suffix if import_suffix is not None else '.dll.a'
-                import_filename_tpl = '{0.prefix}{0.name}' + import_suffix
+                import_suffix = import_suffix if import_suffix is not None else 'dll.a'
+                import_filename_tpl = '{0.prefix}{0.name}.' + import_suffix
+            if self.uses_rust():
+                # rustc keeps the soversion and .dll in the import library name:
+                # foo-X.dll.lib or libfoo-X.dll.a.  Also, the shared library always
+                # follows the MSVC nomenclature (foo.dll).
+                import_name = '{0.name}-{0.soversion}' if self.soversion else '{0.name}'
+                if self.get_using_msvc():
+                    # foo-SOVERSION.dll.lib, foo-SOVERSION.dll
+                    import_prefix, import_suffix = '{0.prefix}', 'dll.lib'
+                else:
+                    # libfoo-SOVERSION.dll.a, foo-SOVERSION.dll
+                    import_prefix, prefix = prefix, ''
+                import_filename_tpl = f'{import_prefix}{import_name}.{import_suffix}'
             # Shared library has the soversion if it is defined
             if self.soversion:
                 filename_tpl = '{0.prefix}{0.name}-{0.soversion}.{0.suffix}'
