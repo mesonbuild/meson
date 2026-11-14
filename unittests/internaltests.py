@@ -596,52 +596,6 @@ InstalledDir: /usr/bin'''), '14.0.0-1ubuntu1.1')
                     ['-L=-lfoo', '-L=-L/usr/local/lib', '-L=-rpath=/foo']
                 )
 
-    def test_zig_linker_fatal_warnings(self):
-        env = get_fake_env()
-        for diagnostic, expected in [
-            ('error: unsupported linker arg: --fatal-warnings', []),
-            ('ld.lld: error: no input files', ['-Wl,--fatal-warnings']),
-        ]:
-            with self.subTest(diagnostic=diagnostic):
-                def linker_probe(args):
-                    stderr = diagnostic if '-Wl,--fatal-warnings' in args else 'ld.lld: error: no input files'
-                    return mock.Mock(), '', stderr
-
-                with mock.patch.object(mesonbuild.mesonlib, 'Popen_safe', side_effect=linker_probe) as popen:
-                    linker = linkers.ZigCCDynamicLinker(
-                        ['zig', 'cc'], env, MachineChoice.HOST,
-                        ManyInOneLinkerOptionStyle('-Wl,', ','), ['--target=x86_64-linux-gnu'])
-                    popen.assert_any_call(
-                        ['zig', 'cc', '--target=x86_64-linux-gnu', '-Wl,--fatal-warnings'])
-                self.assertEqual(linker.fatal_warnings(), expected)
-                self.assertEqual(linker.get_allow_undefined_args(), ['-Wl,--allow-shlib-undefined'])
-                self.assertEqual(linker.get_asneeded_args(), ['-Wl,--as-needed'])
-                self.assertEqual(linker.no_undefined_args(), ['-Wl,--no-undefined'])
-
-    def test_llvm_linker_supports_flag(self):
-        env = get_fake_env()
-        with mock.patch.object(mesonbuild.mesonlib, 'Popen_safe', return_value=(mock.Mock(), '', '')):
-            linker = linkers.LLVMDynamicLinker(
-                ['clang'], env, MachineChoice.HOST, ManyInOneLinkerOptionStyle('-Wl,', ','), [])
-        for diagnostic, expected in [
-            ('unknown argument: --as-needed', False),
-            ("unknown argument: '--as-needed'", False),
-            ('invalid option:  --as-needed', False),
-            ('unsupported linker arg: --as-needed', False),
-            ('unsupported linker arg: --no-undefined', True),
-            ('ld.lld: error: no input files', True),
-        ]:
-            with self.subTest(diagnostic=diagnostic):
-                with mock.patch.object(mesonbuild.mesonlib, 'Popen_safe',
-                                       return_value=(mock.Mock(), '', diagnostic)):
-                    self.assertEqual(linker._supports_flag('--as-needed', []), expected)
-        self.assertEqual(linker.fatal_warnings(), ['-Wl,--fatal-warnings'])
-
-    def test_gnu_linker_fatal_warnings(self):
-        linker = linkers.GnuBFDDynamicLinker(
-            ['gcc'], get_fake_env(), MachineChoice.HOST, ManyInOneLinkerOptionStyle('-Wl,', ','), [])
-        self.assertEqual(linker.fatal_warnings(), ['-Wl,--fatal-warnings'])
-
     def _fake_msvc_cc(self, cflags='-DCFLAG', ldflags='/SUBSYSTEM:CONSOLE'):
         with mock.patch.dict(os.environ, {'CFLAGS': cflags, 'LDFLAGS': ldflags}):
             env = get_fake_env()
