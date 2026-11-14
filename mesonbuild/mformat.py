@@ -130,7 +130,7 @@ def match_path(filename: str, pattern: str) -> bool:
             num_ranges.append((int(low), int(high)))
             return f'(?P<num{index}>-?[0-9]+)'
         else:
-            return T.cast(str, m[1].replace(',', '|'))
+            return '(?:' + m[1].replace(',', '|') + ')'
 
     pattern_re = pattern.replace('.', '\\.')
     pattern_re = re.sub(r'(?<!\\)\?', '.', pattern_re)  # ? -> .
@@ -140,6 +140,8 @@ def match_path(filename: str, pattern: str) -> bool:
     pattern_re = re.sub(r'(?<!\\)\{(.*?[^\\])}', curl_replace, pattern_re)  # {}
     if pattern.startswith('/'):
         pattern_re = '^' + pattern_re
+    else:
+        pattern_re = '(?:^|/)' + pattern_re
     pattern_re += '$'
 
     m = re.search(pattern_re, filename)
@@ -1068,9 +1070,10 @@ class Formatter:
             cp = DefaultConfigParser(delimiters=('=',))
             cp.read_default(editorconfig_file)
 
-            sections = [section for section in cp.sections() if match_path(source_file.as_posix(), section)]
+            relative_to_editor_config = '/' + source_file.relative_to(p).as_posix()
+            sections = [section for section in cp.sections() if match_path(relative_to_editor_config, section)]
             for f in fields(config):
-                if getattr(cp, f.name, None) is not None:
+                if getattr(config, f.name, None) is not None:
                     continue  # value already set from higher file
 
                 getter = f.metadata['getter']
