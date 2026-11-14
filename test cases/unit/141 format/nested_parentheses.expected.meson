@@ -1,0 +1,23 @@
+# nested parentheses
+is_bar = (
+    (true and false and true and false and true and false and true)
+    or (false and true and false and true)
+    or false
+    or true
+)
+is_baz = (
+    (
+        true
+        and false
+        and true
+        and false
+        and true
+        and false
+        and true
+        and false
+        and true
+        and false
+        and true
+    )
+    or false
+)

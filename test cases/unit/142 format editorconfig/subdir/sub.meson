@@ -1,0 +1,8 @@
+# format-test: use_editor_config = true
+
+project('line')
+
+msg = 'this is a very long line, and it should be be wrapped because we have line length limit of 120, not 60'
+
+# fits in 120 columns from subdir/.editorconfig, but not in 60
+a = ['one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine']

@@ -1,0 +1,9 @@
+# format-test: indent_before_comments = ' '
+
+a = [
+    1,
+    # inner
+    2,  # between comma
+    # between comma 2
+]  # trailing
+x = 1  # comment

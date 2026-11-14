@@ -1,0 +1,10 @@
+# format-test: indent_by = '  '
+
+if true
+  foreach i : [1, 2]
+    a = [
+      1,  # comment
+      2,
+    ]
+  endforeach
+endif

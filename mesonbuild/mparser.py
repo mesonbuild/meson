@@ -15,6 +15,7 @@ if T.TYPE_CHECKING:
     from typing_extensions import Literal
 
     from .ast import AstVisitor
+    from .mformat import FormatLayout
 
     BaseNodeT = T.TypeVar('BaseNodeT', bound='BaseNode')
 
@@ -281,6 +282,7 @@ class WhitespaceNode(BaseNode):
         self.append(token)
         self.block_indent = False
         self.is_continuation = False
+        self.format_layout: T.Optional[FormatLayout] = None
 
     def append(self, token: Token[str]) -> None:
         self.value += token.value
@@ -436,12 +438,14 @@ class BinaryOperatorNode(BaseNode):
     left: BaseNode
     operator: SymbolNode
     right: BaseNode
+    is_multiline: bool
 
     def __init__(self, left: BaseNode, operator: SymbolNode, right: BaseNode):
         super().__init__(left.lineno, left.colno, left.filename)
         self.left = left
         self.operator = operator
         self.right = right
+        self.is_multiline = False
 
 class OrNode(BinaryOperatorNode):
     pass
@@ -666,6 +670,7 @@ class ParenthesizedNode(BaseNode):
     inner: BaseNode
     rpar: SymbolNode = field(hash=False)
     is_multiline: bool
+    moved_comment: T.Optional[str]
 
     def __init__(self, lpar: SymbolNode, inner: BaseNode, rpar: SymbolNode):
         super().__init__(lpar.lineno, lpar.colno, inner.filename, end_lineno=rpar.lineno, end_colno=rpar.colno+1)
@@ -673,6 +678,7 @@ class ParenthesizedNode(BaseNode):
         self.inner = inner
         self.rpar = rpar
         self.is_multiline = False
+        self.moved_comment = None
 
 if T.TYPE_CHECKING:
     COMPARISONS = Literal['==', '!=', '<', '<=', '>=', '>', 'in', 'not in']

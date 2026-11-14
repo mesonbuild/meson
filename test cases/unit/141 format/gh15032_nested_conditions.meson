@@ -1,0 +1,11 @@
+# issue #15032
+if true
+    if true
+        if (true and
+            true and
+            false
+        )
+            message('Hello, world!')
+        endif
+    endif
+endif

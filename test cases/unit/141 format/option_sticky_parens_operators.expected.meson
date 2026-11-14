@@ -1,0 +1,7 @@
+# format-test: sticky_parens = true
+# format-test: indent_by = '  '
+
+# all operators of the lowest level are split with the parentheses
+x = (aaaaaaaaaaaaaaaaaaaa * bbbbbbbbbbbbbbbbbbbb
+    + cccccccccccccccccccc * dddddddddd
+    - eeeeee / ffffff)
