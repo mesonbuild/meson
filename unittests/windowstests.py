@@ -453,7 +453,7 @@ class WindowsTests(BasePlatformTests):
             raise SkipTest('import std is only supported with Visual Studio.')
         if version_compare(os.environ['VSCMD_VER'], '<17.14.0'):
             raise SkipTest('import std requires Visual Studio 2022 17.14 or newer.')
-        self.init(os.path.join(self.unit_test_dir, '141 importstd flags'))
+        self.init(os.path.join(self.unit_test_dir, '142 importstd flags'))
         self.build()
         self.run_tests()
         # One standard library module for the two C runtimes
@@ -470,7 +470,7 @@ class WindowsTests(BasePlatformTests):
             raise SkipTest('import std requires Visual Studio 2022 17.14 or newer.')
         # Point the VS install at a directory without modules/std.ixx
         env = {'VCToolsInstallDir': os.path.join(self.builddir, 'no-vc-install')}
-        out = self.init(os.path.join(self.unit_test_dir, '141 importstd flags'),
+        out = self.init(os.path.join(self.unit_test_dir, '142 importstd flags'),
                         override_envvars=env, allow_fail=True)
         self.assertIn('VS std import header could not be located.', out)
 

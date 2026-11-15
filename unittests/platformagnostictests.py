@@ -119,7 +119,7 @@ class PlatformAgnosticTests(BasePlatformTests):
         Test that extra_files of an internal dependency are exposed together with the target's own.
         https://github.com/mesonbuild/meson/issues/15863
         '''
-        testdir = os.path.join(self.unit_test_dir, '145 dependency extra files')
+        testdir = os.path.join(self.unit_test_dir, '144 dependency extra files')
         self.init(testdir)
         targets = self.introspect('--targets')
         self.assertEqual(len(targets), 1)
@@ -334,7 +334,7 @@ class PlatformAgnosticTests(BasePlatformTests):
     @skip_if_no_cmake
     def test_cmake_native_subproject_ctgt(self):
         """Issue #16314"""
-        testdir = os.path.join(self.unit_test_dir, '144 cmake native subproject ctgt')
+        testdir = os.path.join(self.unit_test_dir, '143 cmake native subproject ctgt')
         wrapper = os.path.join(testdir, 'wrapper.py')
         with tempfile.TemporaryDirectory() as d:
             overlay = os.path.join(d, 'wrapper.txt')

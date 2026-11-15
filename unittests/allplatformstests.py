@@ -754,7 +754,7 @@ class AllPlatformTests(BasePlatformTests):
         self.assertIn('21 subtests passed, 5 skipped', out)
 
     def test_tap_subtest_failure_summary(self):
-        testdir = os.path.join(self.unit_test_dir, '140 tap summary')
+        testdir = os.path.join(self.unit_test_dir, '141 tap summary')
         self.init(testdir)
         with self.assertRaises(subprocess.CalledProcessError) as cm:
             self._run(self.mtest_command + ['--print-errorlogs'])
@@ -3561,7 +3561,7 @@ class AllPlatformTests(BasePlatformTests):
         self.run_tests()
 
     def test_subproject_lang_args(self):
-        testdir = os.path.join(self.unit_test_dir, '139 subproject lang args')
+        testdir = os.path.join(self.unit_test_dir, '140 subproject lang args')
         self.init(testdir, extra_args=['-Dc_args=-DTOP_FLAG', '-Dsub:c_args=-DSUB_FLAG'])
         # The source files #error out if their expected flag is missing.
         self.build()
@@ -5105,7 +5105,7 @@ class AllPlatformTests(BasePlatformTests):
         self.meson_cross_files = [os.path.join(self.builddir, "crossfile")]
 
         self.new_builddir()
-        testdir = os.path.join(self.unit_test_dir, '146 native subproject build dirs')
+        testdir = os.path.join(self.unit_test_dir, '145 native subproject build dirs')
         self.init(testdir)
         self.build()
 
