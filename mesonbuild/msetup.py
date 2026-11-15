@@ -172,6 +172,11 @@ class MesonApp:
         priv_dir = os.path.join(build_dir, 'meson-private')
         has_valid_build = os.path.exists(os.path.join(priv_dir, 'coredata.dat'))
         has_partial_build = os.path.isdir(priv_dir)
+        if Path(src_dir) in Path(build_dir).parents and not has_partial_build:
+            ignore_files = {'.gitignore', '.hgignore', 'CACHEDIR.TAG'}
+            if set(os.listdir(build_dir)) - ignore_files:
+                raise MesonException(f'Build directory {build_dir} is inside source directory {src_dir} '
+                                     'and already contains files. Build directory cannot be an existing source directory.')
         if has_valid_build:
             if not self.options.reconfigure and not self.options.wipe:
                 print('Directory already configured.\n\n'

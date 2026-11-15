@@ -260,6 +260,17 @@ class PlatformAgnosticTests(BasePlatformTests):
             self.init(testdir, extra_args=['--wipe'])
         self.assertIn('Directory is not empty', cm.exception.stdout)
 
+        # Using an existing non-empty directory inside the source directory should fail
+        with tempfile.TemporaryDirectory() as srcdir:
+            Path(srcdir, 'meson.build').write_text("project('test', 'c')\n", encoding='utf-8')
+            buildsubdir = Path(srcdir, 'build')
+            buildsubdir.mkdir()
+            Path(buildsubdir, 'somefile.c').touch()
+            self.change_builddir(str(buildsubdir))
+            with self.assertRaises(subprocess.CalledProcessError) as cm:
+                self.init(srcdir)
+            self.assertIn('cannot be an existing source directory', cm.exception.stdout)
+
     def test_scripts_loaded_modules(self):
         '''
         Simulate a wrapped command, as done for custom_target() that capture
