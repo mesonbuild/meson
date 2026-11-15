@@ -5928,6 +5928,37 @@ class AllPlatformTests(BasePlatformTests):
 
         self.assertEqual(clinker, linker_src['linker'])
 
+    def test_clang_cpp_link_args(self):
+        if self.backend is not Backend.ninja:
+            raise SkipTest('This test requires Ninja linker introspection')
+
+        testdir = os.path.join(self.common_test_dir, '2 cpp')
+        env = get_fake_env(testdir, self.builddir, self.prefix)
+        try:
+            cpp = compiler_from_language(env, 'cpp', MachineChoice.HOST)
+        except EnvironmentException:
+            raise SkipTest('No C++ compiler found')
+        if cpp is None or cpp.get_id() != 'clang':
+            raise SkipTest('This test requires Clang')
+
+        def get_link_args() -> T.List[str]:
+            target = next(t for t in self.introspect('--targets') if t['name'] == 'trivialprog')
+            linker = next(s for s in target['target_sources'] if 'linker' in s)
+            return linker['parameters']
+
+        self.init(testdir, extra_args=['-Dcpp_eh=default', '-Dcpp_rtti=true'])
+        args = get_link_args()
+        self.assertNotIn('-fno-exceptions', args)
+        self.assertNotIn('-fno-rtti', args)
+
+        self.init(testdir, extra_args=['--reconfigure', '-Dcpp_eh=none', '-Dcpp_rtti=false',
+                                      "-Dcpp_link_args=['-fexceptions', '-frtti']"])
+        args = get_link_args()
+        self.assertIn('-fno-exceptions', args)
+        self.assertIn('-fno-rtti', args)
+        self.assertLess(args.index('-fno-exceptions'), args.index('-fexceptions'))
+        self.assertLess(args.index('-fno-rtti'), args.index('-frtti'))
+
     def __test_multi_stds(self, test_c: bool = True, test_objc: bool = False) -> None:
         assert test_c or test_objc, 'must test something'
         testdir = os.path.join(self.unit_test_dir, '115 c cpp stds')
