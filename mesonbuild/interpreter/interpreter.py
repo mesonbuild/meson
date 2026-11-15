@@ -3447,7 +3447,8 @@ class Interpreter(InterpreterBase, HoldableObject):
             else:
                 inputtype = 'file'
             if is_parent_path(builddir, norm):
-                raise BuiltFileByNameError(fname)
+                if path_has_root(fname) or not is_parent_path(srcdir, norm):
+                    raise BuiltFileByNameError(fname)
 
             if not is_parent_path(srcdir, norm):
                 # Grabbing files outside the source tree is ok.

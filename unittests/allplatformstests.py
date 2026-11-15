@@ -6125,3 +6125,24 @@ class AllPlatformTests(BasePlatformTests):
         # Output captured and printed
         self.assertTrue('stdout|capture:true,console:true' in out)
         self.assertTrue('stderr|capture:true,console:true' in out)
+
+    def test_source_dir_named_build_in_tree(self):
+        '''
+        Regression test: When build directory is inside the source tree and
+        named 'build', source files located inside a directory named 'build/'
+        should not be misdetected as generated files (BuiltFileByNameError).
+        https://github.com/mesonbuild/meson/issues/16360
+        '''
+        srcdir = os.path.join(self.builddir, 'srctree')
+        os.makedirs(os.path.join(srcdir, 'build'))
+        with open(os.path.join(srcdir, 'meson.build'), 'w', encoding='utf-8') as f:
+            f.write("project('collision', 'c')\nexecutable('prog', files('build/main.c'))\n")
+        with open(os.path.join(srcdir, 'build', 'main.c'), 'w', encoding='utf-8') as f:
+            f.write("int main(void) { return 0; }\n")
+        builddir = os.path.join(srcdir, 'build')
+        self.change_builddir(builddir)
+        out = self.init(srcdir)
+        self.assertNotIn("is a generated file", out)
+        self.build()
+        self.init(srcdir, extra_args=['--reconfigure', '-Dunity=on'])
+        self.build()
