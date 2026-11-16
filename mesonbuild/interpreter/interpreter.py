@@ -787,9 +787,23 @@ class Interpreter(InterpreterBase, HoldableObject):
         descr = cmd.description() if isinstance(cmd, Program) else cmd.name
         for for_machine in MachineChoice:
             for name, exe in self.build.find_overrides[for_machine].items():
+                if isinstance(exe, build.LocalProgram):
+                    exe = exe.program
                 if cmd == exe:
                     raise InterpreterException(f'Program {name!r} was overridden with the compiled executable {descr!r} and therefore cannot be used during configuration')
         raise InterpreterException(f'Program {descr!r} is a compiled executable and therefore cannot be used during configuration')
+
+    def _reject_built_programs(self, prog: T.Union[str, mesonlib.File, build.BuildTargetProto, Program, compilers.Compiler],
+                               args: T.Sequence[T.Union[str, mesonlib.File, build.BuildTargetProto, Program, compilers.Compiler]]) -> None:
+        if isinstance(prog, build.LocalProgram):
+            prog = prog.program
+        if isinstance(prog, (build.BuildTarget, build.CustomTarget, build.CustomTargetIndex)):
+            self._compiled_exe_error(prog)
+        for a in args:
+            if isinstance(a, build.LocalProgram):
+                a = a.program
+            if isinstance(a, (build.BuildTarget, build.CustomTarget, build.CustomTargetIndex)):
+                self._compiled_exe_error(a)
 
     def run_command_impl(self,
                          args: T.Tuple[T.Union[build.Executable, Program, compilers.Compiler, mesonlib.File, str],
@@ -797,6 +811,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                          kwargs: 'kwtypes.RunCommand',
                          in_builddir: bool = False) -> RunProcess:
         cmd, cargs = args
+        self._reject_built_programs(cmd, cargs)
         env = kwargs['env']
         srcdir = self.environment.get_source_dir()
         builddir = self.environment.get_build_dir()
@@ -807,13 +822,9 @@ class Interpreter(InterpreterBase, HoldableObject):
             check = False
 
         expanded_args: T.List[str] = []
-        if isinstance(cmd, build.Executable):
-            self._compiled_exe_error(cmd)
-        elif isinstance(cmd, Program):
+        if isinstance(cmd, Program):
             if not cmd.found():
                 raise InterpreterException(f'command {cmd.get_name()!r} not found or not executable')
-            if not cmd.runnable():
-                self._compiled_exe_error(cmd)
         elif isinstance(cmd, compilers.Compiler):
             expanded_args = cmd.get_exe_args()
             cmd = cmd.get_exe()
@@ -821,7 +832,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             if not prog.found():
                 raise InterpreterException(f'Program {cmd!r} not found or not executable')
             cmd = prog
-        else:
+        elif isinstance(cmd, (mesonlib.File, str)):
             if isinstance(cmd, mesonlib.File):
                 cmd = cmd.absolute_path(srcdir, builddir)
             # Prefer scripts in the current source directory
@@ -830,6 +841,8 @@ class Interpreter(InterpreterBase, HoldableObject):
             if not prog.found():
                 raise InterpreterException(f'Program or command {cmd!r} not found or not executable')
             cmd = prog
+        else:
+            raise MesonBugException(f'Unexpected type {cmd!r}')
         for a in cargs:
             if isinstance(a, str):
                 expanded_args.append(a)
@@ -838,8 +851,6 @@ class Interpreter(InterpreterBase, HoldableObject):
             elif isinstance(a, Program):
                 if not a.found():
                     raise InterpreterException(f'command {cmd.get_name()!r} not found or not executable')
-                if not a.runnable():
-                    self._compiled_exe_error(a)
                 expanded_args.append(a.get_path())
             elif isinstance(a, compilers.Compiler):
                 FeatureNew.single_use('Compiler object as a variadic argument to `run_command`', '0.61.0', self.subproject, location=self.current_node)
@@ -848,7 +859,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                     raise InterpreterException(f'Program {cmd!r} not found or not executable')
                 expanded_args.append(prog.get_path())
             else:
-                self._compiled_exe_error(a)
+                raise MesonBugException(f'Unexpected type {cmd!r}')
 
         # If any file that was used as an argument to the command
         # changes, we must re-run the configuration step.
