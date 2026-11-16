@@ -2445,11 +2445,9 @@ class Interpreter(InterpreterBase, HoldableObject):
                 if '@OUTPUT@' in o:
                     raise InvalidArguments('Tried to use @OUTPUT@ in a rule with more than one output.')
 
-        if isinstance(args[0], build.Executable):
-            exe_prg = build.LocalProgram(args[0], self.project_version)
-        else:
-            exe_prg = args[0]
-        return build.Generator(self.environment, exe_prg, **kwargs)
+        return build.Generator(self.environment, [args[0], *kwargs['arguments']], kwargs['output'],
+                               depfile=kwargs['depfile'], capture=kwargs['capture'],
+                               depends=kwargs['depends'])
 
     @TypedArgs(
         'benchmark',

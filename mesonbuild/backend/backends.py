@@ -1497,11 +1497,15 @@ class Backend:
             if delta > 0.001:
                 raise MesonException(f'Clock skew detected. File {absf} has a time stamp {delta:.4f}s in the future.')
 
-    def build_target_to_cmd_array(self, bt: T.Union[build.BuildTargetProto, programs.Program]) -> T.List[str]:
+    def build_target_to_cmd_array(self, bt: build.CommandTypes) -> T.List[str]:
         if isinstance(bt, build.LocalProgram):
             bt = bt.program
         if isinstance(bt, programs.Program):
             arr = bt.get_command()
+        elif isinstance(bt, str):
+            arr = [bt]
+        elif isinstance(bt, mesonlib.File):
+            arr = [bt.rel_to_builddir(self.environment.source_dir)]
         else:
             arr = [os.path.join(self.environment.get_build_dir(), self.get_target_filename(bt))]
         return arr
@@ -2225,7 +2229,7 @@ class Backend:
         args = compiler.get_exe_args()
         commands = self.compiler_to_generator_args(target, compiler)
         generator = build.Generator(self.environment,
-                                    exe, args + commands.to_native(),
+                                    [exe, *args, *commands.to_native()],
                                     [output_templ], depfile='@PLAINNAME@.d',
                                     depends=depends)
         return generator.process_files(sources)

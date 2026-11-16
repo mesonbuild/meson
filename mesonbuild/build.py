@@ -2182,8 +2182,7 @@ class FileMaybeInTargetPrivateDir:
 
 class Generator(HoldableObject):
     def __init__(self, env: Environment,
-                 exe: programs.Program,
-                 arguments: T.List[str],
+                 command: T.List[CommandTypes],
                  output: T.List[str],
                  # how2dataclass
                  *,
@@ -2193,21 +2192,28 @@ class Generator(HoldableObject):
                  depend_files: T.Optional[T.Sequence[File]] = None,
                  name: str = 'Generator'):
         self.environment = env
-        self.exe = exe
+        self.command = list(command)
         self.depfile = depfile
         self.capture = capture
         self.depends: T.List[TargetDepends] = list(depends or [])
         self.depend_files: T.List[File] = list(depend_files or [])
-        self.arglist = arguments
         self.outputs = output
         self.name = name
 
+        # A program that was not found is reported when files are processed,
+        # in GeneratedList, so that an unused generator does not fail.
+        exe = self.get_exe()
+        if not (isinstance(exe, programs.Program) and not exe.found()):
+            self.command, exe_depend_files, exe_depends = flatten_command(self.command)
+            self.depend_files += exe_depend_files
+            self.depends += exe_depends
+
     def __repr__(self) -> str:
         repr_str = "<{0}: {1}>"
-        return repr_str.format(self.__class__.__name__, self.exe)
+        return repr_str.format(self.__class__.__name__, self.get_exe())
 
-    def get_exe(self) -> programs.Program:
-        return self.exe
+    def get_exe(self) -> CommandTypes:
+        return self.command[0]
 
     def get_base_outnames(self, inname: str) -> T.List[str]:
         plainname = os.path.basename(inname)
@@ -2225,7 +2231,11 @@ class Generator(HoldableObject):
     def get_arglist(self, inname: str) -> T.List[str]:
         plainname = os.path.basename(inname)
         basename = os.path.splitext(plainname)[0]
-        return [x.replace('@BASENAME@', basename).replace('@PLAINNAME@', plainname) for x in self.arglist]
+        arglist: T.List[str] = []
+        for x in self.command[1:]:
+            assert isinstance(x, str)
+            arglist.append(x.replace('@BASENAME@', basename).replace('@PLAINNAME@', plainname))
+        return arglist
 
     def process_files(self, files: T.Iterable[TargetSources | BuildTarget],
                       subdir: str = '',
@@ -2280,7 +2290,7 @@ class GeneratedList(HoldableObject):
     extra_depends: T.List[TargetDepends]
 
     def __post_init__(self) -> None:
-        self.name = self.generator.exe
+        self.name = self.generator.get_exe()
         self.depends: T.Set[BuildTarget | GeneratedTypes] = set()
         self.infilelist: T.List[FileMaybeInTargetPrivateDir] = []
         self.outfilelist: T.List[str] = []
@@ -2296,21 +2306,9 @@ class GeneratedList(HoldableObject):
         if self.extra_depends is None:
             self.extra_depends: T.List[TargetDepends] = []
 
-        if isinstance(self.generator.exe, programs.Program):
-            if not self.generator.exe.found():
-                raise InvalidArguments('Tried to use not-found external program as generator')
-        if isinstance(self.generator.exe, LocalProgram):
-            t = self.generator.exe.get_target()
-            if isinstance(t, File):
-                self.depend_files.append(t)
-            else:
-                self.extra_depends.append(t)
-        else:
-            path = self.generator.exe.get_path()
-            if os.path.isabs(path):
-                # Can only add a dependency on an external program which we
-                # know the absolute path of
-                self.depend_files.append(File.from_absolute_file(path))
+        exe = self.generator.get_exe()
+        if isinstance(exe, programs.Program) and not exe.found():
+            raise InvalidArguments('Tried to use not-found external program as generator')
 
     def get_preserved_path_segment(self, infile: FileMaybeInTargetPrivateDir) -> str:
         in_abs = infile.absolute_path(self.generator.environment.source_dir, self.generator.environment.build_dir)
