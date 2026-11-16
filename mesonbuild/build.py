@@ -3032,7 +3032,7 @@ class SharedModule(SharedLibrary):
     def get_default_install_dir(self) -> T.Tuple[str, str]:
         return self.environment.get_shared_module_dir(), '{moduledir_shared}'
 
-class BothLibraries(SecondLevelHolder):
+class BothLibraries(HoldableObject, SecondLevelHolder):
     typename: T.ClassVar[str] = 'both libraries'
 
     def __init__(self, shared: SharedLibrary, static: StaticLibrary, preferred_library: Literal['shared', 'static']) -> None:
