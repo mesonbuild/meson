@@ -1307,8 +1307,6 @@ class Backend:
         arr: T.List[TestSerialisation] = []
         for t in sorted(tests, key=lambda tst: -1 * tst.priority):
             exe = t.get_exe()
-            if isinstance(exe, build.LocalProgram):
-                exe = exe.program
             if isinstance(exe, (build.BuildTarget, build.CustomTarget, build.CustomTargetIndex)):
                 cmd = [os.path.join(self.environment.get_build_dir(), self.get_target_filename(exe))]
             else:
@@ -1324,8 +1322,6 @@ class Backend:
             # we allow passing compiled executables to tests, which may be cross built.
             # We need to consider these as well when considering whether the target is cross or not.
             for a in t.cmd_args:
-                if isinstance(a, build.LocalProgram):
-                    a = a.program
                 if isinstance(a, (build.BuildTarget, programs.ExternalProgram)):
                     if a.for_machine is MachineChoice.HOST:
                         test_for_machine = MachineChoice.HOST
@@ -1351,8 +1347,6 @@ class Backend:
             if isinstance(exe, (build.BuildTarget, build.CustomTarget, build.CustomTargetIndex)):
                 depends.add(exe)
             for a in t.cmd_args:
-                if isinstance(a, build.LocalProgram):
-                    a = a.program
                 if isinstance(a, (build.BuildTarget, build.CustomTarget, build.CustomTargetIndex)):
                     depends.add(a)
 

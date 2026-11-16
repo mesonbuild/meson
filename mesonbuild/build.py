@@ -3081,13 +3081,28 @@ class BothLibraries(HoldableObject, SecondLevelHolder):
         return True
 
 
+@T.overload
+def unwrap_local_program(c: T.Union[programs.Program, BuildTargetTypes]
+                         ) -> T.Union[programs.ExternalProgram, BuildTargetTypes]: ...
+
+@T.overload
+def unwrap_local_program(c: CommandTypes) -> BackendCommandTypes: ...
+
+def unwrap_local_program(c: CommandTypes) -> BackendCommandTypes:
+    '''Replace a LocalProgram with the program that it wraps.'''
+    if isinstance(c, LocalProgram):
+        return c.program
+    if isinstance(c, programs.Program) and not isinstance(c, programs.ExternalProgram):
+        raise MesonBugException(f'Argument {c!r} is not a LocalProgram or an ExternalProgram')
+    return c
+
+
 def flatten_command(cmd: T.Iterable[CommandTypes]) -> tuple[list[BackendCommandTypes], list[File], list[BuildTargetProto]]:
     final_cmd: list[BackendCommandTypes] = []
     depend_files: list[File] = []
     dependencies: list[BuildTargetProto] = []
     for c in cmd:
-        if isinstance(c, LocalProgram):
-            c = c.program
+        c = unwrap_local_program(c)
         if isinstance(c, str):
             pass
         elif isinstance(c, File):
