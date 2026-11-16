@@ -32,12 +32,14 @@ def flatten(args: T.Union['TYPE_var', T.List['TYPE_var']]) -> T.List['TYPE_var']
             result.append(a)
     return result
 
-def resolve_second_level_holders(arg: object) -> object:
+def resolve_second_level_holders(arg: object, keep: T.Tuple[type, ...] = ()) -> object:
+    """Replace second level holders with their default objects,
+       leaving instances of the classes in ``keep`` alone if any."""
     if isinstance(arg, list):
-        return [resolve_second_level_holders(x) for x in arg]
+        return [resolve_second_level_holders(x, keep) for x in arg]
     if isinstance(arg, dict):
-        return {k: resolve_second_level_holders(v) for k, v in arg.items()}
-    if isinstance(arg, mesonlib.SecondLevelHolder):
+        return {k: resolve_second_level_holders(v, keep) for k, v in arg.items()}
+    if isinstance(arg, mesonlib.SecondLevelHolder) and not isinstance(arg, keep):
         return arg.get_default_object()
     return arg
 
