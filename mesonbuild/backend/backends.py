@@ -669,7 +669,7 @@ class Backend:
         return []
 
     def get_executable_serialisation(
-            self, cmd: T.Iterable[build.CommandTypes],
+            self, cmd: T.Iterable[build.BackendCommandTypes],
             workdir: T.Optional[str] = None,
             extra_bdeps: T.Optional[T.Iterable[build.BuildTargetProto]] = None,
             capture: T.Optional[str] = None,
@@ -681,9 +681,7 @@ class Backend:
             installdir_map: T.Optional[T.Dict[str, str]] = None) -> 'ExecutableSerialisation':
         # XXX: cmd_args either need to be lowered to strings, or need to be checked for non-string arguments, right?
         exe, *raw_cmd_args = cmd
-        if isinstance(exe, build.LocalProgram):
-            exe = exe.program
-        if isinstance(exe, programs.Program):
+        if isinstance(exe, programs.ExternalProgram):
             exe_cmd = exe.get_command()
             exe_for_machine = exe.for_machine
         elif isinstance(exe, build.BuildTarget):
@@ -700,22 +698,24 @@ class Backend:
         elif isinstance(exe, mesonlib.File):
             exe_cmd = [exe.rel_to_builddir(self.environment.source_dir)]
             exe_for_machine = MachineChoice.BUILD
-        else:
+        elif isinstance(exe, str):
             exe_cmd = [exe]
             exe_for_machine = MachineChoice.BUILD
+        else:
+            raise MesonBugException(f'Argument {exe!r} in command is invalid')
 
         cmd_args: T.List[str] = []
         for c in raw_cmd_args:
-            if isinstance(c, build.LocalProgram):
-                c = c.program
-            if isinstance(c, programs.Program):
+            if isinstance(c, programs.ExternalProgram):
                 cmd_args += c.get_command()
             elif isinstance(c, (build.BuildTarget, build.CustomTarget, build.CustomTargetIndex)):
                 cmd_args.append(self.get_target_filename_abs(c))
             elif isinstance(c, mesonlib.File):
                 cmd_args.append(c.rel_to_builddir(self.environment.source_dir))
-            else:
+            elif isinstance(c, str):
                 cmd_args.append(c)
+            else:
+                raise MesonBugException(f'Argument {c!r} in command is invalid')
 
         machine = self.environment.machines[exe_for_machine]
         if machine.is_windows() or machine.is_cygwin():
@@ -2114,8 +2114,10 @@ class Backend:
                         compiler += [k]
                     elif isinstance(k, (build.BuildTarget, build.CustomTarget, build.CustomTargetIndex)):
                         compiler += k.get_outputs()
-                    else:
+                    elif isinstance(k, programs.Program):
                         compiler += k.get_command()
+                    else:
+                        raise RuntimeError(f'Type "{type(k).__name__}" is not supported in get_introspection_data. This is a bug')
 
             return [{
                 'language': 'unknown',

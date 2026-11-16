@@ -92,10 +92,10 @@ class MesonMain(MesonInterpreterObject):
     def _find_source_script(
             self, name: str, prog: T.Union[str, mesonlib.File, build.Executable, ExternalProgram],
             args: T.List[str]) -> 'ExecutableSerialisation':
-        largs: T.List[build.CommandTypes] = []
+        largs: T.List[build.BackendCommandTypes] = []
 
         if isinstance(prog, (str, mesonlib.File)):
-            largs.append(self.interpreter.find_program_impl([prog]))
+            largs.append(build.unwrap_local_program(self.interpreter.find_program_impl([prog])))
         else:
             largs.append(prog)
         if isinstance(prog, build.Executable):
