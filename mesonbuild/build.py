@@ -57,12 +57,16 @@ if T.TYPE_CHECKING:
     from .mparser import BaseNode
     from .options import ElementaryOptionValues
 
-    TargetSources: TypeAlias = T.Union['File', 'GeneratedTypes']
+    # for use in the interpreter only
     CommandTypes: TypeAlias = T.Union['programs.Program', 'BuildTargetTypes', File, str]
     GeneratedTypes: TypeAlias = T.Union['CustomTarget', 'CustomTargetIndex', 'GeneratedList']
     BuildTargetTypes: TypeAlias = T.Union['BuildTarget', 'CustomTarget', 'CustomTargetIndex']
     LinkableTypes: TypeAlias = T.Union['LinkableTargetProto', 'BothLibraries']
     StaticTypes: TypeAlias = T.Union['StaticTargetProto', 'BothLibraries']
+
+    # for use in the backend too
+    TargetSources: TypeAlias = T.Union['File', 'GeneratedTypes']
+    BackendCommandTypes: TypeAlias = T.Union['programs.ExternalProgram', 'BuildTargetTypes', File, str]
     ObjectTypes: TypeAlias = T.Union['File', 'ExtractedObjects']
     RustCrateType: TypeAlias = Literal['bin', 'lib', 'rlib', 'dylib', 'cdylib', 'staticlib', 'proc-macro']
     _LibraryType: TypeAlias = Literal['auto', 'shared', 'static']
@@ -121,7 +125,7 @@ if T.TYPE_CHECKING:
 
     class CommandTargetProto(AnyTargetProto, Protocol):
         @property
-        def command(self) -> list[CommandTypes]: ...
+        def command(self) -> list[BackendCommandTypes]: ...
         @property
         def absolute_paths(self) -> bool: ...
         @property
@@ -2192,7 +2196,7 @@ class Generator(HoldableObject):
                  depend_files: T.Optional[T.Sequence[File]] = None,
                  name: str = 'Generator'):
         self.environment = env
-        self.command = list(command)
+        self.command: T.List[BackendCommandTypes]
         self.depfile = depfile
         self.capture = capture
         self.depends: T.List[TargetDepends] = list(depends or [])
@@ -2200,11 +2204,14 @@ class Generator(HoldableObject):
         self.outputs = output
         self.name = name
 
-        # A program that was not found is reported when files are processed,
-        # in GeneratedList, so that an unused generator does not fail.
-        exe = self.get_exe()
-        if not (isinstance(exe, programs.Program) and not exe.found()):
-            self.command, exe_depend_files, exe_depends = flatten_command(self.command)
+        exe = command[0]
+        if isinstance(exe, programs.Program) and not exe.found():
+            # A program that was not found is reported when files are processed,
+            # in GeneratedList, so that an unused generator does not fail.  It cannot
+            # be a LocalProgram, so just cast.
+            self.command = T.cast('T.List[BackendCommandTypes]', list(command))
+        else:
+            self.command, exe_depend_files, exe_depends = flatten_command(command)
             self.depend_files += exe_depend_files
             self.depends += exe_depends
 
@@ -2212,7 +2219,7 @@ class Generator(HoldableObject):
         repr_str = "<{0}: {1}>"
         return repr_str.format(self.__class__.__name__, self.get_exe())
 
-    def get_exe(self) -> CommandTypes:
+    def get_exe(self) -> BackendCommandTypes:
         return self.command[0]
 
     def get_base_outnames(self, inname: str) -> T.List[str]:
@@ -3070,8 +3077,8 @@ class BothLibraries(HoldableObject, SecondLevelHolder):
         return True
 
 
-def flatten_command(cmd: T.Iterable[CommandTypes]) -> tuple[list[CommandTypes], list[File], list[BuildTargetProto]]:
-    final_cmd: list[CommandTypes] = []
+def flatten_command(cmd: T.Iterable[CommandTypes]) -> tuple[list[BackendCommandTypes], list[File], list[BuildTargetProto]]:
+    final_cmd: list[BackendCommandTypes] = []
     depend_files: list[File] = []
     dependencies: list[BuildTargetProto] = []
     for c in cmd:
@@ -3081,7 +3088,7 @@ def flatten_command(cmd: T.Iterable[CommandTypes]) -> tuple[list[CommandTypes], 
             pass
         elif isinstance(c, File):
             depend_files.append(c)
-        elif isinstance(c, programs.Program):
+        elif isinstance(c, programs.ExternalProgram):
             if not c.found():
                 raise InvalidArguments('Tried to use not-found external program in "command"')
             # We know path is not none if c.found()
@@ -3148,7 +3155,7 @@ class CustomTarget(Target, CustomTargetBase, CommandTargetProto):
 
     typename = 'custom'
     absolute_paths: bool
-    command: list[CommandTypes]
+    command: list[BackendCommandTypes]
 
     def __init__(self,
                  name: str,
@@ -3454,7 +3461,7 @@ class RunTarget(Target, CommandTargetProto):
 
     typename = 'run'
     absolute_paths: bool = False
-    command: list[CommandTypes]
+    command: list[BackendCommandTypes]
 
     def __init__(self, name: str,
                  command: T.Sequence[CommandTypes],

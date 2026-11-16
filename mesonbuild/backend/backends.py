@@ -760,8 +760,8 @@ class Backend:
                                        exe_wrapper, workdir,
                                        extra_paths, capture, feed, tag, verbose, installdir_map)
 
-    def as_meson_exe_cmdline(self, exe: build.CommandTypes,
-                             cmd_args: T.Iterable[build.CommandTypes],
+    def as_meson_exe_cmdline(self, exe: build.BackendCommandTypes,
+                             cmd_args: T.Iterable[build.BackendCommandTypes],
                              workdir: T.Optional[str] = None,
                              extra_bdeps: T.Optional[T.Iterable[build.BuildTargetProto]] = None,
                              capture: T.Optional[str] = None,
@@ -773,7 +773,7 @@ class Backend:
         '''
         Serialize an executable for running with a generator or a custom target
         '''
-        cmd: T.List[build.CommandTypes] = []
+        cmd: T.List[build.BackendCommandTypes] = []
         cmd.append(exe)
         cmd.extend(cmd_args)
         es = self.get_executable_serialisation(cmd, workdir, extra_bdeps, capture, feed, env, rsp_syntax=rsp_syntax, verbose=verbose)
@@ -1497,10 +1497,8 @@ class Backend:
             if delta > 0.001:
                 raise MesonException(f'Clock skew detected. File {absf} has a time stamp {delta:.4f}s in the future.')
 
-    def build_target_to_cmd_array(self, bt: build.CommandTypes) -> T.List[str]:
-        if isinstance(bt, build.LocalProgram):
-            bt = bt.program
-        if isinstance(bt, programs.Program):
+    def build_target_to_cmd_array(self, bt: build.BackendCommandTypes) -> T.List[str]:
+        if isinstance(bt, programs.ExternalProgram):
             arr = bt.get_command()
         elif isinstance(bt, str):
             arr = [bt]
@@ -1669,7 +1667,7 @@ class Backend:
 
     def eval_custom_target_command(
             self, target: build.CommandTargetProto, absolute_outputs: bool = False) -> \
-            T.Tuple[T.List[str], T.List[str], T.List[str | programs.Program]]:
+            T.Tuple[T.List[str], T.List[str], T.List[str | programs.ExternalProgram]]:
         # We want the outputs to be absolute only when using the VS backend
         # XXX: Maybe allow the vs backend to use relative paths too?
         source_root = self.build_to_src
@@ -1682,7 +1680,7 @@ class Backend:
         outputs = [os.path.join(outdir, i) for i in target.get_outputs()]
         inputs = self.get_custom_target_sources(target)
         # Evaluate the command list
-        cmd: T.List[str | programs.Program] = []
+        cmd: T.List[str | programs.ExternalProgram] = []
         for i in target.command:
             if isinstance(i, build.BuildTarget):
                 cmd += self.build_target_to_cmd_array(i)
@@ -1720,7 +1718,7 @@ class Backend:
                     if not target.absolute_paths:
                         pdir = self.get_target_private_dir(target)
                     i = i.replace('@PRIVATE_DIR@', pdir)
-            elif isinstance(i, programs.Program):
+            elif isinstance(i, programs.ExternalProgram):
                 # Let it pass and be extended elsewhere
                 pass
             else:
@@ -2131,10 +2129,8 @@ class Backend:
                         compiler += [k]
                     elif isinstance(k, (build.BuildTarget, build.CustomTarget, build.CustomTargetIndex)):
                         compiler += k.get_outputs()
-                    elif isinstance(k, programs.Program):
-                        compiler += k.get_command()
                     else:
-                        raise RuntimeError(f'Type "{type(k).__name__}" is not supported in get_introspection_data. This is a bug')
+                        compiler += k.get_command()
 
             return [{
                 'language': 'unknown',
