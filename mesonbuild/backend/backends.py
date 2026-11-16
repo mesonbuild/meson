@@ -43,7 +43,6 @@ if T.TYPE_CHECKING:
     from ..compilers.compilers import Compiler, Language
     from ..environment import Environment
     from ..interpreter import Test
-    from ..interpreter.kwargs import TargetDepends
     from ..linkers import StaticLinker
     from ..mesonlib import InstallScript
     from ..options import ElementaryOptionValues
@@ -541,9 +540,7 @@ class Backend:
         """Return target dependencies keyed by their introspection IDs."""
         all_deps: T.Dict[str, build.Target] = {}
 
-        def add_dependency(dep: build.AnyTargetProto | TargetDepends | File | ExtractedObjects) -> None:
-            if isinstance(dep, build.LocalProgram):
-                dep = dep.get_target()
+        def add_dependency(dep: build.BackendTargetDepends | File | ExtractedObjects) -> None:
             if isinstance(dep, build.CustomTargetIndex):
                 dep = dep.get_target()
             if isinstance(dep, build.Target):
@@ -1577,8 +1574,6 @@ class Backend:
         '''
         srcs: T.List[str] = []
         for i in target.get_sources():
-            if isinstance(i, build.LocalProgram):
-                i = i.program
             if isinstance(i, build.BuildTarget):
                 fname = [self.get_target_filename(i)]
             elif isinstance(i, (build.CustomTarget, build.CustomTargetIndex)):
@@ -1588,7 +1583,7 @@ class Backend:
                 fname = [os.path.join(self.get_target_private_dir(target), p) for p in i.get_outputs()]
             elif isinstance(i, build.ExtractedObjects):
                 fname = self.determine_ext_objs(i)
-            elif isinstance(i, programs.Program):
+            elif isinstance(i, programs.ExternalProgram):
                 assert i.found(), "This shouldn't be possible"
                 fname = [mesonlib.unwrap(i.get_path())]
             else:
@@ -1598,15 +1593,11 @@ class Backend:
             srcs += fname
         return srcs
 
-    def get_paths_for_dep_outputs(self, target: build.AnyTargetProto, dep_targets: T.Iterable[build.AnyTargetProto | build.GeneratedList | programs.Program]) -> T.List[str]:
+    def get_paths_for_dep_outputs(self, target: build.AnyTargetProto, dep_targets: T.Iterable[build.BackendTargetDepends]) -> T.List[str]:
         """Return a list of strings with the paths to all the outputs of all targets in
            dep_targets."""
         deps = []
         for i in dep_targets:
-            if isinstance(i, build.LocalProgram):
-                i = i.program
-            if isinstance(i, programs.Program):
-                continue
             for output in i.get_outputs():
                 if isinstance(i, build.GeneratedList):
                     assert isinstance(target, (build.BuildTarget, build.CustomTarget, build.CustomTargetIndex))

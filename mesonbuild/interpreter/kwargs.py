@@ -23,7 +23,7 @@ from .type_checking import PkgConfigDefineType, SourcesVarargsType
 
 TargetDepends = T.Union[build.BuildTargetProto, build.GeneratedList, Program]
 CustomTargetInputs = T.Union[str, build.BuildTarget, build.GeneratedTypes,
-                             build.ExtractedObjects, Program, File]
+                             build.ExtractedObjects, ExternalProgram, File]
 BuildTargetObjects = T.Union[str, File, build.ExtractedObjects, build.GeneratedTypes]
 RustAbi = Literal['rust', 'c']
 

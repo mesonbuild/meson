@@ -66,6 +66,7 @@ if T.TYPE_CHECKING:
 
     # for use in the backend too
     TargetSources: TypeAlias = T.Union['File', 'GeneratedTypes']
+    BackendTargetDepends: TypeAlias = T.Union['AnyTargetProto', 'GeneratedList']
     BackendCommandTypes: TypeAlias = T.Union['programs.ExternalProgram', 'BuildTargetTypes', File, str]
     ObjectTypes: TypeAlias = T.Union['File', 'ExtractedObjects']
     RustCrateType: TypeAlias = Literal['bin', 'lib', 'rlib', 'dylib', 'cdylib', 'staticlib', 'proc-macro']
@@ -235,6 +236,7 @@ else:
 
 
 _T = T.TypeVar('_T')
+_Target = T.TypeVar('_Target', bound='AnyTargetProto')
 
 DEFAULT_STATIC_LIBRARY_NAMES: T.Mapping[str, T.Tuple[str, str]] = {
     'unix': ('lib', 'a'),
@@ -2199,8 +2201,8 @@ class Generator(HoldableObject):
         self.command: T.List[BackendCommandTypes]
         self.depfile = depfile
         self.capture = capture
-        self.depends: T.List[TargetDepends] = list(depends or [])
-        self.depend_files: T.List[File] = list(depend_files or [])
+        self.depends, extra_depend_files = classify_depends(depends or [])
+        self.depend_files: T.List[File] = list(depend_files or []) + extra_depend_files
         self.outputs = output
         self.name = name
 
@@ -2250,13 +2252,15 @@ class Generator(HoldableObject):
                       extra_args: T.Optional[T.List[str]] = None,
                       env: T.Optional[EnvironmentVariables] = None,
                       extra_depends: T.Optional[T.Sequence[TargetDepends]] = None) -> 'GeneratedList':
+        extra_depends_targets, extra_depend_files = classify_depends(extra_depends or [])
         output = GeneratedList(
             self,
             subdir,
             preserve_path_from,
             extra_args=extra_args if extra_args is not None else [],
             env=env if env is not None else EnvironmentVariables(),
-            extra_depends=list(extra_depends) if extra_depends is not None else [])
+            extra_depends=extra_depends_targets)
+        output.depend_files += extra_depend_files
 
         for e in files:
             if isinstance(e, (BuildTarget, CustomTarget, CustomTargetIndex)):
@@ -2294,7 +2298,7 @@ class GeneratedList(HoldableObject):
     preserve_path_from: T.Optional[str]
     extra_args: T.List[str]
     env: T.Optional[EnvironmentVariables]
-    extra_depends: T.List[TargetDepends]
+    extra_depends: T.Sequence[BackendTargetDepends]
 
     def __post_init__(self) -> None:
         self.name = self.generator.get_exe()
@@ -2311,7 +2315,7 @@ class GeneratedList(HoldableObject):
             self.env: EnvironmentVariables = EnvironmentVariables()
 
         if self.extra_depends is None:
-            self.extra_depends: T.List[TargetDepends] = []
+            self.extra_depends: T.List[BackendTargetDepends] = []
 
         exe = self.generator.get_exe()
         if isinstance(exe, programs.Program) and not exe.found():
@@ -3108,6 +3112,32 @@ def flatten_command(cmd: T.Iterable[CommandTypes]) -> tuple[list[BackendCommandT
     return final_cmd, depend_files, dependencies
 
 
+def classify_depends(deps: T.Iterable[_Target | GeneratedList | programs.Program]
+                     ) -> tuple[list[_Target | GeneratedList], list[File]]:
+    '''Replace the programs in a list of dependencies with the target or file that they wrap.
+
+    A LocalProgram is replaced with what it wraps.  An ExternalProgram is replaced
+    with its file if the path is known, and is otherwise dropped.  Return the
+    other dependencies and the files.'''
+    targets: list[BackendTargetDepends] = []
+    files: list[File] = []
+    for d in deps:
+        if isinstance(d, LocalProgram):
+            d = d.get_target()
+        elif isinstance(d, programs.Program):
+            path = d.get_path()
+            # Can only add a dependency on an external program which we
+            # know the absolute path of
+            if not os.path.isabs(path):
+                continue
+            d = File.from_absolute_file(path)
+        if isinstance(d, File):
+            files.append(d)
+        else:
+            targets.append(d)
+    return T.cast('list[_Target | GeneratedList]', targets), files
+
+
 class CustomTargetBase(StaticTargetProto, metaclass=SimpleABC):
     ''' Base class for CustomTarget and CustomTargetIndex
 
@@ -3221,22 +3251,8 @@ class CustomTarget(Target, CustomTargetBase, CommandTargetProto):
         # Whether to enable using response files for the underlying tool
         self.rsp_syntax = rsp_syntax
 
-        self.extra_depends: T.List[T.Union[GeneratedList, BuildTargetProto]] = []
-        if extra_depends:
-            for d in extra_depends:
-                if isinstance(d, LocalProgram):
-                    d = d.get_target()
-                elif isinstance(d, programs.Program):
-                    path = d.get_path()
-                    # Can only add a dependency on an external program which we
-                    # know the absolute path of
-                    if not os.path.isabs(path):
-                        continue
-                    d = File.from_absolute_file(path)
-                if isinstance(d, File):
-                    self.depend_files.append(d)
-                else:
-                    self.extra_depends.append(d)
+        self.extra_depends, extra_depend_files = classify_depends(extra_depends or [])
+        self.depend_files.extend(extra_depend_files)
 
     def install_dir_names(self) -> T.List[T.Optional[str]]:
         install_dir_names: T.List[T.Optional[str]] = []
@@ -3249,8 +3265,8 @@ class CustomTarget(Target, CustomTargetBase, CommandTargetProto):
         repr_str = "<{0} {1}: {2}>"
         return repr_str.format(self.__class__.__name__, self.get_id(), self.command)
 
-    def get_target_dependencies(self) -> T.List[TargetDepends | File | ExtractedObjects]:
-        deps: T.List[TargetDepends | File | ExtractedObjects] = []
+    def get_target_dependencies(self) -> T.List[BackendTargetDepends | File | ExtractedObjects]:
+        deps: T.List[BackendTargetDepends | File | ExtractedObjects] = []
         deps.extend(self.dependencies)
         deps.extend(self.extra_depends)
         for c in self.sources:
@@ -3462,11 +3478,12 @@ class RunTarget(Target, CommandTargetProto):
     typename = 'run'
     absolute_paths: bool = False
     command: list[BackendCommandTypes]
+    dependencies: list[BackendTargetDepends]
 
     def __init__(self, name: str,
                  command: T.Sequence[CommandTypes],
                  # the RunTarget case is used by gnome.yelp()
-                 dependencies: T.Sequence[AnyTargetProto | programs.Program],
+                 dependencies: T.Sequence[_Target | GeneratedList | programs.Program],
                  subdir: str,
                  environment: Environment,
                  build_project: BuildProject,
@@ -3474,8 +3491,9 @@ class RunTarget(Target, CommandTargetProto):
                  default_env: bool = True):
         # These don't produce output artifacts
         super().__init__(name, subdir, False, MachineChoice.BUILD, environment, build_project)
-        self.dependencies = list(dependencies)
+        self.dependencies, extra_depend_files = classify_depends(dependencies)
         self.command, self.depend_files, d = flatten_command(command)
+        self.depend_files += extra_depend_files
         self.dependencies.extend(d)
         self.env = env
         self.default_env = default_env
@@ -3484,7 +3502,7 @@ class RunTarget(Target, CommandTargetProto):
         repr_str = "<{0} {1}: {2}>"
         return repr_str.format(self.__class__.__name__, self.get_id(), self.command[0])
 
-    def get_dependencies(self) -> T.Iterable[AnyTargetProto | programs.Program]:
+    def get_dependencies(self) -> T.Iterable[BackendTargetDepends]:
         return self.dependencies
 
     def get_generated_sources(self) -> T.Iterable[GeneratedTypes]:
@@ -3509,7 +3527,7 @@ class AliasTarget(RunTarget):
 
     typename = 'alias'
 
-    def __init__(self, name: str, dependencies: T.Sequence[Target],
+    def __init__(self, name: str, dependencies: T.Sequence[AnyTargetProto],
                  subdir: str, environment: Environment,
                  build_project: BuildProject):
         super().__init__(name, [], dependencies, subdir, environment, build_project)

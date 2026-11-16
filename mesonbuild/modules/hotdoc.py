@@ -26,10 +26,9 @@ if T.TYPE_CHECKING:
     from typing_extensions import TypedDict
 
     from . import ModuleState
-    from ..build import BuildProject
+    from ..build import BuildProject, BackendTargetDepends
     from ..environment import Environment
     from ..interpreter import Interpreter
-    from ..interpreter.kwargs import TargetDepends
     from ..interpreterbase import TYPE_kwargs, TYPE_var
 
     _T = T.TypeVar('_T')
@@ -176,7 +175,7 @@ class HotdocTargetBuilder:
 
         self.cmd += ['--gi-c-source-roots'] + value
 
-    def process_dependencies(self, deps: T.Sequence[TargetDepends | build.BothLibraries | Dependency | File | build.ExtractedObjects]) -> T.List[str]:
+    def process_dependencies(self, deps: T.Sequence[BackendTargetDepends | build.BothLibraries | Dependency | File | build.ExtractedObjects]) -> T.List[str]:
         # build.ExtractedObjects shouldn't actually
         # happen here, but we get them from Dependency.
         cflags = set()

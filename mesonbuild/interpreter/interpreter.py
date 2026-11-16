@@ -153,7 +153,7 @@ if T.TYPE_CHECKING:
                             build.ExtractedObjects, build.StructuredSources]
     # Sources for custom targets, which can also include ExternalProgram
     CustomTargetSources = T.Union[build.TargetSources, build.BuildTarget,
-                                  build.ExtractedObjects, Program]
+                                  build.ExtractedObjects, ExternalProgram]
 
     BuildTargetSource = T.Union[str, build.TargetSources, build.StructuredSources]
 
