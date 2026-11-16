@@ -3072,8 +3072,7 @@ class BothLibraries(SecondLevelHolder):
         return True
 
 
-def flatten_command(cmd: T.Iterable[CommandTypes],
-                    subproject: SubProject) -> tuple[list[CommandTypes], list[File], list[BuildTargetProto]]:
+def flatten_command(cmd: T.Iterable[CommandTypes]) -> tuple[list[CommandTypes], list[File], list[BuildTargetProto]]:
     final_cmd: list[CommandTypes] = []
     depend_files: list[File] = []
     dependencies: list[BuildTargetProto] = []
@@ -3097,7 +3096,6 @@ def flatten_command(cmd: T.Iterable[CommandTypes],
         elif isinstance(c, (BuildTarget, CustomTarget)):
             dependencies.append(c)
         elif isinstance(c, CustomTargetIndex):
-            FeatureNew.single_use('CustomTargetIndex for command argument', '0.60', subproject)
             dependencies.append(c.target)
         else:
             raise MesonBugException(f'Argument {c!r} in "command" is invalid')
@@ -3197,7 +3195,7 @@ class CustomTarget(Target, CustomTargetBase, CommandTargetProto):
         self.depend_files = list(depend_files or [])
         self.dependencies: T.List[BuildTargetProto] = []
         # must be after depend_files and dependencies
-        c, df, d = flatten_command(command, build_project.subproject)
+        c, df, d = flatten_command(command)
         self.command = c
         self.depend_files.extend(df)
         self.dependencies.extend(d)
@@ -3472,7 +3470,7 @@ class RunTarget(Target, CommandTargetProto):
         # These don't produce output artifacts
         super().__init__(name, subdir, False, MachineChoice.BUILD, environment, build_project)
         self.dependencies = list(dependencies)
-        self.command, self.depend_files, d = flatten_command(command, build_project.subproject)
+        self.command, self.depend_files, d = flatten_command(command)
         self.dependencies.extend(d)
         self.env = env
         self.default_env = default_env

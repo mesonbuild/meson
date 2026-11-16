@@ -295,6 +295,7 @@ COMMAND_KW: KwargInfo[T.List[CommandTypes]] = KwargInfo(
     required=True,
     listify=True,
     default=[],
+    since_values={ContainerTypeInfo(list, CustomTargetIndex): '0.60.0'},
 )
 
 
