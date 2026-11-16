@@ -67,7 +67,7 @@ if T.TYPE_CHECKING:
     # for use in the backend too
     TargetSources: TypeAlias = T.Union['File', 'GeneratedTypes']
     BackendTargetDepends: TypeAlias = T.Union['AnyTargetProto', 'GeneratedList']
-    BackendCommandTypes: TypeAlias = T.Union['programs.ExternalProgram', 'BuildTargetTypes', File, str]
+    BackendCommandTypes: TypeAlias = T.Union['programs.ExternalProgram', 'BuildTargetProto', File, str]
     ObjectTypes: TypeAlias = T.Union['File', 'ExtractedObjects']
     RustCrateType: TypeAlias = Literal['bin', 'lib', 'rlib', 'dylib', 'cdylib', 'staticlib', 'proc-macro']
     _LibraryType: TypeAlias = Literal['auto', 'shared', 'static']
@@ -3083,7 +3083,7 @@ class BothLibraries(HoldableObject, SecondLevelHolder):
 
 @T.overload
 def unwrap_local_program(c: T.Union[programs.Program, BuildTargetTypes]
-                         ) -> T.Union[programs.ExternalProgram, BuildTargetTypes]: ...
+                         ) -> T.Union[programs.ExternalProgram, BuildTargetProto]: ...
 
 @T.overload
 def unwrap_local_program(c: CommandTypes) -> BackendCommandTypes: ...
@@ -3800,7 +3800,7 @@ class LocalProgram(programs.Program, SecondLevelHolder):
         # Only the backend knows the actual path to the build program.
         raise MesonBugException('Cannot call get_path() on program that is a build target.')
 
-    def get_target(self) -> T.Union[File, Executable, CustomTarget, CustomTargetIndex]:
+    def get_target(self) -> T.Union[File, BuildTargetProto]:
         if self.file:
             return self.file
         assert not isinstance(self.program, programs.ExternalProgram)

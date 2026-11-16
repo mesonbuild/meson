@@ -871,7 +871,7 @@ class Test(MesonInterpreterObject):
                 raise MesonException('generated_list not allowed as a dependency for test')
             self.depends.append(d)
 
-    def get_exe(self) -> T.Union[ExternalProgram, build.BuildTarget, build.CustomTarget, build.CustomTargetIndex]:
+    def get_exe(self) -> T.Union[ExternalProgram, build.BuildTargetProto]:
         return self.exe
 
     def get_name(self) -> str:

@@ -683,39 +683,33 @@ class Backend:
         exe, *raw_cmd_args = cmd
         if isinstance(exe, programs.ExternalProgram):
             exe_cmd = exe.get_command()
-            exe_for_machine = exe.for_machine
-        elif isinstance(exe, build.BuildTarget):
+        elif isinstance(exe, mesonlib.File):
+            exe_cmd = [exe.rel_to_builddir(self.environment.source_dir)]
+        elif isinstance(exe, str):
+            exe_cmd = [exe]
+        else:
             exe_cmd = [self.get_target_filename_abs(exe)]
+
+        if isinstance(exe, (build.BuildTarget, programs.ExternalProgram)):
             exe_for_machine = exe.for_machine
-        elif isinstance(exe, (build.CustomTarget, build.CustomTargetIndex)):
-            # The output of a custom target can either be directly runnable
+        else:
+            # A custom target or a file can either be directly runnable
             # or not, that is, a script, a native binary or a cross compiled
             # binary when exe wrapper is available and when it is not.
             # This implementation is not exhaustive but it works in the
             # common cases.
-            exe_cmd = [self.get_target_filename_abs(exe)]
             exe_for_machine = MachineChoice.BUILD
-        elif isinstance(exe, mesonlib.File):
-            exe_cmd = [exe.rel_to_builddir(self.environment.source_dir)]
-            exe_for_machine = MachineChoice.BUILD
-        elif isinstance(exe, str):
-            exe_cmd = [exe]
-            exe_for_machine = MachineChoice.BUILD
-        else:
-            raise MesonBugException(f'Argument {exe!r} in command is invalid')
 
         cmd_args: T.List[str] = []
         for c in raw_cmd_args:
-            if isinstance(c, programs.ExternalProgram):
+            if isinstance(c, str):
+                cmd_args.append(c)
+            elif isinstance(c, programs.ExternalProgram):
                 cmd_args += c.get_command()
-            elif isinstance(c, (build.BuildTarget, build.CustomTarget, build.CustomTargetIndex)):
-                cmd_args.append(self.get_target_filename_abs(c))
             elif isinstance(c, mesonlib.File):
                 cmd_args.append(c.rel_to_builddir(self.environment.source_dir))
-            elif isinstance(c, str):
-                cmd_args.append(c)
             else:
-                raise MesonBugException(f'Argument {c!r} in command is invalid')
+                cmd_args.append(self.get_target_filename_abs(c))
 
         machine = self.environment.machines[exe_for_machine]
         if machine.is_windows() or machine.is_cygwin():
@@ -833,13 +827,14 @@ class Backend:
                 ', '.join(reasons)
             )
 
-        if isinstance(exe, (programs.Program,
-                            build.BuildTarget, build.CustomTarget, build.CustomTargetIndex)):
-            basename = os.path.basename(exe.name)
+        if isinstance(exe, str):
+            basename = os.path.basename(exe)
         elif isinstance(exe, mesonlib.File):
             basename = os.path.basename(exe.fname)
+        elif isinstance(exe, programs.Program):
+            basename = os.path.basename(exe.name)
         else:
-            basename = os.path.basename(exe)
+            basename = os.path.basename(exe.get_basename())
 
         # Can't just use exe.name here; it will likely be run more than once
         # Take a digest of the cmd args, env, workdir, capture, and feed. This
@@ -1307,10 +1302,10 @@ class Backend:
         arr: T.List[TestSerialisation] = []
         for t in sorted(tests, key=lambda tst: -1 * tst.priority):
             exe = t.get_exe()
-            if isinstance(exe, (build.BuildTarget, build.CustomTarget, build.CustomTargetIndex)):
-                cmd = [os.path.join(self.environment.get_build_dir(), self.get_target_filename(exe))]
-            else:
+            if isinstance(exe, programs.ExternalProgram):
                 cmd = exe.get_command()
+            else:
+                cmd = [os.path.join(self.environment.get_build_dir(), self.get_target_filename(exe))]
 
             if isinstance(exe, (build.BuildTarget, programs.ExternalProgram)):
                 test_for_machine = exe.for_machine
@@ -1347,20 +1342,16 @@ class Backend:
             if isinstance(exe, (build.BuildTarget, build.CustomTarget, build.CustomTargetIndex)):
                 depends.add(exe)
             for a in t.cmd_args:
-                if isinstance(a, (build.BuildTarget, build.CustomTarget, build.CustomTargetIndex)):
-                    depends.add(a)
-
                 if isinstance(a, mesonlib.File):
                     a = os.path.join(self.environment.get_build_dir(), a.rel_to_builddir(self.build_to_src))
                     cmd_args.append(a)
                 elif isinstance(a, str):
                     cmd_args.append(a)
-                elif isinstance(a, (build.BuildTarget, build.CustomTarget, build.CustomTargetIndex)):
-                    cmd_args.extend(self.construct_target_rel_paths(a, t.workdir))
                 elif isinstance(a, programs.ExternalProgram):
                     cmd_args.extend(a.get_command())
                 else:
-                    raise MesonException('Bad object in test command.')
+                    depends.add(a)
+                    cmd_args.extend(self.construct_target_rel_paths(a, t.workdir))
 
             # set LD_LIBRARY_PATH for
             # a) dependencies, as relying on rpath is not very safe:
@@ -1568,20 +1559,20 @@ class Backend:
         '''
         srcs: T.List[str] = []
         for i in target.get_sources():
-            if isinstance(i, build.BuildTarget):
-                fname = [self.get_target_filename(i)]
-            elif isinstance(i, (build.CustomTarget, build.CustomTargetIndex)):
-                fname = [os.path.join(self.get_custom_target_output_dir(i), p) for p in i.get_outputs()]
-            elif isinstance(i, build.GeneratedList):
+            if isinstance(i, build.GeneratedList):
                 assert isinstance(target, build.CustomTarget)
                 fname = [os.path.join(self.get_target_private_dir(target), p) for p in i.get_outputs()]
             elif isinstance(i, build.ExtractedObjects):
                 fname = self.determine_ext_objs(i)
+            elif isinstance(i, File):
+                fname = [i.rel_to_builddir(self.build_to_src)]
             elif isinstance(i, programs.ExternalProgram):
                 assert i.found(), "This shouldn't be possible"
                 fname = [mesonlib.unwrap(i.get_path())]
+            elif isinstance(i, (build.CustomTarget, build.CustomTargetIndex)):
+                fname = [os.path.join(self.get_custom_target_output_dir(i), p) for p in i.get_outputs()]
             else:
-                fname = [i.rel_to_builddir(self.build_to_src)]
+                fname = [self.get_target_filename(i)]
             if target.absolute_paths:
                 fname = [os.path.join(self.environment.get_build_dir(), f) for f in fname]
             srcs += fname
@@ -2112,12 +2103,10 @@ class Backend:
                         compiler += [k.absolute_path(self.source_dir, self.build_dir)]
                     elif isinstance(k, str):
                         compiler += [k]
-                    elif isinstance(k, (build.BuildTarget, build.CustomTarget, build.CustomTargetIndex)):
-                        compiler += k.get_outputs()
-                    elif isinstance(k, programs.Program):
+                    elif isinstance(k, programs.ExternalProgram):
                         compiler += k.get_command()
                     else:
-                        raise RuntimeError(f'Type "{type(k).__name__}" is not supported in get_introspection_data. This is a bug')
+                        compiler += k.get_outputs()
 
             return [{
                 'language': 'unknown',
