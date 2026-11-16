@@ -9,7 +9,7 @@ import typing as T
 
 from .. import compilers
 from ..build import (CustomTarget, BuildTarget,
-                     CustomTargetIndex, ExtractedObjects, GeneratedList, IncludeDirs, LocalProgram,
+                     CustomTargetIndex, ExtractedObjects, GeneratedList, IncludeDirs,
                      BothLibraries, SharedLibrary, StaticLibrary, Jar, Executable, StructuredSources)
 from ..options import OptionKey
 from ..dependencies import Dependency, DependencyMethods, InternalDependency
@@ -28,8 +28,7 @@ NoneType: T.Type[None] = type(None)
 if T.TYPE_CHECKING:
     from typing_extensions import Literal
 
-    from .kwargs import CustomTargetInputs
-    from ..build import ObjectTypes, GeneratedTypes, CommandTypes, TargetSources, LinkableTypes, StaticTypes
+    from ..build import BuildTargetTypes, ObjectTypes, GeneratedTypes, CommandTypes, TargetSources, LinkableTypes, StaticTypes
     from ..interpreterbase import TYPE_var
     from ..options import ElementaryOptionValues
     from ..mesonlib import EnvInitValueType
@@ -355,21 +354,11 @@ OUTPUT_KW: KwargInfo[str] = KwargInfo(
     validator=lambda x: _output_validator([x])
 )
 
-def _local_program_convertor(raw: T.List[T.Union[str, File, BuildTarget, GeneratedTypes, ExtractedObjects, Program]]) -> T.List[CustomTargetInputs]:
-    result: T.List[CustomTargetInputs] = []
-    for i in raw:
-        if isinstance(i, LocalProgram):
-            result.append(i.get_target())
-        else:
-            result.append(i)
-    return result
-
-CT_INPUT_KW: KwargInfo[T.List[T.Union[str, File, BuildTarget, GeneratedTypes, ExtractedObjects, Program]]] = KwargInfo(
+CT_INPUT_KW: KwargInfo[T.List[T.Union[str, File, BuildTargetTypes, ExternalProgram, ExtractedObjects, GeneratedList]]] = KwargInfo(
     'input',
     ContainerTypeInfo(list, (*COMMAND_TYPES, ExtractedObjects, GeneratedList)),
     listify=True,
     default=[],
-    convertor=_local_program_convertor,
     since_values={ContainerTypeInfo(list, ExternalProgram): '1.12.0'},
 )
 

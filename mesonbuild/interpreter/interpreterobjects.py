@@ -684,10 +684,6 @@ class ProgramHolder(ObjectHolder[_PROG]):
     def _full_path(self) -> str:
         if not self.found():
             raise InterpreterException('Unable to get the path of a not-found external program')
-        if not self.held_object.runnable():
-            assert isinstance(self.held_object, build.LocalProgram) and \
-                isinstance(self.held_object.program, (build.BuildTarget, build.CustomTargetIndex))
-            return self.interpreter.backend.get_target_filename_abs(self.held_object.program)
         return mesonlib.unwrap(self.held_object.get_path())
 
     @TypedArgs('program.cmd_array')
@@ -704,8 +700,9 @@ class ProgramHolder(ObjectHolder[_PROG]):
     @FeatureNew('Program.version', '0.62.0')
     @InterpreterObject.method('version')
     def version_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
-        if isinstance(self.held_object, build.LocalProgram) and isinstance(self.held_object.program, build.Executable):
-            FeatureNew.single_use('Program.version with an executable', '1.9.0', subproject=self.subproject, location=self.current_node)
+        return self._version()
+
+    def _version(self) -> str:
         if not self.found():
             raise InterpreterException('Unable to get the version of a not-found external program')
         try:
@@ -715,6 +712,20 @@ class ProgramHolder(ObjectHolder[_PROG]):
 
     def found(self) -> bool:
         return self.held_object.found()
+
+
+class LocalProgramHolder(ProgramHolder[build.LocalProgram]):
+    def _full_path(self) -> str:
+        if not self.held_object.runnable():
+            assert isinstance(self.held_object.program, (build.BuildTarget, build.CustomTargetIndex))
+            return self.interpreter.backend.get_target_filename_abs(self.held_object.program)
+        return super()._full_path()
+
+    def _version(self) -> str:
+        if isinstance(self.held_object.program, build.Executable):
+            FeatureNew.single_use('Program.version with an executable', '1.9.0',
+                                  subproject=self.subproject, location=self.current_node)
+        return super()._version()
 
 
 class ExternalLibraryHolder(ObjectHolder[ExternalLibrary]):

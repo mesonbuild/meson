@@ -3712,7 +3712,7 @@ class ConfigurationData(HoldableObject):
     def keys(self) -> T.Iterable[str]:
         return self.values.keys()
 
-class LocalProgram(programs.Program):
+class LocalProgram(programs.Program, SecondLevelHolder):
     def __init__(self, program: T.Union[programs.ExternalProgram, Executable, CustomTarget, CustomTargetIndex], version: str,
                  file: T.Optional[File] = None) -> None:
         super().__init__()
@@ -3764,6 +3764,9 @@ class LocalProgram(programs.Program):
         if self.file:
             return self.file
         assert not isinstance(self.program, programs.ExternalProgram)
+        return self.program
+
+    def get_default_object(self) -> T.Union[programs.ExternalProgram, Executable, CustomTarget, CustomTargetIndex]:
         return self.program
 
     def description(self) -> str:
