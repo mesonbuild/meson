@@ -10,7 +10,7 @@ as possible for performance reasons.
 """
 
 from __future__ import annotations
-from dataclasses import dataclass
+import dataclasses
 import os
 import typing as T
 
@@ -26,8 +26,13 @@ if T.TYPE_CHECKING:
     EnvInitValueType = T.Dict[str, T.Union[str, T.List[str]]]
 
 
+@dataclasses.dataclass(init=False)
 class MesonException(Exception):
     '''Exceptions thrown by Meson'''
+
+    file: T.Optional[str] = dataclasses.field(default=None, kw_only=True)
+    lineno: T.Optional[int] = dataclasses.field(default=None, kw_only=True)
+    colno: T.Optional[int] = dataclasses.field(default=None, kw_only=True)
 
     def __init__(self, *args: object, file: T.Optional[str] = None,
                  lineno: T.Optional[int] = None, colno: T.Optional[int] = None):
@@ -154,7 +159,7 @@ class EnvironmentVariables(HoldableObject):
         return env
 
 
-@dataclass(eq=False)
+@dataclasses.dataclass(eq=False)
 class ExecutableSerialisation:
 
     cmd_args: T.List[str]
