@@ -1433,7 +1433,8 @@ class TestSubprocess:
         p = self._process
         try:
             if is_windows():
-                subprocess.run(['taskkill', '/F', '/T', '/PID', str(p.pid)])
+                subprocess.run(['taskkill', '/F', '/T', '/PID', str(p.pid)],
+                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             else:
                 # Send a termination signal to the process group that setsid()
                 # created - giving it a chance to perform any cleanup.
