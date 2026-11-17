@@ -14,6 +14,6 @@ endforeach
 
 executable('override', 'main.cpp',
   override_options: ['cpp_eh=none', 'cpp_rtti=false',
-                    'cpp_link_args=-fuse-ld=lld -nostdlib -fexceptions -frtti'],
+                    'cpp_link_args=-nostdlib -fexceptions -frtti'],
   cpp_args: '-DREQUIRED=marker_eh_rtti',
   link_args: ['-lprobe', '-Wl,-e,main'])
