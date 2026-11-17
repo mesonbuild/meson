@@ -172,7 +172,7 @@ def _project_version_validator(value: T.Union[T.List, str, mesonlib.File, None])
     return None
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(init=False)
 class SandboxViolationError(InterpreterException):
 
     """Exception raised when trying to use files outside of this project
@@ -184,24 +184,32 @@ class SandboxViolationError(InterpreterException):
 
     inputtype: str
     name: str
-    subproject: bool = dataclasses.field(default=True, kw_only=True)
+    subproject: bool
 
-    def __str__(self) -> str:
+    def __init__(self, inputtype: str, name: str, *, subproject: bool = True,
+                 file: T.Optional[str] = None, lineno: T.Optional[int] = None,
+                 colno: T.Optional[int] = None):
+        self.inputtype = inputtype
+        self.name = name
+        self.subproject = subproject
         if self.subproject:
             msg = 'a nested subproject'
         else:
             msg = 'outside current (sub)project'
-        return f'Sandbox violation: Tried to grab {self.inputtype} {self.name} from {msg}.'
+        super().__init__(f'Sandbox violation: Tried to grab {self.inputtype} {self.name} from {msg}.',
+                         file=file, lineno=lineno, colno=colno)
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(init=False)
 class BuiltFileByNameError(InterpreterException):
-
     name: str
 
-    def __str__(self) -> str:
-        return (f'{self.name!r} is a generated file, and should be passed by reference instead of string name. '
-                'This will become a hard error in Meson 2.0')
+    def __init__(self, name: str, *, file: T.Optional[str] = None,
+                 lineno: T.Optional[int] = None, colno: T.Optional[int] = None):
+        self.name = name
+        super().__init__(f'{self.name!r} is a generated file, and should be passed by reference instead of string name. '
+                         'This will become a hard error in Meson 2.0',
+                         file=file, lineno=lineno, colno=colno)
 
 
 class InterpreterRuleRelaxation(Enum):
