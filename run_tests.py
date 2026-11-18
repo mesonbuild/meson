@@ -25,6 +25,7 @@ import typing as T
 
 from mesonbuild.compilers.c import CCompiler
 from mesonbuild.compilers.detect import detect_c_compiler
+from mesonbuild.dependencies.cmake import CMakeDependency
 from mesonbuild.dependencies.pkgconfig import PkgConfigInterface
 from mesonbuild import mesonlib
 from mesonbuild import mesonmain
@@ -286,6 +287,7 @@ def clear_meson_configure_class_caches() -> None:
     CCompiler.find_library_cache.clear()
     CCompiler.find_framework_cache.clear()
     PkgConfigInterface.class_impl.assign({}, {})
+    CMakeDependency.class_cmakeinfo.assign(None, None)
     mesonlib.project_meson_versions.clear()
 
 def run_configure_inprocess(commandlist: T.List[str], env: T.Optional[T.Dict[str, str]] = None, catch_exception: bool = False) -> T.Tuple[int, str, str]:
