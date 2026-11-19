@@ -227,6 +227,8 @@ class ClangCPPCompiler(_StdCPPLibMixin, ClangCPPStds, ClangCompiler, CPPCompiler
         CPPCompiler.__init__(self, ccache, exelist, version, for_machine,
                              env, linker=linker, full_version=full_version)
         ClangCompiler.__init__(self, defines)
+        # The clang-scan-deps matching the compiler, found when the compiler is detected
+        self.scan_deps: T.Optional[T.List[str]] = None
         default_warn_args = ['-Wall', '-Winvalid-pch']
         self.warn_args = {'0': [],
                           '1': default_warn_args,
@@ -335,6 +337,17 @@ class ClangCPPCompiler(_StdCPPLibMixin, ClangCPPStds, ClangCompiler, CPPCompiler
         # Although -fmodules-ts is removed in LLVM 17, we keep this in for compatibility with old compilers.
         return ['-fmodules', '-fmodules-ts']
 
+    def get_cpp_modules_scan_command(self) -> T.Optional[T.List[str]]:
+        # clang-scan-deps writes its output and dependency file to the right place from LLVM 19
+        if self.scan_deps is None or version_compare(self.version, '<19'):
+            return None
+        # A scan does not produce an object file, there is no point in a compiler cache.
+        # The command after -- is the compile command, clang-scan-deps does not run it.
+        return [*self.scan_deps, '-format=p1689', '-o', '$out', '--',
+                *self.get_exelist(ccache=False), '$ARGS',
+                *self.get_dependency_gen_args('$out', '$DEPFILE'),
+                *self.get_compile_only_args(), *self.get_output_args('$OBJ'), '$in']
+
 
 class ArmLtdClangCPPCompiler(ClangCPPCompiler):
 
@@ -342,7 +355,10 @@ class ArmLtdClangCPPCompiler(ClangCPPCompiler):
 
 
 class AppleClangCPPCompiler(AppleCompilerMixin, AppleCPPStdsMixin, ClangCPPCompiler):
-    pass
+
+    def get_cpp_modules_scan_command(self) -> T.Optional[T.List[str]]:
+        # Apple Clang does not use the LLVM version numbers
+        return None
 
 
 class EmscriptenCPPCompiler(EmscriptenMixin, ClangCPPCompiler):
@@ -552,6 +568,38 @@ class GnuCPPCompiler(_StdCPPLibMixin, GnuCPPStds, GnuCompiler, CPPCompiler):
 
     def get_cpp_modules_args(self) -> T.List[str]:
         return ['-fmodules', '-fmodules-ts']
+
+    def get_cpp_modules_depfile_args(self) -> T.List[str]:
+        # The rules GCC writes for modules cannot be parsed by Ninja
+        if version_compare(self.version, '>=11'):
+            return ['-Mno-modules']
+        return []
+
+    def get_cpp_modules_mapper(self, private_dir: str) -> T.Optional[str]:
+        return f'{private_dir}/depscan.map'
+
+    def get_cpp_modules_bmi_args(self, private_dir: str, search_dirs: T.Sequence[str]) -> T.List[str]:
+        # The mapper lists the modules of the target and the ones of the targets it links with
+        return [f'-fmodule-mapper={self.get_cpp_modules_mapper(private_dir)}']
+
+    def filter_cpp_modules_scan_args(self, args: T.Sequence[str]) -> T.List[str]:
+        # The mapper is written after the scan, which does not need it
+        return [a for a in args if not a.startswith('-fmodule-mapper=')]
+
+    def get_cpp_modules_bmi_pattern(self) -> T.Optional[str]:
+        # Written to the directory of the target, see get_cpp_modules_bmi_args()
+        return '{dir}/{module}.gcm'
+
+    def get_cpp_modules_scan_command(self) -> T.Optional[T.List[str]]:
+        # -fdeps-format was added in GCC 14
+        if version_compare(self.version, '<14'):
+            return None
+        # Module dependencies are only found when preprocessing, -MD is required for that.
+        # A scan does not produce an object file, there is no point in a compiler cache.
+        return [*self.get_exelist(ccache=False), '$ARGS', '-E',
+                *self.get_dependency_gen_args('$out', '$DEPFILE'),
+                '-fdeps-format=p1689r5', '-fdeps-file=$out', '-fdeps-target=$OBJ',
+                '-o', os.devnull, '$in']
 
     def get_embed_args(self, path: str) -> list[str]:
         # Requires C23 or C++26 standard and GCC 15
@@ -948,6 +996,24 @@ class VisualStudioCPPCompiler(CPP11AsCPP14Mixin, VisualStudioLikeCPPCompilerMixi
 
     def get_cpp_modules_args(self) -> T.List[str]:
         return ['/interface']
+
+    def get_cpp_modules_bmi_args(self, private_dir: str, search_dirs: T.Sequence[str]) -> T.List[str]:
+        args = ['/ifcOutput', f'{private_dir}/']
+        for d in dict.fromkeys([private_dir, *search_dirs]):
+            args += ['/ifcSearchDir', d]
+        return args
+
+    def get_cpp_modules_bmi_pattern(self) -> T.Optional[str]:
+        # Written to the directory of the target, see get_cpp_modules_bmi_args()
+        return '{dir}/{module}.ifc'
+
+    def get_cpp_modules_scan_command(self) -> T.Optional[T.List[str]]:
+        # /scanDependencies was added in Visual Studio 2022 17.2
+        if version_compare(self.version, '<19.32'):
+            return None
+        # A scan does not produce an object file, there is no point in a compiler cache.
+        return [*self.get_exelist(ccache=False), '$ARGS', '/scanDependencies', '$out',
+                *self.get_output_args('$OBJ'), '$in']
 
 class ClangClCPPCompiler(VisualStudioLikeCPPCompilerMixin, ClangClCompiler, CPPCompiler):
 
