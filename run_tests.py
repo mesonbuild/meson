@@ -23,6 +23,7 @@ from pathlib import Path
 from unittest import mock
 import typing as T
 
+from mesonbuild.cmake.executor import CMakeExecutor
 from mesonbuild.compilers.c import CCompiler
 from mesonbuild.compilers.detect import detect_c_compiler
 from mesonbuild.dependencies.cmake import CMakeDependency
@@ -288,6 +289,7 @@ def clear_meson_configure_class_caches() -> None:
     CCompiler.find_framework_cache.clear()
     PkgConfigInterface.class_impl.assign({}, {})
     CMakeDependency.class_cmakeinfo.assign(None, None)
+    CMakeExecutor.class_cmake_cache.clear()
     mesonlib.project_meson_versions.clear()
 
 def run_configure_inprocess(commandlist: T.List[str], env: T.Optional[T.Dict[str, str]] = None, catch_exception: bool = False) -> T.Tuple[int, str, str]:
