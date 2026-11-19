@@ -16,7 +16,7 @@ from ..mesonlib import MachineChoice
 from ..options import OptionKey
 from ..programs import Program, ExternalProgram
 from ..interpreter.type_checking import (
-    ENV_METHOD_KW, ENV_SEPARATOR_KW, ENV_PARG, env_convertor,
+    COMMAND_TYPES, ENV_METHOD_KW, ENV_SEPARATOR_KW, ENV_PARG, env_convertor,
 )
 from ..interpreterbase import (MesonInterpreterObject, FeatureNew, FeatureDeprecated, FeatureBroken,
                                noArgsFlattening,
@@ -132,7 +132,7 @@ class MesonMain(MesonInterpreterObject):
         'meson.add_install_script',
         pos_types=[_ANY_PROG_PARG],
         var_types=VarArgInfo(
-            (str, mesonlib.File, build.BuildTarget, build.CustomTarget, build.CustomTargetIndex, Program),
+            COMMAND_TYPES,
             since_values=_BUILT_PROG_VARG.since_values,
         ),
         kw_types=[
