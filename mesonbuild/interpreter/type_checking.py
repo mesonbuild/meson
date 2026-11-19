@@ -286,7 +286,7 @@ DEPEND_FILES_KW: KwargInfo[T.List[T.Union[str, File]]] = KwargInfo(
     default=[],
 )
 
-COMMAND_KW: KwargInfo[T.List[T.Union[str, CommandTypes, Program, File]]] = KwargInfo(
+COMMAND_KW: KwargInfo[T.List[CommandTypes]] = KwargInfo(
     'command',
     ContainerTypeInfo(list, (str, BuildTarget, CustomTarget, CustomTargetIndex, Program, File), allow_empty=False),
     required=True,
