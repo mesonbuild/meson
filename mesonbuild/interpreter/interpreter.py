@@ -53,6 +53,7 @@ from .interpreterobjects import (
 from .type_checking import (
     BUILD_TARGET_KWS,
     COMMAND_KW,
+    COMMAND_TYPES,
     CT_BUILD_ALWAYS,
     CT_BUILD_ALWAYS_STALE,
     CT_BUILD_BY_DEFAULT,
@@ -2134,13 +2135,8 @@ class Interpreter(InterpreterBase, HoldableObject):
         kw_types=[
             CT_INPUT_KW.evolve(required=True),
             MULTI_OUTPUT_KW,
-            # Cannot use the COMMAND_KW because command is allowed to be empty
-            KwargInfo(
-                'command',
-                ContainerTypeInfo(list, (str, build.BuildTarget, build.CustomTarget, build.CustomTargetIndex, Program, mesonlib.File)),
-                listify=True,
-                default=[],
-            ),
+            # The command is allowed to be empty
+            COMMAND_KW.evolve(required=False, types=ContainerTypeInfo(list, COMMAND_TYPES)),
             KwargInfo('fallback', (str, NoneType)),
             KwargInfo('replace_string', str, default='@VCS_TAG@'),
             INSTALL_KW.evolve(since='1.7.0'),

@@ -48,6 +48,7 @@ if T.TYPE_CHECKING:
 
     class _KwargInfoKWs(T.TypedDict, T.Generic[_T], total=False):
         name: str
+        types: type[None] | type[_T] | ContainerTypeInfo | tuple[type[None] | type[_T] | ContainerTypeInfo, ...]
         required: bool
         listify: bool
         accept_second_level_holder: bool

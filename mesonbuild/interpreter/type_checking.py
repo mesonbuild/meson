@@ -286,9 +286,11 @@ DEPEND_FILES_KW: KwargInfo[T.List[T.Union[str, File]]] = KwargInfo(
     default=[],
 )
 
+COMMAND_TYPES = (str, BuildTarget, CustomTarget, CustomTargetIndex, Program, File)
+
 COMMAND_KW: KwargInfo[T.List[CommandTypes]] = KwargInfo(
     'command',
-    ContainerTypeInfo(list, (str, BuildTarget, CustomTarget, CustomTargetIndex, Program, File), allow_empty=False),
+    ContainerTypeInfo(list, COMMAND_TYPES, allow_empty=False),
     required=True,
     listify=True,
     default=[],
@@ -362,7 +364,7 @@ def _local_program_convertor(raw: T.List[T.Union[str, File, BuildTarget, Generat
 
 CT_INPUT_KW: KwargInfo[T.List[T.Union[str, File, BuildTarget, GeneratedTypes, ExtractedObjects, Program]]] = KwargInfo(
     'input',
-    ContainerTypeInfo(list, (str, File, BuildTarget, CustomTarget, CustomTargetIndex, ExtractedObjects, GeneratedList, Program)),
+    ContainerTypeInfo(list, (*COMMAND_TYPES, ExtractedObjects, GeneratedList)),
     listify=True,
     default=[],
     convertor=_local_program_convertor,
@@ -556,7 +558,7 @@ TEST_KWS_NO_ARGS: T.List[KwargInfo] = [
 TEST_KWS: T.List[KwargInfo] = TEST_KWS_NO_ARGS + [
     KwargInfo(
         'args',
-        ContainerTypeInfo(list, (str, File, BuildTarget, CustomTarget, CustomTargetIndex, Program)),
+        ContainerTypeInfo(list, COMMAND_TYPES),
         listify=True,
         default=[],
         since_values={ExternalProgram: '1.6.0'},
