@@ -90,17 +90,16 @@ jobs:
           Invoke-WebRequest -Uri $python27Url -OutFile $python27Msi
           Start-Process msiexec.exe -Wait -ArgumentList "/I $python27Msi /quiet"
 
-      - name: Install pkg-config
-        shell: pwsh
-        run: |
-          $pkgconfigDir = "${{ runner.temp }}\pkgconfig"
-          New-Item -ItemType Directory -Path $pkgconfigDir -Force
-          Invoke-WebRequest -Uri "https://raw.githubusercontent.com/mesonbuild/cidata/refs/heads/master/win32/pkg-config.exe" -OutFile "$pkgconfigDir\pkg-config.exe"
-          echo "$pkgconfigDir" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-
       - name: Install Chocolatey Dependencies
         shell: pwsh
-        run: choco install -y nasm winflexbison3
+        run: |
+          choco install -y nasm pkgconf winflexbison3
+          # Add pkgconf to $GITHUB_PATH
+          Import-Module "$env:ChocolateyInstall\helpers\chocolateyProfile.psm1"
+          refreshenv
+          $pkgconfExePath = (Get-Command pkgconf).Source
+          $pkgconfDirPath = Split-Path -Path $pkgconfExePath -Parent
+          echo $pkgconfDirPath | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
