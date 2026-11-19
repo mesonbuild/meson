@@ -10,6 +10,7 @@ import typing as T
 from . import ExtensionModule, ModuleReturnValue, ModuleObject, ModuleInfo
 
 from .. import build, mesonlib, mlog, dependencies
+from ..cmake.gentargets import CmakeTarget, CmakeTargets, CmakeTargetInfo, CmakeTargetInfoDict
 from ..options import OptionKey
 from ..cmake import TargetOptions, cmake_defines_to_args
 from ..dependencies.cmake import CMakeDependency
@@ -244,17 +245,50 @@ class CMakeSubprojectOptions(ModuleObject):
 class CmakeModule(ExtensionModule):
     cmake_detected = False
     cmake_root: str
+    cmake_exported_targets: CmakeTargets
 
     INFO = ModuleInfo('cmake', '0.50.0')
 
     def __init__(self, interpreter: Interpreter) -> None:
         super().__init__(interpreter)
+        prefix = interpreter.environment.coredata.optstore.get_value_for(
+            OptionKey('prefix')
+        )
+        build_type = interpreter.environment.coredata.optstore.get_value_for(
+            OptionKey('buildtype')
+        )
+
+        host_machine = interpreter.environment.machines.host
+        system = host_machine.system
+        compilers = interpreter.environment.coredata.compilers.host
+
+        compiler = next(iter(compilers.values()), None)
+        compiler_id = compiler.get_id() if compiler else ''
+
+        linker = compiler.linker.get_id() if compiler else ''
+
+        self.cmake_exported_targets = CmakeTargets(
+            interpreter = interpreter,
+            install_prefix=prefix,
+            os=system,
+            files_infix="lib/cmake",
+            build_mode=build_type,
+            compiler=compiler_id,
+            linker=linker,
+            project_name = interpreter.active_projectname
+        )
+
         self.methods.update({
             'write_basic_package_version_file': self.write_basic_package_version_file,
             'configure_package_config_file': self.configure_package_config_file,
+            'export_target': self.export_target,
             'subproject': self.subproject,
             'subproject_options': self.subproject_options,
+            'set_export_target_install_dir': self.set_export_target_install_dir
         })
+
+    def gen_exported_target_files(self) -> None:
+        self.cmake_exported_targets.write_target_files()
 
     def detect_voidp_size(self, env: Environment) -> int:
         compilers = env.coredata.compilers.host
@@ -427,6 +461,8 @@ class CmakeModule(ExtensionModule):
         conffile = os.path.normpath(inputfile.relative_name())
         self.interpreter.build_def_files.add(conffile)
 
+        #WORKAROUND must be fixed, I can send a purpose to solve this
+        self.cmake_exported_targets.install_dir = install_dir.replace('\\', '/')
         res = build.Data([mesonlib.File(True, ofile_path, ofile_fname)], install_dir, install_dir, None, state.subproject)
         self.interpreter.build.data.append(res)
 
@@ -471,6 +507,77 @@ class CmakeModule(ExtensionModule):
     @TypedArgs('cmake.subproject_options')
     def subproject_options(self, state: ModuleState, args: TYPE_var, kwargs: TYPE_kwargs) -> CMakeSubprojectOptions:
         return CMakeSubprojectOptions()
+
+    TargetInfo = T.Union[
+        CmakeTargetInfo,
+        T.Dict[str, CmakeTargetInfo],
+    ]
+
+    # This is a workaround, to solve it I'll send a second feature
+    # Called set_cmake_global_settings and sign to installation will be a post command
+    # As target and config files must be at the same folder
+    @FeatureNew('set_export_target_install_dir', '0.55.0')
+    @TypedArgs(
+        'cmake.set_export_target_install_dir',
+        kw_types=[
+            KwargInfo('install_infix', str, default='lib')
+        ],
+    )
+    def set_export_target_install_dir(
+        self,
+        state: ModuleState,
+        args: TYPE_var,
+        kwargs: T.Dict[str, TYPE_var],
+    ) -> None:
+        install_infix = T.cast(str, kwargs['install_infix'])
+        self.cmake_exported_targets.install_dir = install_infix
+
+    @FeatureNew('subproject_options', '0.55.0')
+    @TypedArgs(
+        'cmake.export_target',
+        kw_types=[
+            KwargInfo(
+                'target',
+                build.BuildTarget,
+                required=True,
+            ),
+            KwargInfo('namespace', str, default=''),
+            KwargInfo('target_suffix', str, default=''),
+            KwargInfo(
+                'target_info',
+                dict,
+                default={
+                    'interface_include_dirs': [],
+                    'interface_compile_defs': [],
+                    'interface_compile_opts': [],
+                    'interface_link_opts': [],
+                    'interface_link_libraries': [],
+                    'interface_internal_dependencies': []
+                },
+            ),
+        ],
+    )
+    def export_target(
+        self,
+        state: ModuleState,
+        args: TYPE_var,
+        kwargs: T.Dict[str, TYPE_var],
+    ) -> None:
+        target = kwargs['target']
+        target_info_dict = T.cast(CmakeTargetInfoDict, kwargs['target_info'])
+        assert isinstance(target_info_dict, dict)
+        target_info = CmakeTargetInfo(**target_info_dict)
+        target = CmakeTarget(
+            target= kwargs['target'],
+            targets= self.cmake_exported_targets,
+            namespace= kwargs["namespace"],
+            target_info= target_info,
+            target_suffix= kwargs['target_suffix'],
+            subproject = state.subproject,
+            current_build_dir = state.current_build_dir
+        )
+        #get_all_link_deps
+        self.cmake_exported_targets.register_cmake_target(target)
 
 def initialize(interp: Interpreter) -> CmakeModule:
     return CmakeModule(interp)

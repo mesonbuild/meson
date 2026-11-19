@@ -20,6 +20,7 @@ if T.TYPE_CHECKING:
     from .cmdline import SharedCMDOptions
     from .interpreter import SubprojectHolder
     from .mesonlib import PerMachine
+    from .modules.cmake import CmakeModule
 
     class CMDOptions(SharedCMDOptions, Protocol):
 
@@ -281,6 +282,13 @@ class MesonApp:
             cdf = env.dump_coredata()
 
             self.finalize_postconf_hooks(b, intr)
+
+            #cmake export candidate
+            cmake_module = intr.modules.get('cmake')
+            if cmake_module is not None:
+                cmake_module = T.cast('CmakeModule', cmake_module)
+                cmake_module.gen_exported_target_files()
+
             self.check_unused_options(env.coredata,
                                       intr.user_defined_options.cmd_line_options,
                                       intr.subprojects)
@@ -413,5 +421,4 @@ def run(options: T.Union[CMDOptions, T.List[str]]) -> int:
     else:
         app = MesonApp(options)
         app.generate()
-
     return 0
