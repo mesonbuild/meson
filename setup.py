@@ -3,7 +3,7 @@
 # Copyright 2016 The Meson development team
 
 
-import os, sys
+import glob, os, sys
 
 if sys.version_info < (3, 10):
     raise SystemExit('ERROR: Tried to install Meson with an unsupported Python version: \n{}'
@@ -29,6 +29,7 @@ data_files = []
 if sys.platform != 'win32':
     # Only useful on UNIX-like systems
     data_files = [('share/man/man1', ['man/meson.1']),
-                  ('share/polkit-1/actions', ['data/com.mesonbuild.install.policy'])]
+                  ('share/polkit-1/actions', ['data/com.mesonbuild.install.policy']),
+                  ('share/meson/cross', sorted(glob.glob('cross/*.ini')))]
 
 setup(data_files=data_files,**scm_args)
