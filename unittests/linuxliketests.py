@@ -126,33 +126,6 @@ class LinuxlikeTests(BasePlatformTests):
         if not cpp.has_multi_arguments(target_args)[0]:
             raise SkipTest('Clang cannot compile for ARM')
         compiler = cpp.get_exelist(ccache=False) + target_args
-        variants = [
-            ('eh_rtti', []),
-            ('noeh_rtti', ['-fno-exceptions']),
-            ('eh_nortti', ['-fno-rtti']),
-            ('noeh_nortti', ['-fno-exceptions', '-fno-rtti']),
-        ]
-        for name, flags in variants:
-            libdir = os.path.join(sysroot, name, 'lib')
-            os.makedirs(libdir, exist_ok=True)
-            marker_obj = os.path.join(sysroot, name + '-marker.o')
-            marker_lib = os.path.join(libdir, 'libprobe.a')
-            self._run(compiler + ['-DMARKER=marker_' + name,
-                                  '-c', os.path.join(testdir, 'marker.cpp'), '-o', marker_obj])
-            ar_cmd = (ar.get_exelist() + ar.get_always_args()
-                      + ar.get_std_link_args(get_fake_env(), False)
-                      + ar.get_output_args(marker_lib) + [marker_obj])
-            self._run(ar_cmd)
-            obj = os.path.join(sysroot, name + '-probe.o')
-            self._run(compiler + flags + ['-c', os.path.join(testdir, 'main.cpp'),
-                                         '-DREQUIRED=marker_' + name, '-o', obj])
-            # Check real multilib selection independently of Meson's option handling.
-            try:
-                self._run(compiler + flags + ['-fuse-ld=lld', '-nostdlib', obj, '-lprobe',
-                                             '-Wl,-e,main', '-o', os.path.join(sysroot, 'probe')])
-            except subprocess.CalledProcessError as e:
-                raise SkipTest(f'Clang multilib link probe failed for {name}: {e.output.strip()}') from e
-
         crossfile = os.path.join(self.builddir, 'cross.ini')
         with open(crossfile, 'w', encoding='utf-8') as f:
             f.write(textwrap.dedent(f'''\
@@ -171,6 +144,30 @@ class LinuxlikeTests(BasePlatformTests):
             cpp_link_args = ['-nostdlib']
             '''))
         self.meson_cross_files = [crossfile]
+        self.init(os.path.join(testdir, 'lib'))
+        self.build()
+        variants = [
+            ('eh_rtti', []),
+            ('noeh_rtti', ['-fno-exceptions']),
+            ('eh_nortti', ['-fno-rtti']),
+            ('noeh_nortti', ['-fno-exceptions', '-fno-rtti']),
+        ]
+        for name, flags in variants:
+            libdir = os.path.join(sysroot, name, 'lib')
+            os.makedirs(libdir, exist_ok=True)
+            shutil.copyfile(os.path.join(self.builddir, 'lib' + name + '.a'),
+                            os.path.join(libdir, 'libprobe.a'))
+            obj = os.path.join(sysroot, name + '-probe.o')
+            self._run(compiler + flags + ['-c', os.path.join(testdir, 'main.cpp'),
+                                         '-DREQUIRED=marker_' + name, '-o', obj])
+            # Check real multilib selection independently of Meson's option handling.
+            try:
+                self._run(compiler + flags + ['-fuse-ld=lld', '-nostdlib', obj, '-lprobe',
+                                             '-Wl,-e,main', '-o', os.path.join(sysroot, 'probe')])
+            except subprocess.CalledProcessError as e:
+                raise SkipTest(f'Clang multilib link probe failed for {name}: {e.output.strip()}') from e
+
+        self.new_builddir()
         self.init(testdir)
         self.build()
 
