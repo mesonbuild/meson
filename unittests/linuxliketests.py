@@ -103,7 +103,6 @@ class LinuxlikeTests(BasePlatformTests):
     Tests that should run on Linux, macOS, and *BSD
     '''
 
-    @skipUnless(is_linux(), 'This test requires Linux')
     @skipIfNoExecutable('ld.lld')
     def test_clang_cpp_multilib(self):
         if self.backend is not Backend.ninja:
@@ -172,12 +171,8 @@ class LinuxlikeTests(BasePlatformTests):
             cpp_link_args = ['-nostdlib']
             '''))
         self.meson_cross_files = [crossfile]
-        # Once the toolchain probe passes, a Meson skip is a test failure.
-        try:
-            self.init(testdir)
-            self.build()
-        except SkipTest as e:
-            self.fail(f'Meson unexpectedly skipped the multilib test: {e}')
+        self.init(testdir)
+        self.build()
 
     def test_basic_soname(self):
         '''
