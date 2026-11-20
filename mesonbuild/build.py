@@ -2393,9 +2393,9 @@ class Executable(BuildTarget, LinkableTargetProto):
         machine = self.environment.machines[self.for_machine]
         # Unless overridden, executables have no suffix or prefix. Except on
         # Windows and with C#/Mono executables where the suffix is 'exe'
-        if not hasattr(self, 'prefix'):
+        if not self.name_prefix_set:
             self.prefix = ''
-        if not hasattr(self, 'suffix'):
+        if not self.name_suffix_set:
             # Executable for Windows or C#/Mono
             if machine.is_windows() or machine.is_cygwin() or 'cs' in self.compilers:
                 self.suffix = 'exe'
@@ -2568,9 +2568,9 @@ class StaticLibrary(BuildTarget, StaticTargetProto):
         #
         # See our FAQ for more detailed rationale:
         # https://mesonbuild.com/FAQ.html#why-does-building-my-project-with-msvc-output-static-libraries-called-libfooa
-        if not hasattr(self, 'prefix'):
+        if not self.name_prefix_set:
             prefix = 'lib'
-        if not hasattr(self, 'suffix'):
+        if not self.name_suffix_set:
             if self.uses_rust():
                 if self.rust_crate_type == 'rlib':
                     # default Rust static library suffix
@@ -2735,9 +2735,9 @@ class SharedLibrary(BuildTarget, LibTargetProto):
                                        'periods or dashes in the library name due to a limitation of rustc. '
                                        'Replace them with underscores, for example')
 
-        if not hasattr(self, 'prefix'):
+        if not self.name_prefix_set:
             self.prefix = None
-        if not hasattr(self, 'suffix'):
+        if not self.name_suffix_set:
             self.suffix = None
         self.basic_filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
         self.determine_filenames()
