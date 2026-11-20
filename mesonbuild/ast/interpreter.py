@@ -76,8 +76,6 @@ if T.TYPE_CHECKING:
     TYPE_nvar = T.Union[TYPE_ivar, mparser.BaseNode]
     TYPE_nkwargs = T.Dict[str, TYPE_nvar]
 
-_T = T.TypeVar('_T')
-_V = T.TypeVar('_V')
 
 def _symbol(val: str) -> SymbolNode:
     return SymbolNode(Token('', '', 0, 0, 0, (0, 0), val))
@@ -117,7 +115,7 @@ class IntrospectionBuildTarget(MesonInterpreterObject):
     installed: T.Union[bool, UnknownValue]
     outputs: T.List[str]
     source_nodes: T.List[BaseNode]
-    extra_files: BaseNode
+    extra_files: T.Optional[BaseNode]
     kwargs: T.Dict[str, TYPE_var]
     node: FunctionNode
 

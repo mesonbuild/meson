@@ -28,7 +28,7 @@ from .mesonlib import (
     get_filenames_templates_dict, substitute_values, has_path_sep,
     is_parent_path, relpath, PerMachineDefaultable,
     MesonBugException, EnvironmentVariables, lazy_property,
-    unwrap,
+    late_property, unwrap,
 )
 from .options import OptionKey
 
@@ -143,7 +143,7 @@ if T.TYPE_CHECKING:
 
         build_by_default: bool
         build_rpath: str
-        build_subdir: T.Optional[str]
+        build_subdir: str
         c_pch: T.Optional[T.Tuple[str, T.Optional[str]]]
         cpp_pch: T.Optional[T.Tuple[str, T.Optional[str]]]
         d_debug: T.List[T.Union[str, int]]
@@ -229,8 +229,6 @@ else:
     StaticTargetProto = object
     CommandTargetProto = object
 
-
-_T = T.TypeVar('_T')
 
 DEFAULT_STATIC_LIBRARY_NAMES: T.Mapping[str, T.Tuple[str, str]] = {
     'unix': ('lib', 'a'),
@@ -512,7 +510,7 @@ class Build:
         self.version = coredata.version
         self._def_files: T.Optional[T.List[str]] = None
         self.project_name = 'name of master project'
-        self.project_version: T.Optional[str] = None
+        self.project_version = 'undefined'
         self.environment = environment
         self.projects: PerMachine[T.Dict[SubProject, BuildProject]] = PerMachine({}, {})
         self.targets: dict[str, Target] = {}
@@ -867,6 +865,7 @@ class StructuredSources(HoldableObject):
                 self.needs_copy = True
 
         if not self.needs_copy:
+            assert self.root is not None
             expected_path = self.canonicalize(os.path.join(self.root, path))
             for f in files:
                 if not isinstance(f, File) or f.is_built \
@@ -1026,6 +1025,9 @@ class Target(HoldableObject, AnyTargetProto, metaclass=SimpleABC):
 
 class BuildTarget(Target, BuildTargetProto):
     rust_crate_type: RustCrateType
+    vs_module_defs: File | None = None
+    prefix: late_property[str] = late_property()
+    suffix: late_property[str] = late_property()
 
     # This set contains all the languages a linker can link natively
     # without extra flags. For instance, nvcc (cuda) can link C++
@@ -1506,7 +1508,7 @@ class BuildTarget(Target, BuildTargetProto):
                     raise MesonException(f'Tried to extract unknown source {target.get_basename()}.')
                 obj_gen.append(src)
             else:
-                raise MesonException(f'Object extraction arguments must be strings, Files or targets (got {type(src).__name__}).')
+                raise MesonBugException(f'Object extraction arguments must be strings, Files or targets (got {type(src).__name__}).')
         eobjs = ExtractedObjects(self, obj_src, obj_gen)
         if is_unity:
             eobjs.check_unity_compatible()
@@ -2275,9 +2277,9 @@ class GeneratedList(HoldableObject):
     generator: Generator
     subdir: str
     preserve_path_from: T.Optional[str]
-    extra_args: T.List[str]
-    env: T.Optional[EnvironmentVariables]
-    extra_depends: T.List[TargetDepends]
+    extra_args: T.List[str] = field(default_factory=list)
+    env: T.Optional[EnvironmentVariables] = field(default_factory=EnvironmentVariables)
+    extra_depends: T.List[TargetDepends] = field(default_factory=list)
 
     def __post_init__(self) -> None:
         self.name = self.generator.exe
@@ -2286,15 +2288,6 @@ class GeneratedList(HoldableObject):
         self.outfilelist: T.List[str] = []
         self.outmap: T.Dict[FileMaybeInTargetPrivateDir, T.List[str]] = {}
         self.depend_files: T.List[File] = self.generator.depend_files.copy()
-
-        if self.extra_args is None:
-            self.extra_args: T.List[str] = []
-
-        if self.env is None:
-            self.env: EnvironmentVariables = EnvironmentVariables()
-
-        if self.extra_depends is None:
-            self.extra_depends: T.List[TargetDepends] = []
 
         if isinstance(self.generator.exe, programs.Program):
             if not self.generator.exe.found():
@@ -2306,7 +2299,7 @@ class GeneratedList(HoldableObject):
             else:
                 self.extra_depends.append(t)
         else:
-            path = self.generator.exe.get_path()
+            path = unwrap(self.generator.exe.get_path())
             if os.path.isabs(path):
                 # Can only add a dependency on an external program which we
                 # know the absolute path of
@@ -2314,7 +2307,7 @@ class GeneratedList(HoldableObject):
 
     def get_preserved_path_segment(self, infile: FileMaybeInTargetPrivateDir) -> str:
         in_abs = infile.absolute_path(self.generator.environment.source_dir, self.generator.environment.build_dir)
-        assert os.path.isabs(self.preserve_path_from)
+        assert os.path.isabs(unwrap(self.preserve_path_from))
         rel = os.path.relpath(in_abs, self.preserve_path_from)
         return os.path.dirname(rel)
 
@@ -2393,9 +2386,9 @@ class Executable(BuildTarget, LinkableTargetProto):
         machine = self.environment.machines[self.for_machine]
         # Unless overridden, executables have no suffix or prefix. Except on
         # Windows and with C#/Mono executables where the suffix is 'exe'
-        if not hasattr(self, 'prefix'):
+        if not self.name_prefix_set:
             self.prefix = ''
-        if not hasattr(self, 'suffix'):
+        if not self.name_suffix_set:
             # Executable for Windows or C#/Mono
             if machine.is_windows() or machine.is_cygwin() or 'cs' in self.compilers:
                 self.suffix = 'exe'
@@ -2568,9 +2561,9 @@ class StaticLibrary(BuildTarget, StaticTargetProto):
         #
         # See our FAQ for more detailed rationale:
         # https://mesonbuild.com/FAQ.html#why-does-building-my-project-with-msvc-output-static-libraries-called-libfooa
-        if not hasattr(self, 'prefix'):
+        if not self.name_prefix_set:
             prefix = 'lib'
-        if not hasattr(self, 'suffix'):
+        if not self.name_suffix_set:
             if self.uses_rust():
                 if self.rust_crate_type == 'rlib':
                     # default Rust static library suffix
@@ -2735,10 +2728,6 @@ class SharedLibrary(BuildTarget, LibTargetProto):
                                        'periods or dashes in the library name due to a limitation of rustc. '
                                        'Replace them with underscores, for example')
 
-        if not hasattr(self, 'prefix'):
-            self.prefix = None
-        if not hasattr(self, 'suffix'):
-            self.suffix = None
         self.basic_filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
         self.determine_filenames()
 
@@ -2762,7 +2751,7 @@ class SharedLibrary(BuildTarget, LibTargetProto):
     def get_default_install_dir(self) -> T.Tuple[str, str]:
         return self.environment.get_shared_lib_dir(), '{libdir_shared}'
 
-    def determine_naming_info(self) -> T.Tuple[str, str, str, str, bool]:
+    def determine_naming_info(self) -> T.Tuple[str, str, str, str | None, bool]:
         scheme = self.environment.coredata.get_option_for_target(self, 'namingscheme')
         assert isinstance(scheme, str), 'for mypy'
 
@@ -2830,7 +2819,7 @@ class SharedLibrary(BuildTarget, LibTargetProto):
             prefix = 'cyg'
             # Import library is called libfoo.dll.a
             import_suffix = import_suffix if import_suffix is not None else '.dll.a'
-            import_prefix = self.prefix if self.prefix is not None else 'lib'
+            import_prefix = self.prefix if self.name_prefix_set else 'lib'
             import_filename_tpl = import_prefix + '{0.name}' + import_suffix
             if self.soversion:
                 filename_tpl = '{0.prefix}{0.name}-{0.soversion}.{0.suffix}'
@@ -2894,9 +2883,9 @@ class SharedLibrary(BuildTarget, LibTargetProto):
         the shared library (DLL).
         """
         prefix, suffix, filename_tpl, import_filename_tpl, create_debug_file = self.determine_naming_info()
-        if self.prefix is None:
+        if not self.name_prefix_set:
             self.prefix = prefix
-        if self.suffix is None:
+        if not self.name_suffix_set:
             self.suffix = suffix
         self.filename_tpl = filename_tpl
         self.filename = self.filename_tpl.format(self)
@@ -3179,7 +3168,7 @@ class CustomTarget(Target, CustomTargetBase, CommandTargetProto):
                  install_tag: T.Optional[T.List[T.Optional[str]]] = None,
                  rsp_syntax: T.Optional[RSPFileSyntax] = None,
                  absolute_paths: bool = False,
-                 backend: T.Optional['Backend'] = None,
+                 backend: Backend,
                  description: str = 'Generating {} with a custom command',
                  build_subdir: str = '',
                  ):
@@ -3224,7 +3213,7 @@ class CustomTarget(Target, CustomTargetBase, CommandTargetProto):
                 if isinstance(d, LocalProgram):
                     d = d.get_target()
                 elif isinstance(d, programs.Program):
-                    path = d.get_path()
+                    path = unwrap(d.get_path())
                     # Can only add a dependency on an external program which we
                     # know the absolute path of
                     if not os.path.isabs(path):
@@ -3375,10 +3364,10 @@ class CustomTarget(Target, CustomTargetBase, CommandTargetProto):
     def __getitem__(self, index: int) -> 'CustomTargetIndex':
         return CustomTargetIndex(self, self.outputs[index])
 
-    def __setitem__(self, index: T.Any, value: T.Any) -> T.Any:
+    def __setitem__(self, index: object, value: object) -> None:
         raise NotImplementedError
 
-    def __delitem__(self, index: T.Any) -> T.Any:
+    def __delitem__(self, index: object) -> None:
         raise NotImplementedError
 
     def __iter__(self) -> T.Iterator[CustomTargetIndex]:
@@ -3760,7 +3749,7 @@ class LocalProgram(programs.Program):
 
     def get_path(self) -> str:
         if isinstance(self.program, programs.ExternalProgram):
-            return self.program.get_path()
+            return unwrap(self.program.get_path())
         # Only the backend knows the actual path to the build program.
         raise MesonBugException('Cannot call get_path() on program that is a build target.')
 
@@ -3792,9 +3781,9 @@ class Data(HoldableObject):
     install_dir_name: str
     install_mode: 'FileMode'
     subproject: SubProject
-    rename: T.List[str] = None
+    rename: T.Optional[T.List[str]] = None
     install_tag: T.Optional[str] = None
-    data_type: str = None
+    data_type: T.Optional[str] = None
     follow_symlinks: T.Optional[bool] = None
 
     def __post_init__(self) -> None:
@@ -3837,7 +3826,7 @@ def get_sources_string_names(sources: T.Sequence[CustomTargetSources], backend: 
         elif isinstance(s, File):
             names.append(s.fname)
         elif isinstance(s, programs.ExternalProgram):
-            names.append(s.get_path())
+            names.append(unwrap(s.get_path()))
         else:
             raise MesonBugException(f'Unknown source type: {s!r}')
     return names

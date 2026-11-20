@@ -109,7 +109,7 @@ def find_external_dependency(name: str, env: 'Environment', kwargs: DependencyOb
     if candidates is None:
         candidates = _build_external_dependency_list(name, env, kwargs)
 
-    pkg_exc: T.List[DependencyException] = []
+    pkg_exc: T.List[DependencyException | None] = []
     pkgdep:  T.List[ExternalDependency] = []
     details = ''
     tried_methods: T.List[str] = []
@@ -135,7 +135,7 @@ def find_external_dependency(name: str, env: 'Environment', kwargs: DependencyOb
             details = d.log_details()
             if details:
                 details = '(' + details + ') '
-            if kwargs.get('language') is not None:
+            if d.language is not None:
                 details += 'for ' + d.language + ' '
 
             # if the dependency was found

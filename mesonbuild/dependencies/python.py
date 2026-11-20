@@ -488,7 +488,7 @@ class PythonPkgConfigDependency(PkgConfigDependency, _PythonDependencyBase):
             # to using pkg-config of another Python installation, for example
             # we could end up using CPython .pc file for PyPy
             mlog.debug(f'Skipping pkgconfig lookup, {pkg_libdir_origin} is unset')
-            self.is_found = False
+            ExternalDependency.__init__(self, pkg_name, environment, kwargs)
             return
 
         for_machine = kwargs['native']

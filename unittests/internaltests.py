@@ -48,7 +48,7 @@ from mesonbuild.interpreterbase import (
 from mesonbuild.mesonlib import (
     FileMode, LibType, MachineChoice, SimpleABC, Version, is_windows, is_osx,
     is_cygwin, is_openbsd, search_version, MesonException, EnvironmentException, python_command,
-    version_check_to_range,
+    version_check_to_range, unwrap_property, MesonBugException,
 )
 from mesonbuild.options import OptionKey, UserBooleanOption
 from mesonbuild.interpreter.type_checking import (
@@ -622,6 +622,7 @@ InstalledDir: /usr/bin'''), '14.0.0-1ubuntu1.1')
     def _fake_msvc_cc(self, cflags='-DCFLAG', ldflags='/SUBSYSTEM:CONSOLE'):
         with mock.patch.dict(os.environ, {'CFLAGS': cflags, 'LDFLAGS': ldflags}):
             env = get_fake_env()
+        env.coredata.optstore.initialize_from_top_level_project_call({})
         env.add_lang_args('c', VisualStudioCCompiler, MachineChoice.HOST)
         linker = linkers.MSVCDynamicLinker(env, MachineChoice.HOST, [])
         return VisualStudioCCompiler([], [], '20.00', MachineChoice.HOST, env, 'x64', linker=linker)
@@ -630,6 +631,7 @@ InstalledDir: /usr/bin'''), '14.0.0-1ubuntu1.1')
                      linker_cls=linkers.GnuBFDDynamicLinker):
         with mock.patch.dict(os.environ, {'CFLAGS': cflags, 'LDFLAGS': ldflags}):
             env = get_fake_env()
+        env.coredata.optstore.initialize_from_top_level_project_call({})
         env.add_lang_args('c', GnuCCompiler, MachineChoice.HOST)
         linker = linker_cls([], env, MachineChoice.HOST,
                             ManyInOneLinkerOptionStyle('-Wl,', ','), [])
@@ -1201,32 +1203,6 @@ InstalledDir: /usr/bin'''), '14.0.0-1ubuntu1.1')
         self.assertEqual([holder1, 2], listify([holder1, 2]))
         self.assertEqual([holder1, 2, 3], listify([holder1, 2, [3]]))
 
-    def test_extract_as_list(self):
-        extract = mesonbuild.mesonlib.extract_as_list
-        # Test sanity
-        kwargs = {'sources': [1, 2, 3]}
-        self.assertEqual([1, 2, 3], extract(kwargs, 'sources'))
-        self.assertEqual(kwargs, {'sources': [1, 2, 3]})
-        self.assertEqual([1, 2, 3], extract(kwargs, 'sources', pop=True))
-        self.assertEqual(kwargs, {})
-
-        class TestHeldObj(mesonbuild.mesonlib.HoldableObject):
-            pass
-        class MockInterpreter:
-            def __init__(self) -> None:
-                self.subproject = ''
-                self.environment = None
-        heldObj = TestHeldObj()
-
-        # Test unholding
-        holder3 = ObjectHolder(heldObj, MockInterpreter())
-        kwargs = {'sources': [1, 2, holder3]}
-        self.assertEqual(kwargs, {'sources': [1, 2, holder3]})
-
-        # flatten nested lists
-        kwargs = {'sources': [1, [2, [3]]]}
-        self.assertEqual([1, 2, 3], extract(kwargs, 'sources'))
-
     def _test_all_naming(self, cc, patterns, platform):
         shr = patterns[platform]['shared']
         stc = patterns[platform]['static']
@@ -1488,6 +1464,26 @@ InstalledDir: /usr/bin'''), '14.0.0-1ubuntu1.1')
                             prog.get_version()
                     else:
                         self.assertEqual(prog.get_version(), expected)
+
+    def test_unwrap_property(self):
+        class X:
+            value = unwrap_property[int]()
+
+            def __init__(self) -> None:
+                self.value = None
+
+        a = X()
+        b = X()
+        with self.assertRaises(MesonBugException):
+            a.value
+        a.value = 3
+        self.assertEqual(a.value, 3)
+        # Values are per instance.
+        with self.assertRaises(MesonBugException):
+            b.value
+        a.value = None
+        with self.assertRaises(MesonBugException):
+            a.value
 
     def test_version_compare(self):
         comparefunc = mesonbuild.mesonlib.version_compare_many
@@ -2184,6 +2180,7 @@ InstalledDir: /usr/bin'''), '14.0.0-1ubuntu1.1')
         @TypedArgs(
             'testfunc',
             pos_types=[PosArgInfo(ContainerTypeInfo(list, str))],
+            flatten=False,
         )
         def _(obj, node, args: T.Tuple[list[str]], kwargs: dict) -> None:
             self.assertEqual(args[0], ['str'])
@@ -2247,7 +2244,7 @@ InstalledDir: /usr/bin'''), '14.0.0-1ubuntu1.1')
             'testfunc',
             pos_types=[
                 PosArgInfo(ContainerTypeInfo(list, str), listify=True, deprecated_values={'foo': '0.9'}, since_values={'bar': '1.1'}),
-            ]
+            ],
         )
         def _(obj, node, args: T.Tuple[str], kwargs: dict) -> None:
             pass
@@ -2301,7 +2298,8 @@ InstalledDir: /usr/bin'''), '14.0.0-1ubuntu1.1')
                     since_values={str: '1.1', ContainerTypeInfo(list, str): '1.2', ContainerTypeInfo(dict, str): '1.3'},
                     deprecated_values={int: '0.8', ContainerTypeInfo(list, int): '0.9'},
                 ),
-            ]
+            ],
+            flatten=False,
         )
         def _(obj, node, args: T.Tuple[str], kwargs: dict) -> None:
             pass
@@ -2334,7 +2332,8 @@ InstalledDir: /usr/bin'''), '14.0.0-1ubuntu1.1')
                     listify=True,
                     since_values={ContainerTypeInfo(list, str): '1.1', ContainerTypeInfo(list, int): '1.2'},
                 ),
-            ]
+            ],
+            flatten=False,
         )
         def _(obj, node, args: T.Tuple[str], kwargs: dict) -> None:
             pass
@@ -2386,7 +2385,8 @@ InstalledDir: /usr/bin'''), '14.0.0-1ubuntu1.1')
                     (ContainerTypeInfo(list, str), ContainerTypeInfo(dict, str)),
                     since_values={list: '1.9'},
                 ),
-            ]
+            ],
+            flatten=False,
         )
         def _(obj, node, args: T.Tuple[str], kwargs: dict) -> None:
             pass
@@ -2761,6 +2761,7 @@ InstalledDir: /usr/bin'''), '14.0.0-1ubuntu1.1')
             'testfunc',
             pos_types=[PosArgInfo(object)],
             kw_types=[KwargInfo('input', (str, ContainerTypeInfo(list, str)))],
+            flatten=False,
         )
         def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, str]) -> None:
             self.assertEqual(kwargs['input'], args[0])
@@ -2945,9 +2946,10 @@ InstalledDir: /usr/bin'''), '14.0.0-1ubuntu1.1')
         build = mock.Mock()
         build.environment = mock.Mock()
         build.environment.get_source_dir = mock.Mock(return_value='')
+        user_cmd_options = mock.Mock()
         with mock.patch('mesonbuild.interpreter.Interpreter._redetect_machines', mock.Mock()), \
                 self.assertRaises(mesonbuild.mesonlib.MesonBugException):
-            i = mesonbuild.interpreter.Interpreter(build)
+            i = mesonbuild.interpreter.Interpreter(build, user_cmd_options)
             pickle.dumps(i)
 
     def test_major_versions_differ(self) -> None:

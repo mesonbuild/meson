@@ -292,7 +292,7 @@ class DependenciesHelper:
             elif isinstance(obj, str):
                 processed_libs.append(obj)
             else:
-                raise mesonlib.MesonException(f'library argument of type {type(obj).__name__} not a string, library or dependency object.')
+                raise mesonlib.MesonBugException(f'library argument of type {type(obj).__name__} not a string, library or dependency object.')
 
     def _add_recursive_lib_dependencies(self) -> None:
         visited: T.Set[T.Tuple[object, bool, bool]] = set()
@@ -821,7 +821,8 @@ class PkgConfigModule(NewExtensionModule):
                                       version, license, pcfile, conflicts, variables,
                                       unescaped_variables, False, dataonly,
                                       pkgroot=pkgroot if relocatable else None)
-        res = build.Data([mesonlib.File(True, state.environment.get_scratch_dir(), pcfile)], pkgroot, pkgroot_name, None, state.subproject, install_tag='devel')
+        res = build.Data([mesonlib.File(True, state.environment.get_scratch_dir(), pcfile)], pkgroot, pkgroot_name,
+                         mesonlib.FileMode(), state.subproject, install_tag='devel')
         variables = parse_variable_list(kwargs['uninstalled_variables'])
         unescaped_variables = parse_variable_list(kwargs['unescaped_uninstalled_variables'])
 

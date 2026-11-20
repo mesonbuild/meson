@@ -41,12 +41,13 @@ class IntegerHolder(ObjectHolder[int]):
     def display_name(self) -> str:
         return 'int'
 
-    def operator_call(self, operator: MesonOperator, other: TYPE_var) -> TYPE_var:
+    # do not bother copying all the overloads from the superclass
+    def operator_call(self, operator: MesonOperator, other: TYPE_var | None) -> TYPE_var: # type: ignore[override]
         if isinstance(other, bool):
             FeatureBroken.single_use('int operations with non-int', '1.2.0', self.subproject,
                                      'It is not commutative and only worked because of leaky Python abstractions.',
                                      location=self.current_node)
-        return super().operator_call(operator, other)
+        return super().operator_call(operator, other) # type: ignore[arg-type]
 
     @TypedArgs('int.is_even')
     @InterpreterObject.method('is_even')

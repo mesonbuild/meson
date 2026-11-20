@@ -7,7 +7,7 @@ from .. import mlog
 from ..backend.rspfile import RSPFileSyntax
 from ..mesonlib import (
     EnvironmentException,
-    Popen_safe, Popen_safe_logged, join_args, search_version
+    Popen_safe, Popen_safe_logged, join_args, search_version, unwrap
 )
 from ..options import OptionKey
 
@@ -48,8 +48,13 @@ def guess_win_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
     else:
         rsp_syntax = RSPFileSyntax.GCC
 
+    # with cl.exe the linker is always invoked directly
+    if comp_class.has_separate_linker():
+        assert invoked_directly
+        wrap_linker_args = False
+
     # Explicitly pass logo here so that we can get the version of link.exe
-    if not wrap_linker_args or comp_class.LINKER_OPTION_STYLE is None:
+    if not wrap_linker_args:
         check_args = ['/logo', '--version']
     else:
         check_args = comp_class.LINKER_OPTION_STYLE.wrap(['/logo', '--version'])
@@ -175,8 +180,8 @@ def guess_nix_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
         _, o, e = Popen_safe(compiler + check_args + ['-v'])
 
         try:
-            linker_cmd = re.match(r'.*\n(.*?)\nlld-link: ', e, re.DOTALL).group(1)
-            linker_cmd = shlex.split(linker_cmd)[0]
+            m = unwrap(re.match(r'.*\n(.*?)\nlld-link: ', e, re.DOTALL))
+            linker_cmd = shlex.split(m.group(1))[0]
         except (AttributeError, IndexError, ValueError):
             pass
         else:

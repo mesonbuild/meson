@@ -241,7 +241,7 @@ class Project(TypedDict):
     version: FileOrString
     meson_version: T.Optional[str]
     default_options: options.OptionDict
-    license: T.List[str]
+    license: T.Optional[T.List[str]]
     license_files: T.List[str]
     subproject_dir: str
 
@@ -278,7 +278,7 @@ class FindProgram(ExtractRequired, ExtractSearchDirs):
 
 class RunCommand(TypedDict):
 
-    check: bool
+    check: T.Optional[bool]
     capture: T.Optional[bool]
     console: T.Optional[bool]
     env: EnvironmentVariables

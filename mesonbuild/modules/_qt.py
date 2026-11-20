@@ -148,7 +148,7 @@ if T.TYPE_CHECKING:
         extra_args: T.List[str]
         method: DependencyMethods
         install: bool
-        install_dir: T.Optional[str]
+        install_dir: str
 
     class MocJsonCollectKwArgs(TypedDict):
 
@@ -400,9 +400,9 @@ class QtBaseModule(ExtensionModule):
         # We have to cast here because TypedDicts are invariant, even though
         # ExtractRequiredKwArgs is a subset of HasToolKwArgs, type checkers
         # will insist this is wrong
-        disabled, required, feature = extract_required_kwarg(kwargs, state.subproject, default=False)
-        if disabled:
-            mlog.log('qt.has_tools skipped: feature', mlog.bold(feature), 'disabled')
+        required, disabled_by_feature = extract_required_kwarg(kwargs, state.subproject, default=False)
+        if disabled_by_feature:
+            mlog.log('qt.has_tools skipped: feature', mlog.bold(disabled_by_feature), 'disabled')
             return False
         self._detect_tools(state, method, required=False, version=kwargs['version'])
         for tool in kwargs['tools']:
@@ -479,6 +479,7 @@ class QtBaseModule(ExtensionModule):
                 depend_files=qrc_deps,
                 depfile=f'{name}.d',
                 description='Compiling Qt resources {}',
+                backend=state.backend,
             )
             targets.append(res_target)
         else:
@@ -498,6 +499,7 @@ class QtBaseModule(ExtensionModule):
                     depend_files=qrc_deps,
                     depfile=f'{name}.d',
                     description='Compiling Qt resources {}',
+                    backend=state.backend,
                 )
                 targets.append(res_target)
 
@@ -701,6 +703,7 @@ class QtBaseModule(ExtensionModule):
         ts_files = kwargs['ts_files']
         if kwargs['install'] and not kwargs['install_dir']:
             raise MesonException('qt.compile_translations: "install_dir" keyword argument must be set when "install" is true.')
+        install_dir: T.List[T.Union[str, Literal[False]]] = [] if kwargs['install_dir'] is None else [kwargs['install_dir']]
         qresource = kwargs['qresource']
         if qresource:
             if ts_files:
@@ -752,10 +755,11 @@ class QtBaseModule(ExtensionModule):
                 ['@BASENAME@.qm'],
                 state.current_build_project,
                 install=kwargs['install'],
-                install_dir=[kwargs['install_dir']],
+                install_dir=install_dir,
                 install_tag=['i18n'],
                 build_by_default=kwargs['build_by_default'],
                 description='Compiling Qt translations {}',
+                backend=state.backend,
             )
             translations.append(lrelease_target)
         if qresource:
@@ -891,6 +895,7 @@ class QtBaseModule(ExtensionModule):
             [f'{target_name}_json_collect.json'],
             state.current_build_project,
             description=f'Collecting json type information for {target_name}',
+            backend=state.backend,
         )
 
     def _gen_qml_cachegen(self, state: ModuleState, kwargs: GenQmlCachegenKwArgs) -> T.List[T.Union[build.CustomTarget, build.GeneratedList]]:
@@ -942,6 +947,7 @@ class QtBaseModule(ExtensionModule):
             [f'{target_name}_qmlcache_loader.cpp'],
             state.current_build_project,
             description=f'Qml cache loader for {target_name}',
+            backend=state.backend,
         )
         output.append(cacheloader_target)
         return output
@@ -1001,6 +1007,7 @@ class QtBaseModule(ExtensionModule):
             install_dir=install_dir,
             install_tag=install_tag,
             description=f'Qml type registration for {target_name}',
+            backend=state.backend,
         )
 
     @FeatureNew('qt.qml_module', '1.7')
