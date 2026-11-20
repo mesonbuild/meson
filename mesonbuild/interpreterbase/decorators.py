@@ -48,9 +48,10 @@ if T.TYPE_CHECKING:
 
     class _KwargInfoKWs(T.TypedDict, T.Generic[_T], total=False):
         name: str
+        types: type[None] | type[_T] | ContainerTypeInfo | tuple[type[None] | type[_T] | ContainerTypeInfo, ...]
         required: bool
         listify: bool
-        accept_second_level_holder: bool
+        accept_second_level_holder: bool | tuple[type, ...]
         default: _T | None
         since: str | None
         since_message: str
@@ -77,7 +78,7 @@ if T.TYPE_CHECKING:
         validator: T.Callable[[T.Any], str | None] | None
         convertor: T.Callable[[T.Any], object] | None
         listify: bool
-        accept_second_level_holder: bool
+        accept_second_level_holder: bool | tuple[type, ...]
 
     class _OptArgKWs(_PosArgKWs, total=False):
 
@@ -135,6 +136,11 @@ def unholder_return(f: TV_func) -> T.Callable[..., TYPE_var]:
         res = f(*wrapped_args, **wrapped_kwargs)
         return _unholder(res)
     return T.cast('T.Callable[..., TYPE_var]', wrapped)
+
+def second_level_holders_to_keep(accept: T.Union[bool, T.Tuple[type, ...]]) -> T.Tuple[type, ...]:
+    if isinstance(accept, bool):
+        return (mesonlib.SecondLevelHolder,) if accept else ()
+    return accept
 
 def disablerIfNotFound(f: TV_func) -> TV_func:
     @wraps(f)
@@ -343,7 +349,7 @@ class KwargInfo(T.Generic[_T]):
 
     name: str
     types: type[None] | type[_T] | ContainerTypeInfo | tuple[type[None] | type[_T] | ContainerTypeInfo, ...]
-    accept_second_level_holder: bool = dataclasses.field(default=False, kw_only=True)
+    accept_second_level_holder: bool | tuple[type, ...] = dataclasses.field(default=False, kw_only=True)
     required: bool = dataclasses.field(default=False, kw_only=True)
     listify: bool = dataclasses.field(default=False, kw_only=True)
     default: _T | None = dataclasses.field(default=None, kw_only=True)
@@ -383,7 +389,7 @@ class KwargInfo(T.Generic[_T]):
 class _PosArgInfoBase:
 
     types: type | T.Tuple[type | ContainerTypeInfo, ...] | ContainerTypeInfo
-    accept_second_level_holder: bool = dataclasses.field(default=False, kw_only=True)
+    accept_second_level_holder: bool | tuple[type, ...] = dataclasses.field(default=False, kw_only=True)
     since: str | None = dataclasses.field(default=None, kw_only=True)
     since_message: str = dataclasses.field(default='', kw_only=True)
     since_values: _FeatureValues | None = dataclasses.field(default=None, kw_only=True)
@@ -515,8 +521,8 @@ class TypedArgs:
                         value = copy.copy(info.default)
                 if info.listify:
                     kwargs[info.name] = value = mesonlib.listify(value)
-                if not info.accept_second_level_holder:
-                    kwargs[info.name] = value = resolve_second_level_holders(value)
+                keep = second_level_holders_to_keep(info.accept_second_level_holder)
+                kwargs[info.name] = value = resolve_second_level_holders(value, keep)
                 if not _check_value_type(types_tuple, value):
                     extra = None
                     if info.extra_types:
@@ -656,8 +662,8 @@ class TypedArgs:
 
             if info.listify:
                 nargs[i - 1] = value = mesonlib.listify(value)
-            if not info.accept_second_level_holder:
-                nargs[i - 1] = value = resolve_second_level_holders(value)
+            keep = second_level_holders_to_keep(info.accept_second_level_holder)
+            nargs[i - 1] = value = resolve_second_level_holders(value, keep)
 
             if not _check_value_type(types_tuple, value):
                 raise make_err(_shouldbe_format(self.name, 'positional', str(i), value, types_tuple))
