@@ -28,7 +28,7 @@ from .mesonlib import (
     get_filenames_templates_dict, substitute_values, has_path_sep,
     is_parent_path, relpath, PerMachineDefaultable,
     MesonBugException, EnvironmentVariables, lazy_property,
-    unwrap,
+    late_property, unwrap,
 )
 from .options import OptionKey
 
@@ -143,7 +143,7 @@ if T.TYPE_CHECKING:
 
         build_by_default: bool
         build_rpath: str
-        build_subdir: T.Optional[str]
+        build_subdir: str
         c_pch: T.Optional[T.Tuple[str, T.Optional[str]]]
         cpp_pch: T.Optional[T.Tuple[str, T.Optional[str]]]
         d_debug: T.List[T.Union[str, int]]
@@ -858,6 +858,7 @@ class StructuredSources(HoldableObject):
                 self.needs_copy = True
 
         if not self.needs_copy:
+            assert self.root is not None
             expected_path = self.canonicalize(os.path.join(self.root, path))
             for f in files:
                 if not isinstance(f, File) or f.is_built \
@@ -1017,6 +1018,9 @@ class Target(HoldableObject, AnyTargetProto, metaclass=SimpleABC):
 
 class BuildTarget(Target, BuildTargetProto):
     rust_crate_type: RustCrateType
+    vs_module_defs: File | None = None
+    prefix: late_property[str] = late_property()
+    suffix: late_property[str] = late_property()
 
     # This set contains all the languages a linker can link natively
     # without extra flags. For instance, nvcc (cuda) can link C++
@@ -2269,9 +2273,9 @@ class GeneratedList(HoldableObject):
     generator: Generator
     subdir: str
     preserve_path_from: T.Optional[str]
-    extra_args: T.List[str]
-    env: T.Optional[EnvironmentVariables]
-    extra_depends: T.List[TargetDepends]
+    extra_args: T.List[str] = field(default_factory=list)
+    env: T.Optional[EnvironmentVariables] = field(default_factory=EnvironmentVariables)
+    extra_depends: T.List[TargetDepends] = field(default_factory=list)
 
     def __post_init__(self) -> None:
         self.name = self.generator.exe
@@ -2280,15 +2284,6 @@ class GeneratedList(HoldableObject):
         self.outfilelist: T.List[str] = []
         self.outmap: T.Dict[FileMaybeInTargetPrivateDir, T.List[str]] = {}
         self.depend_files: T.List[File] = self.generator.depend_files.copy()
-
-        if self.extra_args is None:
-            self.extra_args: T.List[str] = []
-
-        if self.env is None:
-            self.env: EnvironmentVariables = EnvironmentVariables()
-
-        if self.extra_depends is None:
-            self.extra_depends: T.List[TargetDepends] = []
 
         if isinstance(self.generator.exe, programs.Program):
             if not self.generator.exe.found():
@@ -2300,7 +2295,7 @@ class GeneratedList(HoldableObject):
             else:
                 self.extra_depends.append(t)
         else:
-            path = self.generator.exe.get_path()
+            path = unwrap(self.generator.exe.get_path())
             if os.path.isabs(path):
                 # Can only add a dependency on an external program which we
                 # know the absolute path of
@@ -2308,7 +2303,7 @@ class GeneratedList(HoldableObject):
 
     def get_preserved_path_segment(self, infile: FileMaybeInTargetPrivateDir) -> str:
         in_abs = infile.absolute_path(self.generator.environment.source_dir, self.generator.environment.build_dir)
-        assert os.path.isabs(self.preserve_path_from)
+        assert os.path.isabs(unwrap(self.preserve_path_from))
         rel = os.path.relpath(in_abs, self.preserve_path_from)
         return os.path.dirname(rel)
 
@@ -2744,7 +2739,7 @@ class SharedLibrary(BuildTarget, LibTargetProto):
     def get_default_install_dir(self) -> T.Tuple[str, str]:
         return self.environment.get_shared_lib_dir(), '{libdir_shared}'
 
-    def determine_naming_info(self) -> T.Tuple[str, str, str, str, bool]:
+    def determine_naming_info(self) -> T.Tuple[str, str, str, str | None, bool]:
         scheme = self.environment.coredata.get_option_for_target(self, 'namingscheme')
         assert isinstance(scheme, str), 'for mypy'
 
@@ -3206,7 +3201,7 @@ class CustomTarget(Target, CustomTargetBase, CommandTargetProto):
                 if isinstance(d, LocalProgram):
                     d = d.get_target()
                 elif isinstance(d, programs.Program):
-                    path = d.get_path()
+                    path = unwrap(d.get_path())
                     # Can only add a dependency on an external program which we
                     # know the absolute path of
                     if not os.path.isabs(path):
@@ -3742,7 +3737,7 @@ class LocalProgram(programs.Program):
 
     def get_path(self) -> str:
         if isinstance(self.program, programs.ExternalProgram):
-            return self.program.get_path()
+            return unwrap(self.program.get_path())
         # Only the backend knows the actual path to the build program.
         raise MesonBugException('Cannot call get_path() on program that is a build target.')
 
@@ -3774,9 +3769,9 @@ class Data(HoldableObject):
     install_dir_name: str
     install_mode: 'FileMode'
     subproject: SubProject
-    rename: T.List[str] = None
+    rename: T.Optional[T.List[str]] = None
     install_tag: T.Optional[str] = None
-    data_type: str = None
+    data_type: T.Optional[str] = None
     follow_symlinks: T.Optional[bool] = None
 
     def __post_init__(self) -> None:
@@ -3819,7 +3814,7 @@ def get_sources_string_names(sources: T.Sequence[CustomTargetSources], backend: 
         elif isinstance(s, File):
             names.append(s.fname)
         elif isinstance(s, programs.ExternalProgram):
-            names.append(s.get_path())
+            names.append(unwrap(s.get_path()))
         else:
             raise MesonBugException(f'Unknown source type: {s!r}')
     return names
