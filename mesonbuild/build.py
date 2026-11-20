@@ -232,13 +232,6 @@ else:
 
 _T = T.TypeVar('_T')
 
-DEFAULT_STATIC_LIBRARY_NAMES: T.Mapping[str, T.Tuple[str, str]] = {
-    'unix': ('lib', 'a'),
-    'windows': ('', 'lib'),
-    'darwin': ('lib', 'a'),
-    'cygwin': ('lib', 'a'),
-}
-
 DEFAULT_SHARED_LIBRARY_NAMES: T.Mapping[str, T.Tuple[str, str, str]] = {
     'unix': ('lib', 'so', ''),
     'windows': ('', 'dll', 'dll.lib'),
@@ -2550,14 +2543,15 @@ class StaticLibrary(BuildTarget, StaticTargetProto):
         return 'static' if bl == 'auto' else bl
 
     def determine_default_prefix_and_suffix(self) -> T.Tuple[str, str]:
+        if self.uses_rust() and self.rust_crate_type == 'rlib':
+            # rustc always names rlibs libfoo.rlib
+            return 'lib', 'rlib'
+
         scheme = self.environment.coredata.get_option_for_target(self, 'namingscheme')
         assert isinstance(scheme, str), 'for mypy'
-        if scheme == 'platform':
-            schemename = self.get_platform_scheme_name()
-            prefix, suffix = DEFAULT_STATIC_LIBRARY_NAMES[schemename]
-        else:
-            prefix = ''
-            suffix = ''
+        if scheme == 'platform' and self.get_platform_scheme_name() == 'windows' and self.get_using_msvc():
+            return '', 'lib'
+
         # By default a static library is named libfoo.a even on Windows because
         # MSVC does not have a consistent convention for what static libraries
         # are called. The MSVC CRT uses libfoo.lib syntax but nothing else uses
@@ -2568,28 +2562,19 @@ class StaticLibrary(BuildTarget, StaticTargetProto):
         #
         # See our FAQ for more detailed rationale:
         # https://mesonbuild.com/FAQ.html#why-does-building-my-project-with-msvc-output-static-libraries-called-libfooa
-        if not self.name_prefix_set:
-            prefix = 'lib'
-        if not self.name_suffix_set:
-            if self.uses_rust():
-                if self.rust_crate_type == 'rlib':
-                    # default Rust static library suffix
-                    suffix = 'rlib'
-                elif self.rust_crate_type == 'staticlib':
-                    suffix = 'a'
-            elif self.environment.machines[self.for_machine].is_os2() and self.environment.coredata.optstore.get_value_for(OptionKey('os2_emxomf')):
-                suffix = 'lib'
-            elif 'c' in self.compilers and self.compilers['c'].get_id() == 'sdcc':
-                suffix = 'lib'
-            else:
-                suffix = 'a'
-                if 'c' in self.compilers and self.compilers['c'].get_id() == 'tasking' and not self.prelink:
-                    key = OptionKey('b_lto', self.subproject, self.for_machine)
-                    v = self.environment.coredata.get_option_for_target(self, key)
-                    assert isinstance(v, bool), 'for mypy'
-                    if v:
-                        suffix = 'ma'
-        return (prefix, suffix)
+        prefix, suffix = 'lib', 'a'
+        if self.environment.machines[self.for_machine].is_os2() and self.environment.coredata.optstore.get_value_for(OptionKey('os2_emxomf')):
+            suffix = 'lib'
+        elif 'c' in self.compilers and self.compilers['c'].get_id() == 'sdcc':
+            suffix = 'lib'
+        elif 'c' in self.compilers and self.compilers['c'].get_id() == 'tasking' and not self.prelink:
+            key = OptionKey('b_lto', self.subproject, self.for_machine)
+            v = self.environment.coredata.get_option_for_target(self, key)
+            assert isinstance(v, bool), 'for mypy'
+            if v:
+                suffix = 'ma'
+
+        return prefix, suffix
 
     def get_default_install_dir(self) -> T.Tuple[str, str]:
         return self.environment.get_static_lib_dir(), '{libdir_static}'
