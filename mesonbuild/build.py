@@ -2794,39 +2794,35 @@ class SharedLibrary(BuildTarget, LibTargetProto):
         elif self.environment.machines[self.for_machine].is_windows():
             suffix = suffix if suffix is not None else 'dll'
             assert prefix is None or prefix == ''
+            # Shared library has the soversion if it is defined
+            name_soversion = '{0.name}-{0.soversion}' if self.soversion else '{0.name}'
             if self.get_using_msvc():
-                # Shared library is of the form foo.dll
+                # foo.dll, foo.lib
                 prefix = ''
-                # Import library is called foo.lib
                 import_suffix = import_suffix if import_suffix is not None else 'lib'
-                import_filename_tpl = '{0.prefix}{0.name}.' + import_suffix
                 # .pdb file is only created when debug symbols are enabled
                 create_debug_file = self.environment.coredata.optstore.get_value_for(OptionKey("debug"))
                 assert isinstance(create_debug_file, bool), 'for mypy'
-            # Assume GCC-compatible naming
             else:
-                # Shared library is of the form libfoo.dll
+                # Assume GCC-compatible naming: libfoo.dll, libfoo.dll.a
                 prefix = prefix if prefix is not None else 'lib'
-                # Import library is called libfoo.dll.a
                 import_suffix = import_suffix if import_suffix is not None else 'dll.a'
-                import_filename_tpl = '{0.prefix}{0.name}.' + import_suffix
+
             if self.uses_rust():
                 # rustc keeps the soversion and .dll in the import library name:
                 # foo-X.dll.lib or libfoo-X.dll.a.  Also, the shared library always
                 # follows the MSVC nomenclature (foo.dll).
-                import_name = '{0.name}-{0.soversion}' if self.soversion else '{0.name}'
                 if self.get_using_msvc():
                     # foo-SOVERSION.dll.lib, foo-SOVERSION.dll
                     import_prefix, import_suffix = '{0.prefix}', 'dll.lib'
                 else:
                     # libfoo-SOVERSION.dll.a, foo-SOVERSION.dll
                     import_prefix, prefix = prefix, ''
-                import_filename_tpl = f'{import_prefix}{import_name}.{import_suffix}'
-            # Shared library has the soversion if it is defined
-            if self.soversion:
-                filename_tpl = '{0.prefix}{0.name}-{0.soversion}.{0.suffix}'
+                import_filename_tpl = f'{import_prefix}{name_soversion}.{import_suffix}'
             else:
-                filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
+                # see above: foo.lib for MSVC, libfoo.dll.a for MinGW
+                import_filename_tpl = '{0.prefix}{0.name}.' + import_suffix
+            filename_tpl = '{0.prefix}' + name_soversion + '.{0.suffix}'
         elif self.environment.machines[self.for_machine].is_cygwin():
             suffix = 'dll'
             # Shared library is of the form cygfoo.dll
