@@ -1,0 +1,12 @@
+# inside arguments, operators are indented one more level
+foo(aaaaaaaaaaaaaaaaaaaa and bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb or cccccccccccccccccccc)
+
+foo(
+    'aaaaaaaaaaaaaaaaaaaa' + 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb' + 'cccccccccccccccccccc',
+)
+
+# multiline parentheses are split first; * is only split with the + level
+x = (aaaaaaaaaaaaaaaaaaaa * bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb + cccccccccccccccccccc * ddddddddddddddddddddddddd)
+
+# not split when the first operand is already too long
+x = [aaaaaaaaaaaaaaaaaaaa, bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb, cccccccccccccccccccc, ddddddddddddddddddddddddd] + e

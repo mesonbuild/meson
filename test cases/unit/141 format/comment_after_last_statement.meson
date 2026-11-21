@@ -1,0 +1,32 @@
+# comment after the last statement of a block
+if a
+    x = 1  # first
+    y = 2  # last
+elif b
+    y = 2  # last of elif
+else
+    y = 2  # last of else
+endif
+foreach i : list
+    x = 1  # first
+    y = 2  # last
+endforeach
+
+# nested blocks, and comments on their own line after the last statement
+foreach i : list
+    if a
+        y = 2  # last
+        # own line
+    endif  # endif
+    # own line
+endforeach
+
+# empty blocks with comments
+if a
+    # only comment
+else
+    # only comment
+endif
+foreach i : list
+    # only comment
+endforeach

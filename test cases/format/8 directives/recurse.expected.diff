@@ -1,5 +1,0 @@
---- recurse/sub/meson.build	(original)
-+++ recurse/sub/meson.build	(reformatted)
-@@ -1 +1 @@
--y   =   [1,2]
-+y = [1, 2]

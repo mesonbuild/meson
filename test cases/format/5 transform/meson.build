@@ -1,7 +1,5 @@
 project('format')
 
-fs = import('fs')
-
 meson_cmd = find_program('meson')
 file_compare = find_program(files('file_compare.py'))
 config = get_option('fmt_config')
@@ -26,4 +24,11 @@ test(
     'transform',
     file_compare,
     args: [transform, expected],
+)
+
+# formatting the expected file again must not change it
+test(
+    'idempotent',
+    meson_cmd,
+    args: ['fmt', '-q', '-c', config_file, expected],
 )

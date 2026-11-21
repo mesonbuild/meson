@@ -1,0 +1,9 @@
+foo(
+    a or  # comment
+    b,
+)
+
+a = [
+    b  # comment
+    + c,
+]

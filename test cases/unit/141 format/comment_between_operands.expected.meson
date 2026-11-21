@@ -1,0 +1,18 @@
+# comment between operands
+if (
+    a
+    or  # comment
+    b
+)
+    message('comment after operator')
+endif
+y = (
+    1 +  # comment
+    2
+)
+if (
+    a
+    or b  # last
+)
+    message('comment after last operand')
+endif

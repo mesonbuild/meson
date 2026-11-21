@@ -1,0 +1,3 @@
+# a lone on directive does nothing
+# meson-format on
+x=[1,2]

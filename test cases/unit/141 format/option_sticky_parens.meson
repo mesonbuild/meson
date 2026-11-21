@@ -1,0 +1,17 @@
+# format-test: sticky_parens = true
+# format-test: indent_by = '  '
+
+if (
+  a
+  or b
+)
+  x = 1
+endif
+
+if (a or  # comment
+    b)
+  x = 1
+endif
+
+x = (  # comment
+  a or b)
