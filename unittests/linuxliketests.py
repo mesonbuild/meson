@@ -161,11 +161,8 @@ class LinuxlikeTests(BasePlatformTests):
             self._run(compiler + flags + ['-c', os.path.join(testdir, 'main.cpp'),
                                          '-DREQUIRED=marker_' + name, '-o', obj])
             # Check real multilib selection independently of Meson's option handling.
-            try:
-                self._run(compiler + flags + ['-fuse-ld=lld', '-nostdlib', obj, '-lprobe',
-                                             '-Wl,-e,main', '-o', os.path.join(sysroot, 'probe')])
-            except subprocess.CalledProcessError as e:
-                raise SkipTest(f'Clang multilib link probe failed for {name}: {e.output.strip()}') from e
+            self._run(compiler + flags + ['-fuse-ld=lld', '-nostdlib', obj, '-lprobe',
+                                          '-Wl,-e,main', '-o', os.path.join(sysroot, 'probe')])
 
         self.new_builddir()
         self.init(testdir)
