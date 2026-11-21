@@ -1,0 +1,10 @@
+{
+  "installed": [
+    { "type": "file", "file": "usr/include/greeter.pb.h" },
+    { "type": "file", "file": "usr/include/greeter.grpc.pb.h" },
+    { "type": "file", "file": "usr/include/messages.pb.h" },
+    { "type": "file", "file": "usr/include/messages.grpc.pb.h" },
+    { "type": "file", "file": "usr/include/plain/plain.pb.h" }
+  ],
+  "expect_skip_on_jobname": ["azure", "cygwin", "fedora", "gentoo", "msys2", "windows"]
+}

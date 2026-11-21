@@ -1,0 +1,6 @@
+{
+    "expect_skip_on_jobname": ["azure", "cygwin", "msys2", "windows"],
+    "stdout": [
+        { "line": "test cases/failing/156 protoc generated duplicate/meson.build:13:13: ERROR: protoc.generate: source file 'x.proto' and generated file 'x.proto' have the same import name 'x.proto'. Rename one of them." }
+    ]
+}

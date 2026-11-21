@@ -1,0 +1,5 @@
+syntax = "proto3";
+
+message Configured {
+  string @field_name@ = 1;
+}
