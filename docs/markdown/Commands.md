@@ -286,6 +286,14 @@ as `meson configure <builddir> -Dopt=value`.
 *Since 1.3.0* It is possible to clear the cache and reconfigure in a single command
 with `meson setup --clearcache --reconfigure <builddir>`.
 
+*Since 1.13.0* `--sbom` writes a [protobom](https://github.com/protobom/protobom)
+SBOM of the configured project to `<builddir>/sbom.protobom.bin`. The document
+lists every configured target and its resolved dependencies, with a
+`pkg:generic/<name>@<version>` purl where the project version is known. It is
+generated at configure time, so it contains no artifact hashes, and Meson does
+not model a supplier or per-target license, so those fields are omitted. The
+output is deterministic when `SOURCE_DATE_EPOCH` is set.
+
 {{ setup_arguments.inc }}
 
 See [Meson introduction
