@@ -1,0 +1,10 @@
+MultilibVersion: 1.0
+Variants:
+- Dir: eh_rtti
+  Flags: [-fexceptions, -frtti]
+- Dir: noeh_rtti
+  Flags: [-fno-exceptions, -frtti]
+- Dir: eh_nortti
+  Flags: [-fexceptions, -fno-rtti]
+- Dir: noeh_nortti
+  Flags: [-fno-exceptions, -fno-rtti]

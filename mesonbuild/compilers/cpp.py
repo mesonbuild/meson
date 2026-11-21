@@ -41,7 +41,7 @@ if T.TYPE_CHECKING:
     from ..environment import Environment
     from ..linkers.linkers import DynamicLinker
     from ..mesonlib import MachineChoice
-    from ..build import BuildTarget
+    from ..build import Build, BuildTarget
     CompilerMixinBase = CLikeCompiler
 else:
     CompilerMixinBase = object
@@ -299,6 +299,22 @@ class ClangCPPCompiler(_StdCPPLibMixin, ClangCPPStds, ClangCompiler, CPPCompiler
         if std != 'none':
             args.append(self._find_best_cpp_std(std))
         return args
+
+    def get_build_link_args(self, target: BuildTarget, build: Build) -> T.List[str]:
+        args: T.List[str] = []
+
+        eh = self.get_compileropt_value('eh', target)
+        rtti = self.get_compileropt_value('rtti', target)
+
+        assert isinstance(eh, str)
+        assert isinstance(rtti, bool)
+
+        if eh == 'none':
+            args.append('-fno-exceptions')
+        if not rtti:
+            args.append('-fno-rtti')
+
+        return args + super().get_build_link_args(target, build)
 
     def get_option_link_args(self, target: 'BuildTarget', subproject: T.Optional[str] = None) -> T.List[str]:
         if self.info.is_windows() or self.info.is_cygwin():
