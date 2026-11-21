@@ -188,7 +188,7 @@ class NativeFileTests(BasePlatformTests):
                 '''.format(binary)))
 
         if not is_windows():
-            os.chmod(filename, 0o755)
+            os.chmod(filename, 0o700)
             return filename
 
         # On windows we need yet another level of indirection, as cmd cannot
@@ -319,7 +319,7 @@ class NativeFileTests(BasePlatformTests):
                 suffix = '.bat' if is_windows() else ''
                 shutil.copyfile(system, bindir / f'meson-test-{name}{suffix}')
                 if not is_windows():
-                    (bindir / f'meson-test-{name}').chmod(0o755)
+                    (bindir / f'meson-test-{name}').chmod(0o700)
             env = {'PATH': str(bindir) + os.pathsep + os.environ['PATH']}
             for name, args, assertion in cases:
                 with self.subTest(name):
@@ -884,7 +884,7 @@ class CrossFileTests(BasePlatformTests):
             s = Path(d) / 'wrapper.py'
             with s.open('wt', encoding='utf-8') as f:
                 f.write(self._stub_exe_wrapper())
-            s.chmod(0o774)
+            s.chmod(0o700)
             p = Path(d) / 'crossfile'
             with p.open('wt', encoding='utf-8') as f:
                 f.write(self._cross_file_generator(
