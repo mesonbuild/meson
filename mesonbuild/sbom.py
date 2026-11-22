@@ -76,14 +76,23 @@ def _map_int_str(field: int, items: T.Mapping[int, str]) -> bytes:
                     for k in sorted(items))
 
 
-def _purl(name: str, version: str) -> T.Optional[str]:
+def _purl(name: str, version: T.Optional[str]) -> T.Optional[str]:
     if not version or version == 'unknown':
         return None
     # ponytail: no percent-encoding; Meson target names are path-safe.
     return f'pkg:generic/{name}@{version}'
 
 
-def _node(nid: str, name: str, version: str, purl: T.Optional[str]) -> bytes:
+def _dependency_id(name: str, version: T.Optional[str]) -> str:
+    purl = _purl(name, version)
+    if purl:
+        return purl
+    if version and version != 'unknown':
+        return f'{name}@{version}'
+    return name
+
+
+def _node(nid: str, name: str, version: T.Optional[str], purl: T.Optional[str]) -> bytes:
     parts = [_str(_NODE_ID, nid), _str(_NODE_NAME, name)]
     if version and version != 'unknown':
         parts.append(_str(_NODE_VERSION, version))
@@ -118,7 +127,7 @@ def build_document(b: build.Build, timestamp: int) -> bytes:
             dname = dep.get_name()
             dver = dep.get_version()
             dpurl = _purl(dname, dver)
-            did = dpurl or (f'{dname}@{dver}' if dver != 'unknown' else dname)
+            did = _dependency_id(dname, dver)
             if did not in nodes:
                 nodes[did] = _node(did, dname, dver, dpurl)
             edges.add((nid, did))

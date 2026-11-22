@@ -15,6 +15,11 @@ GOLDEN = ('0a1c1a0464656d6f22060880e2cfaa062a0c0a056d65736f6e1203312e30'
 
 class SbomEncoderTests(unittest.TestCase):
 
+    def test_external_dep_without_version(self):
+        did = sbom._dependency_id('libfoo', None)
+        self.assertEqual(did, 'libfoo')
+        self.assertNotIn('None', did)
+
     def test_golden(self):
         doc = sbom._msg(sbom._DOC_METADATA, [
             sbom._str(sbom._META_NAME, 'demo'),
