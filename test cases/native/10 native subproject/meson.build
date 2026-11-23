@@ -1,6 +1,6 @@
 project('native subproject', 'c', meson_version : '>= 1.12.0')
 
-cross = meson.is_cross_build()
+cross = meson.is_cross_build() ? 1 : 0
 add_global_arguments(f'-DGLOBAL_CROSS_BUILD=@cross@', language : 'c', native : false)
 add_global_arguments('-DGLOBAL_CROSS_BUILD=0', language : 'c', native : true)
 
