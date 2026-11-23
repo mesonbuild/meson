@@ -70,8 +70,17 @@ def check_symlinks():
     # to be created on the fly.
     for f in Path('test cases').glob('**/*'):
         if f.is_symlink():
+            # DO NOT ADD NEW EXCEPTIONS to this list!
+            #
+            # When Python packaging creates a release tarball
+            # it will silently replace symlinks with whatever
+            # they point to (or it might just drop them).
+            #
+            # Any new item here might appear to work, but
+            # it WILL BREAK releas buildsS!
             if 'boost symlinks/boost/lib' in str(f):
                 continue
+            # I repeat: DO NOT ADD NEW EXCEPTIONS HERE.
             raise SystemExit(f'Test data dir contains symlink: {f}.')
 
 
