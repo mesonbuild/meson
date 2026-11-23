@@ -709,6 +709,16 @@ class PlatformAgnosticTests(BasePlatformTests):
         self.setconf('-U:yielding')
         self.assertEqual(self.getconf('yielding'), 'toplevel')
 
+        # -Doption" and "-D:option" are the same project option, and using
+        # both on the same command line is an error.
+        with self.assertRaises(subprocess.CalledProcessError):
+            self.setconf(['-Dyielding=one', '-D:yielding=two'])
+        self.assertEqual(self.getconf('yielding'), 'toplevel')
+
+        self.new_builddir()
+        with self.assertRaises(subprocess.CalledProcessError):
+            self.init(testdir, extra_args=['-Dyielding=one', '-D:yielding=two'])
+
     def test_wipe_option_spellings(self) -> None:
         """The options from cmd_line.txt can use the other spelling of a project
            option than the command line, and the command line wins."""

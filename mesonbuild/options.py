@@ -1194,10 +1194,22 @@ class OptionStore:
            the last one wins."""
         return {self._canonical_key(k): v for k, v in options.items()}
 
+    def check_aliased_keys(self, keys: T.Iterable[OptionKey]) -> None:
+        """Raise an exception if keys contains both "foo" and ":foo" for a
+           project option foo, because the user's intent would be ambiguous."""
+        seen: T.Dict[OptionKey, OptionKey] = {}
+        for key in keys:
+            canonical = self._canonical_key(key)
+            other = seen.setdefault(canonical, key)
+            if other != key:
+                raise MesonException(f'Got option {other.evolve(subproject=None)} as both '
+                                     f'{other} and {key}. Pick one.')
+
     def set_from_configure_command(self, D_args: T.Dict[OptionKey, T.Optional[str]]) -> bool:
         """Update the options from the command line.  Return whether anything
            changed, in which case the options have to be resolved again, either
            with resolve_configured() or by configuring the project."""
+        self.check_aliased_keys(D_args)
         dirty = False
         for key, valstr in D_args.items():
             key = self._canonical_key(key)

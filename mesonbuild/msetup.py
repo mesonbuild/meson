@@ -81,6 +81,9 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
 class MesonApp:
     def __init__(self, options: CMDOptions) -> None:
         self.options = options
+        # The options from the command line file are added to d_keys by --wipe,
+        # so copy it now and use it later for check_aliased_options.
+        self.d_keys = frozenset(options.d_keys)
         (self.source_dir, self.build_dir) = self.validate_dirs()
         if options.wipe:
             # Make a copy of the cmd line file to make sure we can always
@@ -203,8 +206,10 @@ class MesonApp:
                                     'Some other Meson process is already using this build directory. Exiting.'):
             return self._generate(env, capture, vslite_ctx)
 
-    def check_unused_options(self, coredata: 'coredata.CoreData', cmd_line_options: T.Dict[OptionKey, str | None],
-                             all_subprojects: PerMachine[T.Dict[str, SubprojectHolder]]) -> None:
+    def check_options(self, coredata: 'coredata.CoreData', cmd_line_options: T.Dict[OptionKey, str | None],
+                      all_subprojects: PerMachine[T.Dict[str, SubprojectHolder]]) -> None:
+        coredata.optstore.check_aliased_keys(self.d_keys)
+
         errlist: T.List[str] = []
         known_subprojects: T.Set[str] = set()
         for m in MachineChoice:
@@ -281,9 +286,9 @@ class MesonApp:
             cdf = env.dump_coredata()
 
             self.finalize_postconf_hooks(b, intr)
-            self.check_unused_options(env.coredata,
-                                      intr.user_defined_options.cmd_line_options,
-                                      intr.subprojects)
+            self.check_options(env.coredata,
+                               intr.user_defined_options.cmd_line_options,
+                               intr.subprojects)
             if self.options.profile:
                 localvars = locals()
                 fname = f'profile-{intr.backend.name}-backend.log'
