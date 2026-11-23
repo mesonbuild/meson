@@ -72,8 +72,6 @@ def check_symlinks():
         if f.is_symlink():
             if 'boost symlinks/boost/lib' in str(f):
                 continue
-            if 'follow symlinks/bar/dir2/dir3' in str(f):
-                continue
             raise SystemExit(f'Test data dir contains symlink: {f}.')
 
 
