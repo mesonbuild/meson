@@ -126,6 +126,9 @@ cat <<-EOF > /etc/portage/package.use/ci
 	sys-devel/gcc pgo lto
 
 	sys-libs/zlib static-libs
+
+	# 32-bit multilib builds are generally not used by the testsuite
+	*/* ABI_X86: -32
 EOF
 
 cat <<-EOF >> /etc/portage/make.conf
@@ -162,6 +165,10 @@ EOF
 #EOF
 
 echo 'dev-lang/python ensurepip' >> /etc/portage/package.use/python
+
+# Include some debugging info in the CI logs.
+eselect profile show
+emerge --info
 
 # Silly mono circular dep
 #USE=minimal emerge --oneshot dev-lang/mono
