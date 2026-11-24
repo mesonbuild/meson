@@ -1670,15 +1670,18 @@ class BuildTarget(Target, BuildTargetProto):
         # get_internal_static_libraries(): Installed static libraries include
         # objects from all their dependencies already.
         result: OrderedSet[BuildTargetProto] = OrderedSet()
-        result.update(self.link_targets)
-        result.update(self.link_whole_targets)
 
         visited: T.Set[T.Tuple[object, bool, bool]] = set()
-        for t, is_link_whole in all_dependencies_recurse(self, self.link_targets, self.link_whole_targets,
-                                                         visited, include_internals=True,
-                                                         handled_by_rustc=True):
-            if not is_link_whole:
-                result.add(t)
+        for t in itertools.chain(self.link_targets, self.link_whole_targets):
+            if t in result:
+                continue
+            result.add(t)
+            if isinstance(t, StaticLibrary):
+                result.update((dep for dep, is_link_whole
+                               in all_dependencies_recurse(t, t.link_targets, t.link_whole_targets, visited,
+                                                           include_internals=t.is_internal(),
+                                                           handled_by_rustc=self.uses_rust())
+                               if not is_link_whole))
         return result
 
     def get_sources(self) -> T.List[File]:
