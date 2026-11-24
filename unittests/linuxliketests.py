@@ -2070,6 +2070,20 @@ class LinuxlikeTests(BasePlatformTests):
             self.build()
             self.wipe()
 
+    def test_static_link_installed_deps(self):
+        '''
+        Test that the internal dependencies of an installed static library are
+        not passed to the linker, because the library already includes them.
+        '''
+        testdir = os.path.join(self.common_test_dir, '307 static link order')
+        self.init(testdir)
+        targets = self.introspect('--targets')
+        prog = next(t for t in targets if t['name'] == 'prog-internallib')
+        linker = next(src for src in prog['target_sources'] if 'linker' in src)
+        libs = [os.path.basename(p) for p in linker['parameters']
+                if re.search(r'lib[a-z_]*\.a$', p)]
+        self.assertEqual(libs, ['libmylib_install.a'])
+
     @skip_if_not_language('rust')
     def test_rust_staticlib_rlib_deps(self):
         '''
