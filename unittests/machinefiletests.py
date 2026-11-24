@@ -481,6 +481,16 @@ class NativeFileTests(BasePlatformTests):
                         return 'ifort', 'intel-cl'
                     return 'ifort', 'intel'
                 elif shutil.which('flang'):
+                    # No better idea than copying what mesonbuild/compilers/detect.py
+                    # does, and look at the same help strings.
+                    help_out = subprocess.run(['flang', '--help'], capture_output=True,
+                                              text=True, check=False).stdout
+                    if 'flang LLVM compiler' in help_out:
+                        return 'flang', 'llvm-flang'
+                    out = subprocess.run(['flang', '--version'], capture_output=True,
+                                         text=True, check=False).stdout
+                    if 'flang-new' in out:
+                        return 'flang', 'llvm-flang'
                     return 'flang', 'flang'
                 elif shutil.which('pgfortran'):
                     return 'pgfortran', 'pgi'
