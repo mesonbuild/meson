@@ -2457,6 +2457,11 @@ class Executable(BuildTarget, LinkableTargetProto):
             if getattr(self, 'suffix', 'exe') != 'exe':
                 name += '_' + self.suffix
             self.debug_filename = name + '.pdb'
+        elif 'c' in self.compilers and self.compilers['c'].get_id() == 'sdcc':
+            # SDCC's linker assembles the .cdb from the per-module .adb files
+            debug = self.environment.coredata.get_option_for_target(self, OptionKey('debug', self.subproject))
+            if debug:
+                self.debug_filename = os.path.splitext(self.filename)[0] + '.cdb'
 
     def get(self, lib_type: _LibraryType, recursive: bool = False) -> Self:
         """Base case used by BothLibraries"""
