@@ -46,7 +46,7 @@ from mesonbuild.interpreterbase import (
     KwargInfo, PosArgInfo, VarArgInfo,
 )
 from mesonbuild.mesonlib import (
-    FileMode, LibType, MachineChoice, SimpleABC, Version, is_windows, is_osx,
+    EnvironmentVariables, FileMode, LibType, MachineChoice, SimpleABC, Version, is_windows, is_osx,
     is_cygwin, is_openbsd, search_version, MesonException, EnvironmentException, python_command,
     version_check_to_range,
 )
@@ -107,6 +107,25 @@ class InternalTests(unittest.TestCase):
                 EnvironmentException,
                 '"True" is not a valid value for cmake_skip_compiler_test'):
             properties.get_cmake_skip_compiler_test()
+
+    def test_environment_variables_merge_can_use_env(self):
+        # Only set(): the merged env can still be passed via /usr/bin/env
+        env = EnvironmentVariables({'CC': 'cc'})
+        env.merge(EnvironmentVariables({'FOO': 'bar'}))
+        self.assertTrue(env.can_use_env)
+
+        # append()/prepend() need the inherited value, so merging them in must
+        # disable the shortcut
+        for method, expected in (('append', ['/existing', '/build']),
+                                 ('prepend', ['/build', '/existing'])):
+            with self.subTest(method=method):
+                other = EnvironmentVariables()
+                getattr(other, method)('LD_LIBRARY_PATH', ['/build'])
+                env = EnvironmentVariables({'CC': 'cc'})
+                env.merge(other)
+                self.assertFalse(env.can_use_env)
+                result = env.get_env({'LD_LIBRARY_PATH': '/existing'})
+                self.assertEqual(result['LD_LIBRARY_PATH'], os.pathsep.join(expected))
 
     def test_machine_info_is_ohos(self):
         def machine(system: str, subsystem: str) -> mesonbuild.envconfig.MachineInfo:

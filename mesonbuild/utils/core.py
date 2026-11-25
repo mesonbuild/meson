@@ -95,6 +95,10 @@ class EnvironmentVariables(HoldableObject):
         return self.varnames
 
     def merge(self, other: EnvironmentVariables) -> None:
+        # append() and prepend() depend on the value inherited at runtime, so
+        # the merged object can't use the env shortcut either.
+        if not other.can_use_env:
+            self.can_use_env = False
         for method, name, values, separator in other.envvars:
             self.varnames.add(name)
             self.envvars.append((method, name, values, separator))
