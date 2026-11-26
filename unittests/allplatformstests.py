@@ -4654,6 +4654,9 @@ class AllPlatformTests(BasePlatformTests):
     def test_junit_valid_gtest(self):
         self._test_junit(os.path.join(self.framework_test_dir, '2 gtest'))
 
+    def test_junit_valid_catch2(self):
+        self._test_junit(os.path.join(self.framework_test_dir, '42 catch2'))
+
     def test_link_language_linker(self):
         # TODO: there should be some way to query how we're linking things
         # without resorting to reading the ninja.build file

@@ -86,6 +86,7 @@ class TestProtocol(enum.Enum):
     TAP = 1
     GTEST = 2
     RUST = 3
+    CATCH2 = 4
 
     @classmethod
     def from_str(cls, string: str) -> 'TestProtocol':
@@ -97,6 +98,8 @@ class TestProtocol(enum.Enum):
             return cls.GTEST
         elif string == 'rust':
             return cls.RUST
+        elif string == 'catch2':
+            return cls.CATCH2
         raise MesonException(f'unknown test format {string}')
 
     def __str__(self) -> str:
@@ -107,6 +110,8 @@ class TestProtocol(enum.Enum):
             return 'gtest'
         elif self is cls.RUST:
             return 'rust'
+        elif self is cls.CATCH2:
+            return 'catch2'
         return 'tap'
 
 

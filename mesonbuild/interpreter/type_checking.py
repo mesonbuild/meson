@@ -543,8 +543,8 @@ TEST_KWS_NO_ARGS: T.List[KwargInfo] = [
               validator=lambda x: 'must be an absolute path' if not os.path.isabs(x) else None),
     KwargInfo('protocol', str,
               default='exitcode',
-              validator=in_set_validator({'exitcode', 'tap', 'gtest', 'rust'}),
-              since_values={'gtest': '0.55.0', 'rust': '0.57.0'}),
+              validator=in_set_validator({'exitcode', 'tap', 'gtest', 'catch2', 'rust'}),
+              since_values={'gtest': '0.55.0', 'catch2': '1.14.0', 'rust': '0.57.0'}),
     KwargInfo('priority', int, default=0, since='0.52.0'),
     # TODO: env needs reworks of the way the environment variable holder itself works probably
     ENV_KW,
