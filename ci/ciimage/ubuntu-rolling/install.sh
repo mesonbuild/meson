@@ -25,6 +25,7 @@ pkgs=(
   libblocksruntime-dev
   libperl-dev
   liblapack-dev libscalapack-mpi-dev
+  libcatch2-dev
   bindgen
   itstool
   openjdk-11-jre
