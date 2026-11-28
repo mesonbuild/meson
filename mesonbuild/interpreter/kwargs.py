@@ -69,7 +69,7 @@ class FuncBenchmark(BaseTest):
 
     # Needs complex refactor for rust test to go in BaseTest
     args: T.List[build.CommandTypes]
-    protocol: Literal['exitcode', 'tap', 'gtest', 'rust']
+    protocol: Literal['exitcode', 'tap', 'gtest', 'catch2', 'rust']
 
 class FuncTest(FuncBenchmark):
 

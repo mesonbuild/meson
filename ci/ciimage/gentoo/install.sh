@@ -43,6 +43,7 @@ pkgs_stable=(
   sci-libs/netcdf
   media-libs/libsdl2
   dev-cpp/gtest
+  dev-cpp/catch
   sci-libs/hdf5
   llvm-core/llvm
   dev-qt/qtdeclarative:6

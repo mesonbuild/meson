@@ -868,7 +868,7 @@ class JunitBuilder(TestLogger):
                 # Assume that we don't need to merge anything here...
                 suite.attrib['name'] = '{}.{}.{}'.format(test.project, test.name, suite.attrib['name'])
 
-                # GTest can inject invalid attributes
+                # GTest and Catch2 can inject invalid attributes
                 for case in suite.findall('.//testcase[@result]'):
                     del case.attrib['result']
                 for case in suite.findall('.//testcase[@timestamp]'):
@@ -877,6 +877,8 @@ class JunitBuilder(TestLogger):
                     del case.attrib['file']
                 for case in suite.findall('.//testcase[@line]'):
                     del case.attrib['line']
+                for skipped in suite.findall('.//skipped[@type]'):
+                    del skipped.attrib['type']
                 self.root.append(suite)
             return
 
@@ -1165,6 +1167,8 @@ class TestRunGTest(TestRunExitCode):
         super().complete()
 
 TestRun.PROTOCOL_TO_CLASS[TestProtocol.GTEST] = TestRunGTest
+# Catch2's JUnit reporter produces the same XML layout as GTest.
+TestRun.PROTOCOL_TO_CLASS[TestProtocol.CATCH2] = TestRunGTest
 
 
 class TestRunTAP(TestRun):
@@ -1667,12 +1671,17 @@ class SingleTestRunner:
                 if not self.options.split and not self.runobj.needs_parsing \
                 else asyncio.subprocess.PIPE
 
+        def junit_filename() -> str:
+            filename = self.test.name
+            if self.test.workdir:
+                filename = os.path.join(self.test.workdir, filename)
+            return filename + '.xml'
+
         extra_cmd: T.List[str] = []
         if self.test.protocol is TestProtocol.GTEST:
-            gtestname = self.test.name
-            if self.test.workdir:
-                gtestname = os.path.join(self.test.workdir, self.test.name)
-            extra_cmd.append(f'--gtest_output=xml:{gtestname}.xml')
+            extra_cmd.append(f'--gtest_output=xml:{junit_filename()}')
+        elif self.test.protocol is TestProtocol.CATCH2:
+            extra_cmd.extend(['--reporter', 'junit', '--out', junit_filename()])
 
         p = await self._run_subprocess(cmd + extra_cmd,
                                        stdin=stdin,

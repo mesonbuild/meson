@@ -104,14 +104,15 @@ kwargs:
     default: "'exitcode'"
     description: |
       specifies how the test results are parsed and can
-      be one of `exitcode`, `tap`, or `gtest`. For more information about test
-      harness protocol read [Unit Tests](Unit-tests.md). The following values are
-      accepted:
+      be one of `exitcode`, `tap`, `gtest`, `catch2`, or `rust`. For more
+      information about test harness protocol read [Unit Tests](Unit-tests.md).
+      The following values are accepted:
 
       - `exitcode`: the executable's exit code is used by the test harness
         to record the outcome of the test).
       - `tap`: [Test Anything Protocol](https://www.testanything.org/).
       - `gtest` *(since 0.55.0)*: for Google Tests.
+      - `catch2` *(since 1.14.0)*: for Catch2 3.x tests.
       - `rust` *(since 0.56.0)*: for native rust tests
 
   priority:
