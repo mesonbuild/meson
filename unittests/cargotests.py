@@ -90,6 +90,9 @@ class CargoVersionTest(unittest.TestCase):
             ('>= 1.0.0-alpha, < 1.0.0',
              ['1.0.0-alpha', '1.0.0-beta', '1.0.0-rc.1'],
              ['1.0.0', '0.9']),
+            ('>= 2.0, <= 3.0.0-rc.10',
+             ['2.2.0', '3.0.0-rc.9', '3.0.0-rc.10'],
+             ['1.9.0', '3.0.0-rc.11', '3.0.0', '3.0.1']),
         ]
 
         for (cargo_req, accepted, rejected) in cases:
