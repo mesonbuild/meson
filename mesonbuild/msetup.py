@@ -81,6 +81,9 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
 class MesonApp:
     def __init__(self, options: CMDOptions) -> None:
         self.options = options
+        # The options from the command line file are added to d_keys by --wipe,
+        # so copy it now and use it later for check_aliased_options.
+        self.d_keys = frozenset(options.d_keys)
         (self.source_dir, self.build_dir) = self.validate_dirs()
         if options.wipe:
             # Make a copy of the cmd line file to make sure we can always
@@ -203,13 +206,17 @@ class MesonApp:
                                     'Some other Meson process is already using this build directory. Exiting.'):
             return self._generate(env, capture, vslite_ctx)
 
-    def check_unused_options(self, coredata: 'coredata.CoreData', cmd_line_options: T.Dict[OptionKey, str],
-                             all_subprojects: PerMachine[T.Dict[str, SubprojectHolder]]) -> None:
+    def check_options(self, coredata: 'coredata.CoreData', cmd_line_options: T.Dict[OptionKey, str | None],
+                      all_subprojects: PerMachine[T.Dict[str, SubprojectHolder]]) -> None:
+        coredata.optstore.check_aliased_keys(self.d_keys)
+
         errlist: T.List[str] = []
         known_subprojects: T.Set[str] = set()
         for m in MachineChoice:
             known_subprojects.update((name for name, obj in all_subprojects[m].items() if obj.found()))
         for opt in cmd_line_options:
+            # "foo=true" may also refer to toplevel project option ":foo"
+            opt = coredata.optstore._canonical_key(opt)
             # Accept options that exist or could appear in subsequent reconfigurations,
             # including options for subprojects that were not used
             if opt in coredata.optstore or \
@@ -217,9 +224,6 @@ class MesonApp:
                     coredata.optstore.accept_as_pending_option(opt):
                 continue
             if opt.subproject and opt.subproject not in known_subprojects:
-                continue
-            # "foo=true" may also refer to toplevel project option ":foo"
-            if opt.subproject is None and coredata.optstore.is_project_option(opt.as_root()):
                 continue
             errlist.append(f'"{opt}"')
         if errlist:
@@ -246,7 +250,8 @@ class MesonApp:
             mlog.log('Build type:', mlog.bold('native build'))
         b = build.Build(env)
 
-        intr = interpreter.Interpreter(b, user_defined_options=user_defined_options)
+        env.init_user_options(user_defined_options.cmd_line_options)
+        intr = interpreter.Interpreter(b, user_defined_options)
         # Super hack because mlog.log and mlog.debug have different signatures,
         # and there is currently no way to annotate them correctly, unionize them, or
         # even to write `T.Callable[[*mlog.TV_Loggable], None]`
@@ -281,9 +286,9 @@ class MesonApp:
             cdf = env.dump_coredata()
 
             self.finalize_postconf_hooks(b, intr)
-            self.check_unused_options(env.coredata,
-                                      intr.user_defined_options.cmd_line_options,
-                                      intr.subprojects)
+            self.check_options(env.coredata,
+                               intr.user_defined_options.cmd_line_options,
+                               intr.subprojects)
             if self.options.profile:
                 localvars = locals()
                 fname = f'profile-{intr.backend.name}-backend.log'
@@ -295,14 +300,7 @@ class MesonApp:
                 captured_compile_args = intr.backend.generate(capture, vslite_ctx)
 
             build.save(b, dumpfile)
-            if env.first_invocation:
-                # Use path resolved by coredata because they could have been
-                # read from a pipe and wrote into a private file.
-                self.options.cross_file = env.coredata.cross_files
-                self.options.native_file = env.coredata.config_files
-                cmdline.write_cmd_line_file(self.build_dir, self.options)
-            else:
-                cmdline.update_cmd_line_file(self.build_dir, self.options)
+            cmdline.write_cmd_line_file(env)
 
             # Generate an IDE introspection file with the same syntax as the already existing API
             if self.options.profile:

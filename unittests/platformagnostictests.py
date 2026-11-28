@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 import json
+import typing as T
 import os
 import pickle
 import subprocess
@@ -634,6 +635,112 @@ class PlatformAgnosticTests(BasePlatformTests):
         self.setconf('-Dneg_int_opt=-10')
         self.assertEqual(self.getconf('neg_int_opt'), -10)
 
+    def test_unset_project_options(self) -> None:
+        """Removing a project option from the command line makes the yielded
+           value, or the value from default_options, effective again."""
+        testdir = os.path.join(self.unit_test_dir, '140 unset project options')
+        self.init(testdir, extra_args=['-Dsub:yielding=cmdline', '-Dsub:plain=cmdline'])
+        self.assertEqual(self.getconf('sub:yielding'), 'cmdline')
+        self.assertEqual(self.getconf('sub:plain'), 'cmdline')
+
+        self.setconf(['-U', 'sub:yielding'])
+        self.assertEqual(self.getconf('sub:yielding'), 'toplevel')
+
+        self.setconf(['-U', 'sub:plain'])
+        self.assertEqual(self.getconf('sub:plain'), 'project')
+
+    def test_buildtype_derived(self) -> None:
+        """buildtype follows debug and optimization, also after meson configure."""
+        testdir = os.path.join(self.unit_test_dir, '140 unset project options')
+        self.init(testdir, extra_args=['-Ddebug=false', '-Doptimization=3'])
+        self.assertEqual(self.getconf('buildtype'), 'release')
+
+        self.setconf('-Ddebug=true', will_build=False)
+        self.assertEqual(self.getconf('buildtype'), 'custom')
+
+        self.setconf(['-Udebug', '-Uoptimization', '-Dbuildtype=minsize'], will_build=False)
+        self.assertEqual(self.getconf('buildtype'), 'minsize')
+        self.assertEqual(self.getconf('optimization'), 's')
+
+        self.setconf(['-Dbuildtype=custom', '-Doptimization=3'], will_build=False)
+        self.assertEqual(self.getconf('buildtype'), 'custom')
+
+    def _get_option_message(self, name: str, extra_args: T.List[str]) -> str:
+        self.new_builddir()
+        with tempfile.TemporaryDirectory() as testdir:
+            with open(os.path.join(testdir, 'meson.build'), 'w', encoding='utf-8') as f:
+                f.write(f"project('get_option', 'c')\nmessage('value=' + get_option('{name}'))\n")
+            out = self.init(testdir, extra_args=extra_args)
+        for line in out.splitlines():
+            if line.startswith('Message: value='):
+                return line[len('Message: value='):]
+        self.fail('message not found')
+
+    def test_get_option_buildtype_derived(self) -> None:
+        """get_option('buildtype') returns the computed value."""
+        self.assertEqual(self._get_option_message('buildtype', []), 'debug')
+        self.assertEqual(self._get_option_message('buildtype', ['-Ddebug=false']), 'custom')
+        self.assertEqual(self._get_option_message('buildtype', ['-Ddebug=false', '-Doptimization=3']),
+                         'release')
+
+    def test_get_option_b_ndebug_derived(self) -> None:
+        """get_option('b_ndebug') returns the computed value of if-release."""
+        self.assertEqual(self._get_option_message('b_ndebug', ['-Db_ndebug=if-release']), 'false')
+        self.assertEqual(self._get_option_message('b_ndebug', ['-Db_ndebug=if-release', '-Dbuildtype=release']),
+                         'true')
+        self.assertEqual(self._get_option_message('b_ndebug', ['-Db_ndebug=if-release', '-Ddebug=false']),
+                         'true')
+
+    def test_unknown_build_option_native(self) -> None:
+        """Unknown build-machine options are an error when building natively too."""
+        testdir = os.path.join(self.unit_test_dir, '140 unset project options')
+        self.init(testdir)
+        with self.assertRaises(subprocess.CalledProcessError):
+            self.setconf('-Dbuild.nonexistent=1', will_build=False)
+
+    def test_project_option_spellings(self) -> None:
+        testdir = os.path.join(self.unit_test_dir, '140 unset project options')
+        self.init(testdir, extra_args=['-D:yielding=one'])
+        self.assertEqual(self.getconf('yielding'), 'one')
+
+        self.setconf('-Dyielding=two')
+        self.assertEqual(self.getconf('yielding'), 'two')
+
+        self.setconf('-U:yielding')
+        self.assertEqual(self.getconf('yielding'), 'toplevel')
+
+        # -Doption" and "-D:option" are the same project option, and using
+        # both on the same command line is an error.
+        with self.assertRaises(subprocess.CalledProcessError):
+            self.setconf(['-Dyielding=one', '-D:yielding=two'])
+        self.assertEqual(self.getconf('yielding'), 'toplevel')
+
+        self.new_builddir()
+        with self.assertRaises(subprocess.CalledProcessError):
+            self.init(testdir, extra_args=['-Dyielding=one', '-D:yielding=two'])
+
+    def test_wipe_option_spellings(self) -> None:
+        """The options from cmd_line.txt can use the other spelling of a project
+           option than the command line, and the command line wins."""
+        testdir = os.path.join(self.unit_test_dir, '140 unset project options')
+        for file_spelling, cmd_spelling in (('yielding', ':yielding'), (':yielding', 'yielding')):
+            with self.subTest(file=file_spelling, cmd_line=cmd_spelling):
+                self.new_builddir()
+                cmd_line_file = os.path.join(self.builddir, 'meson-private', 'cmd_line.txt')
+                self.init(testdir)
+                with open(cmd_line_file, 'w', encoding='utf-8') as f:
+                    f.write(f'[options]\n{file_spelling} = file\n\n[properties]\n')
+                self.init(testdir, extra_args=['--wipe', f'-D{cmd_spelling}=cmdline'])
+                self.assertEqual(self.getconf('yielding'), 'cmdline')
+                with open(cmd_line_file, 'r', encoding='utf-8') as f:
+                    self.assertEqual(f.read().count('yielding'), 1)
+
+                # Only the options in the file.
+                with open(cmd_line_file, 'w', encoding='utf-8') as f:
+                    f.write(f'[options]\n{file_spelling} = file\n\n[properties]\n')
+                self.init(testdir, extra_args=['--wipe'])
+                self.assertEqual(self.getconf('yielding'), 'file')
+
     def test_configure_options_file_deleted(self) -> None:
         """Deleting all option files should make seting a project option an error."""
         testdir = self.copy_srcdir(os.path.join(self.common_test_dir, '40 options'))
@@ -696,7 +803,7 @@ class PlatformAgnosticTests(BasePlatformTests):
                 self.new_builddir()
                 self.init(testdir, extra_args=extra_args)
                 opts = self.introspect('--buildoptions')
-                self.assertEqual(self.getconf('buildtype', opts), 'release')
+                self.assertEqual(self.getconf('buildtype', opts), 'custom')
                 self.assertEqual(self.getconf('debug', opts), True)
                 self.assertEqual(self.getconf('optimization', opts), '3')
 
@@ -708,7 +815,7 @@ class PlatformAgnosticTests(BasePlatformTests):
                 self.new_builddir()
                 self.init(testdir, extra_args=extra_args)
                 opts = self.introspect('--buildoptions')
-                self.assertEqual(self.getconf('buildtype', opts), 'debug')
+                self.assertEqual(self.getconf('buildtype', opts), 'custom')
                 self.assertEqual(self.getconf('debug', opts), True)
                 self.assertEqual(self.getconf('optimization', opts), '3')
 

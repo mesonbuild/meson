@@ -258,12 +258,12 @@ gresource_dep_needed_version = '>= 2.51.1'
 class GnomeModule(ExtensionModule):
 
     INFO = ModuleInfo('gnome')
+    giscanner: mesonlib.late_property[Program] = mesonlib.late_property()
+    gicompiler: mesonlib.late_property[Program] = mesonlib.late_property()
 
     def __init__(self, interpreter: 'Interpreter') -> None:
         super().__init__(interpreter)
         self.gir_dep: T.Optional[Dependency] = None
-        self.giscanner: T.Optional[Program] = None
-        self.gicompiler: T.Optional[Program] = None
         self.install_glib_compile_schemas = False
         self.install_gio_querymodules: T.List[str] = []
         self.install_gtk_update_icon_cache = False
@@ -543,6 +543,7 @@ class GnomeModule(ExtensionModule):
             install=kwargs['install'],
             install_dir=[kwargs['install_dir']] if kwargs['install_dir'] else [],
             install_tag=['runtime'],
+            backend=state.backend,
         )
         target_c.source_dirs = source_dirs
 
@@ -564,6 +565,7 @@ class GnomeModule(ExtensionModule):
             install=install_header,
             install_dir=[install_dir],
             install_tag=['devel'],
+            backend=state.backend,
         )
         rv = [target_c, target_h]
         return ModuleReturnValue(rv, rv)
@@ -1061,6 +1063,7 @@ class GnomeModule(ExtensionModule):
             install_tag=['devel'],
             env=run_env,
             rsp_syntax=rsp_syntax,
+            backend=state.backend,
         )
 
     @staticmethod
@@ -1091,6 +1094,7 @@ class GnomeModule(ExtensionModule):
             install_tag=['typelib'],
             build_by_default=kwargs['build_by_default'],
             env=kwargs['env'],
+            backend=state.backend,
         )
 
     @staticmethod
@@ -1349,6 +1353,7 @@ class GnomeModule(ExtensionModule):
             build_by_default=kwargs['build_by_default'],
             depend_files=state._interpreter.source_strings_to_files(kwargs['depend_files']),
             description='Compiling gschemas {}',
+            backend=state.backend,
         )
         self._devenv_prepend('GSETTINGS_SCHEMA_DIR', os.path.join(state.environment.get_build_dir(), state.current_build_dir))
         return ModuleReturnValue(target_g, [target_g])
@@ -1466,6 +1471,7 @@ class GnomeModule(ExtensionModule):
                 state.current_build_project,
                 install_tag=['doc'],
                 description='Generating yelp doc {}',
+                backend=state.backend,
             )
             targets.append(gmotarget)
 
@@ -1482,6 +1488,7 @@ class GnomeModule(ExtensionModule):
                 install_dir=[l_install_dir],
                 install_tag=['doc'],
                 description='Generating yelp doc {}',
+                backend=state.backend,
             )
             targets.append(mergetarget)
 
@@ -1632,6 +1639,7 @@ class GnomeModule(ExtensionModule):
             build_always_stale=True,
             extra_depends=new_depends,
             description='Generating gtkdoc {}',
+            backend=state.backend,
         )
         alias_target = build.AliasTarget(targetname, [custom_target], state.subdir,
                                          state.environment, state.current_build_project)
@@ -1802,6 +1810,7 @@ class GnomeModule(ExtensionModule):
             state.current_build_project,
             build_by_default=build_by_default,
             description='Generating gdbus source {}',
+            backend=state.backend,
         )
         targets.append(cfile_custom_target)
 
@@ -1827,6 +1836,7 @@ class GnomeModule(ExtensionModule):
             install_dir=[install_dir],
             install_tag=['devel'],
             description='Generating gdbus header {}',
+            backend=state.backend,
         )
         targets.append(hfile_custom_target)
 
@@ -1854,6 +1864,7 @@ class GnomeModule(ExtensionModule):
                 build_by_default=build_by_default,
                 extra_depends=depends,
                 description='Generating gdbus docbook {}',
+                backend=state.backend,
             )
             targets.append(docbook_custom_target)
 
@@ -1875,6 +1886,7 @@ class GnomeModule(ExtensionModule):
                 state.current_build_project,
                 build_by_default=build_by_default,
                 description='Generating gdbus reStructuredText {}',
+                backend=state.backend,
             )
             targets.append(rst_custom_target)
 
@@ -1896,6 +1908,7 @@ class GnomeModule(ExtensionModule):
                 state.current_build_project,
                 build_by_default=build_by_default,
                 description='Generating gdbus markdown {}',
+                backend=state.backend,
             )
             targets.append(markdown_custom_target)
 
@@ -2146,6 +2159,7 @@ class GnomeModule(ExtensionModule):
             absolute_paths=True,
             rsp_syntax=RSPFileSyntax.GCC if mesonlib.is_windows() or mesonlib.is_cygwin() else None,
             description='Generating GObject enum file {}',
+            backend=state.backend,
         )
 
     @TypedArgs(
@@ -2216,6 +2230,7 @@ class GnomeModule(ExtensionModule):
             capture=capture,
             depend_files=kwargs['depend_files'],
             description='Generating glib marshaller header {}',
+            backend=state.backend,
         )
 
         c_cmd = cmd + ['--body', '@INPUT@']
@@ -2236,6 +2251,7 @@ class GnomeModule(ExtensionModule):
             depend_files=kwargs['depend_files'],
             extra_depends=extra_deps,
             description='Generating glib marshaller source {}',
+            backend=state.backend,
         )
 
         rv = [body, header]
@@ -2366,6 +2382,7 @@ class GnomeModule(ExtensionModule):
             install=kwargs['install'],
             install_dir=[install_dir],
             install_tag=['devel'],
+            backend=state.backend,
         )
 
         # So to try our best to get this to just work we need:

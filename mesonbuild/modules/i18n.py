@@ -39,7 +39,7 @@ if T.TYPE_CHECKING:
 
         input: T.List[CustomTargetInputs]
         output: str
-        build_by_default: bool
+        build_by_default: T.Optional[bool]
         install: bool
         install_dir: T.Optional[str]
         install_tag: T.Optional[str]
@@ -62,7 +62,7 @@ if T.TYPE_CHECKING:
 
         input: T.List[CustomTargetInputs]
         output: str
-        build_by_default: bool
+        build_by_default: T.Optional[bool]
         install: bool
         install_dir: T.Optional[str]
         install_tag: T.Optional[str]
@@ -192,6 +192,7 @@ class XgettextProgram:
             install_dir = [install_dir] if install_dir else None,
             install_tag = [install_tag] if install_tag else None,
             description = 'Extracting translations to {}',
+            backend=state.backend,
         )
 
         for source_id in self._get_source_id(sources):
@@ -356,6 +357,7 @@ class I18nModule(ExtensionModule):
             install_dir=[kwargs['install_dir']] if kwargs['install_dir'] is not None else None,
             install_tag=install_tag,
             description='Merging translations for {}',
+            backend=state.backend,
         )
 
         return ModuleReturnValue(ct, [ct])
@@ -458,6 +460,7 @@ class I18nModule(ExtensionModule):
                 install_dir=[mo_install_dir],
                 install_tag=['i18n'],
                 description='Building translation {}',
+                backend=state.backend,
             )
             targets.append(gmotarget)
             gmotargets.append(gmotarget)
@@ -550,6 +553,7 @@ class I18nModule(ExtensionModule):
             install_dir=[kwargs['install_dir']] if kwargs['install_dir'] is not None else None,
             install_tag=install_tag,
             description='Merging translations for {}',
+            backend=state.backend,
         )
 
         return ModuleReturnValue(ct, [ct])

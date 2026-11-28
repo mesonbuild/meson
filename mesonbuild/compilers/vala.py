@@ -175,7 +175,7 @@ class ValaCompiler(Compiler):
     def thread_link_flags(self) -> T.List[str]:
         return []
 
-    def get_option_link_args(self, target: 'BuildTarget', subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_link_args(self, target: T.Optional[BuildTarget], subproject: T.Optional[str] = None) -> T.List[str]:
         return []
 
     def build_wrapper_args(self,

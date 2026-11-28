@@ -13,6 +13,7 @@ from ..interpreter.type_checking import STR_FILE_PARG
 
 if T.TYPE_CHECKING:
     from ..interpreter import Interpreter
+    from ..interpreterbase import NoKwArgs
     from . import ModuleState
 
 class KeyvalModule(ExtensionModule):
@@ -46,7 +47,7 @@ class KeyvalModule(ExtensionModule):
         return result
 
     @TypedArgs('keyval.load', pos_types=[STR_FILE_PARG])
-    def load(self, state: 'ModuleState', args: T.Tuple['mesonlib.FileOrString'], kwargs: T.Dict[str, T.Any]) -> T.Dict[str, str]:
+    def load(self, state: 'ModuleState', args: T.Tuple['mesonlib.FileOrString'], kwargs: NoKwArgs) -> T.Dict[str, str]:
         s = args[0]
         is_built = False
         if isinstance(s, mesonlib.File):

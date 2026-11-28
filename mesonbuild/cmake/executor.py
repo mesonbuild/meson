@@ -10,7 +10,7 @@ import re
 import os
 
 from .. import mlog
-from ..mesonlib import PerMachine, Popen_safe, version_compare, is_windows
+from ..mesonlib import PerMachine, Popen_safe, version_compare, is_windows, unwrap
 from ..options import OptionKey
 from ..programs import find_external_program, NonExistingExternalProgram
 
@@ -29,7 +29,7 @@ class CMakeExecutor:
     # multiple times in the same Meson invocation.
     class_cmakebin: PerMachine[T.Optional[ExternalProgram]] = PerMachine(None, None)
     class_cmakevers: PerMachine[T.Optional[str]] = PerMachine(None, None)
-    class_cmake_cache: T.Dict[T.Any, TYPE_result] = {}
+    class_cmake_cache: T.Dict[object, TYPE_result] = {}
 
     def __init__(self, environment: 'Environment', version: str, for_machine: MachineChoice, silent: bool = False):
         self.min_version = version
@@ -44,12 +44,13 @@ class CMakeExecutor:
         if self.cmakebin is None:
             return
 
-        if not version_compare(self.cmakevers, self.min_version):
+        if not version_compare(self.version(), self.min_version):
             mlog.warning(
-                'The version of CMake', mlog.bold(self.cmakebin.get_path()),
-                'is', mlog.bold(self.cmakevers), 'but version', mlog.bold(self.min_version),
+                'The version of CMake', mlog.bold(self.executable_path()),
+                'is', mlog.bold(self.version()), 'but version', mlog.bold(self.min_version),
                 'is required')
             self.cmakebin = None
+            self.cmakevers = None
             return
 
         prefpath = self.environment.coredata.optstore.get_value_for(
@@ -78,7 +79,7 @@ class CMakeExecutor:
                 if not version_if_ok:
                     continue
                 if not silent:
-                    mlog.log('Found CMake:', mlog.bold(potential_cmakebin.get_path()),
+                    mlog.log('Found CMake:', mlog.bold(unwrap(potential_cmakebin.get_path())),
                              f'({version_if_ok})')
                 CMakeExecutor.class_cmakebin[self.for_machine] = potential_cmakebin
                 CMakeExecutor.class_cmakevers[self.for_machine] = version_if_ok
@@ -132,16 +133,18 @@ class CMakeExecutor:
     def _cache_key(self, args: T.List[str], build_dir: Path, env: T.Optional[T.Dict[str, str]]) -> TYPE_cache_key:
         fenv = frozenset(env.items()) if env is not None else frozenset()
         targs = tuple(args)
-        return (self.cmakebin.get_path(), targs, build_dir.as_posix(), fenv)
+        return (self.executable_path(), targs, build_dir.as_posix(), fenv)
 
     def _call_cmout_stderr(self, args: T.List[str], build_dir: Path, env: T.Optional[T.Dict[str, str]]) -> TYPE_result:
-        cmd = self.cmakebin.get_command() + args
+        cmd = self.get_command() + args
         proc = S.Popen(cmd, stdout=S.PIPE, stderr=S.PIPE, cwd=str(build_dir), env=env)  # TODO [PYTHON_37]: drop Path conversion
+        assert proc.stderr is not None
 
         # stdout and stderr MUST be read at the same time to avoid pipe
         # blocking issues. The easiest way to do this is with a separate
         # thread for one of the pipes.
         def print_stdout() -> None:
+            assert proc.stdout is not None
             while True:
                 line = proc.stdout.readline()
                 if not line:
@@ -178,8 +181,9 @@ class CMakeExecutor:
         return proc.returncode, None, raw_trace
 
     def _call_cmout(self, args: T.List[str], build_dir: Path, env: T.Optional[T.Dict[str, str]]) -> TYPE_result:
-        cmd = self.cmakebin.get_command() + args
+        cmd = self.get_command() + args
         proc = S.Popen(cmd, stdout=S.PIPE, stderr=S.STDOUT, cwd=str(build_dir), env=env)  # TODO [PYTHON_37]: drop Path conversion
+        assert proc.stdout is not None
         while True:
             line = proc.stdout.readline()
             if not line:
@@ -191,7 +195,7 @@ class CMakeExecutor:
 
     def _call_quiet(self, args: T.List[str], build_dir: Path, env: T.Optional[T.Dict[str, str]]) -> TYPE_result:
         build_dir.mkdir(parents=True, exist_ok=True)
-        cmd = self.cmakebin.get_command() + args
+        cmd = self.get_command() + args
         ret = S.run(cmd, env=env, cwd=str(build_dir), close_fds=False,
                     stdout=S.PIPE, stderr=S.PIPE, universal_newlines=False)   # TODO [PYTHON_37]: drop Path conversion
         rc = ret.returncode
@@ -200,7 +204,7 @@ class CMakeExecutor:
         return rc, out, err
 
     def _call_impl(self, args: T.List[str], build_dir: Path, env: T.Optional[T.Dict[str, str]]) -> TYPE_result:
-        mlog.debug(f'Calling CMake ({self.cmakebin.get_command()}) in {build_dir} with:')
+        mlog.debug(f'Calling CMake ({self.get_command()}) in {build_dir} with:')
         for i in args:
             mlog.debug(f'  - "{i}"')
         if not self.print_cmout:
@@ -230,13 +234,13 @@ class CMakeExecutor:
         return self.cmakebin is not None
 
     def version(self) -> str:
-        return self.cmakevers
+        return unwrap(self.cmakevers)
 
     def executable_path(self) -> str:
-        return self.cmakebin.get_path()
+        return unwrap(unwrap(self.cmakebin).get_path())
 
     def get_command(self) -> T.List[str]:
-        return self.cmakebin.get_command()
+        return unwrap(self.cmakebin).get_command()
 
     def get_cmake_prefix_paths(self) -> T.List[str]:
         return self.prefix_paths

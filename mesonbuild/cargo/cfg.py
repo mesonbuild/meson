@@ -29,7 +29,6 @@ import typing as T
 from ..mesonlib import MesonBugException, MesonException, lookahead
 
 if T.TYPE_CHECKING:
-    _T = T.TypeVar('_T')
     _LEX_TOKEN = T.Tuple['TokenType', T.Optional[str]]
     _LEX_STREAM = T.Iterator[_LEX_TOKEN]
     _LEX_STREAM_AH = T.Iterator[T.Tuple[_LEX_TOKEN, T.Optional[_LEX_TOKEN]]]

@@ -205,9 +205,6 @@ class CMakeStateCache:
         return set(self.__cache.keys())
 
 
-# Can't bind this near the class method it seems, sadly.
-_V = T.TypeVar('_V')
-
 # This class contains all data that must persist over multiple
 # invocations of Meson. It is roughly the same thing as
 # cmakecache.
@@ -338,6 +335,12 @@ class CoreData:
                 'backend_startup_project',
                 'Default project to execute in Visual Studio',
                 ''))
+
+        # Options for other backends are still pending; report them like
+        # any other unknown option.
+        for key in self.optstore.pending_options:
+            if self.optstore.is_backend_option(key):
+                raise MesonException(f'Unknown option: "{key}".')
 
     def get_option_for_target(self, target: 'BuildTarget', key: T.Union[str, OptionKey]) -> ElementaryOptionValues:
         if isinstance(key, str):

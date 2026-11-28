@@ -7,7 +7,7 @@ from .. import coredata, mesonlib, mlog
 from .disabler import Disabler
 from .baseobjects import DefaultObject
 from .exceptions import InterpreterException, InvalidArguments
-from .helpers import resolve_second_level_holders
+from .helpers import flatten, resolve_second_level_holders
 from ._unholder import _unholder
 
 from functools import partial, wraps
@@ -125,20 +125,16 @@ def get_callee_args(wrapped_args: T.Union[
         s = wrapped_args[0]
     return s.current_node, wrapped_args[-2], wrapped_args[-1], s.subproject
 
-def noArgsFlattening(f: TV_func) -> TV_func:
-    setattr(f, 'no-args-flattening', True)  # noqa: B010
-    return f
-
 def unholder_return(f: TV_func) -> T.Callable[..., TYPE_var]:
     @wraps(f)
-    def wrapped(*wrapped_args: T.Any, **wrapped_kwargs: T.Any) -> T.Any:
+    def wrapped(*wrapped_args: T.Any, **wrapped_kwargs: object) -> object:
         res = f(*wrapped_args, **wrapped_kwargs)
         return _unholder(res)
     return T.cast('T.Callable[..., TYPE_var]', wrapped)
 
 def disablerIfNotFound(f: TV_func) -> TV_func:
     @wraps(f)
-    def wrapped(*wrapped_args: T.Any, **wrapped_kwargs: T.Any) -> T.Any:
+    def wrapped(*wrapped_args: T.Any, **wrapped_kwargs: object) -> object:
         kwargs = get_callee_args(wrapped_args)[2]
         disabler = kwargs.pop('disabler', False)
         ret = f(*wrapped_args, **wrapped_kwargs)
@@ -204,7 +200,7 @@ def _raw_description(t: object) -> str:
 
 
 def _check_value_type(types: tuple[type | ContainerTypeInfo, ...] | type | ContainerTypeInfo,
-                      value: T.Any) -> bool:
+                      value: object) -> bool:
     types_tuple = types if isinstance(types, tuple) else (types, )
     for t in types_tuple:
         if isinstance(t, ContainerTypeInfo):
@@ -250,7 +246,7 @@ class ContainerTypeInfo:
         self.pairs = pairs
         self.allow_empty = allow_empty
 
-    def check(self, value: T.Any) -> bool:
+    def check(self, value: object) -> bool:
         """Check that a value is valid.
 
         :param value: A value to check
@@ -267,7 +263,7 @@ class ContainerTypeInfo:
             return False
         return True
 
-    def check_any(self, value: T.Any) -> bool:
+    def check_any(self, value: object) -> bool:
         """Check a value should emit new/deprecated feature.
 
         :param value: A value to check
@@ -437,6 +433,7 @@ class TypedArgs:
     kw_types: list[KwargInfo] = dataclasses.field(default_factory=list, kw_only=True)
     unknown_kwargs: bool = dataclasses.field(default=False, kw_only=True)
     process_posargs: bool = dataclasses.field(default=True, kw_only=True)
+    flatten: bool = dataclasses.field(default=True, kw_only=True)
 
     def _emit_feature_change(self, value: object, values: dict[_T, str | tuple[str, str]],
                              feature: type[FeatureDeprecated | FeatureNew],
@@ -599,6 +596,8 @@ class TypedArgs:
         assert not (self.opt_types and self.var_types), \
             'Cannot use optional arguments and variadic arguments together due to ambiguity'
 
+        if self.flatten:
+            args = flatten(args)
         nargs = T.cast('list[object]', args).copy()
         num_args = len(args)
         num_types = len(self.pos_types)
@@ -821,7 +820,7 @@ class FeatureCheckBase(metaclass=mesonlib.SimpleABC):
 
     def __call__(self, f: TV_func) -> TV_func:
         @wraps(f)
-        def wrapped(*wrapped_args: T.Any, **wrapped_kwargs: T.Any) -> T.Any:
+        def wrapped(*wrapped_args: T.Any, **wrapped_kwargs: object) -> object:
             node, _, _, subproject = get_callee_args(wrapped_args)
             self.use(subproject, node)
             return f(*wrapped_args, **wrapped_kwargs)

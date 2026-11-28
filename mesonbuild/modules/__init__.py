@@ -47,8 +47,6 @@ class ModuleState:
         self.environment = interpreter.environment
         self.project_name = interpreter.active_projectname
         self.project_version = interpreter.project_version
-        # The backend object is under-used right now, but we will need it:
-        # https://github.com/mesonbuild/meson/issues/1419
         self.backend = interpreter.backend
         self.dependency_overrides = interpreter.build.dependency_overrides
         self.targets = interpreter.build.targets
@@ -90,7 +88,7 @@ class ModuleState:
                                                    wanted=wanted, silent=silent, for_machine=for_machine)
 
     def find_tool(self, name: str, depname: str, varname: str, required: bool = True,
-                  wanted: T.Optional[str] = None, native: bool = True) -> Program:
+                  wanted: str = '', native: bool = True) -> Program:
         # Look in overrides in case it's built as subproject
         for_machine = MachineChoice.BUILD if native else MachineChoice.HOST
         progobj = self._interpreter.program_from_overrides([name], for_machine, [])
@@ -147,7 +145,7 @@ class ModuleState:
         return dependency
 
     def dependency(self, depname: str, native: bool = False, required: bool = True,
-                   wanted: T.Optional[T.Union[str, T.List[str]]] = None) -> 'Dependency':
+                   wanted: T.Union[str, T.List[str]] = '') -> 'Dependency':
         kwargs: T.Dict[str, object] = {'native': native, 'required': required}
         if wanted:
             kwargs['version'] = wanted
@@ -158,8 +156,8 @@ class ModuleState:
 
     def test(self, args: T.Tuple[str, T.Union[build.Executable, build.Jar, Program, mesonlib.File]],
              workdir: T.Optional[str] = None,
-             env: T.Union[T.List[str], T.Dict[str, str], str] = None,
-             depends: T.List[T.Union[build.CustomTarget, build.BuildTarget]] = None) -> None:
+             env: T.Optional[T.Union[T.List[str], T.Dict[str, str], str]] = None,
+             depends: T.Optional[T.List[T.Union[build.CustomTarget, build.BuildTarget]]] = None) -> None:
         kwargs = {'workdir': workdir,
                   'env': env,
                   'depends': depends,

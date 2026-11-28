@@ -2559,6 +2559,26 @@ class AllPlatformTests(BasePlatformTests):
                 self.assertEqual(item['value'], ['b', 'c'])
                 self.assertEqual(item['choices'], ['b', 'c', 'd'])
 
+        self.wipe()
+        self.mac_ci_delay()
+
+        # When the defaults change, the new defaults are used even if the
+        # old ones are still valid
+        options3 = str(testdir / 'meson_options.3.txt')
+        shutil.copy(options1, real_options)
+        self.init(str(testdir))
+        self.mac_ci_delay()
+        shutil.copy(options3, real_options)
+        self.build()
+        opts = self.introspect('--buildoptions')
+        for item in opts:
+            if item['name'] == 'combo':
+                self.assertEqual(item['value'], 'c')
+                self.assertEqual(item['choices'], ['a', 'b', 'c', 'd'])
+            elif item['name'] == 'array':
+                self.assertEqual(item['value'], ['c'])
+                self.assertEqual(item['choices'], ['a', 'b', 'c', 'd'])
+
     def test_options_listed_in_build_options(self) -> None:
         """Detect when changed options become listed in build options."""
         testdir = os.path.join(self.unit_test_dir, '113 list build options')
@@ -3307,12 +3327,12 @@ class AllPlatformTests(BasePlatformTests):
         self.setconf('-Ddebug=false')
         opts = self.get_opts_as_dict()
         self.assertEqual(opts['debug'], False)
-        self.assertEqual(opts['buildtype'], 'debug')
+        self.assertEqual(opts['buildtype'], 'custom')
         self.assertEqual(opts['optimization'], '0')
         self.setconf('-Doptimization=g')
         opts = self.get_opts_as_dict()
         self.assertEqual(opts['debug'], False)
-        self.assertEqual(opts['buildtype'], 'debug')
+        self.assertEqual(opts['buildtype'], 'custom')
         self.assertEqual(opts['optimization'], 'g')
 
     @skipIfNoPkgconfig
@@ -5219,7 +5239,7 @@ class AllPlatformTests(BasePlatformTests):
                 self.assertEqual(cls.USED_FOR_SEPARATE_LINKING_STEP, linker_driver)
                 with mock.patch.dict(os.environ, {'CFLAGS': '-DCFLAG', 'LDFLAGS': '-flto'}):
                     env = get_fake_env()
-                env.coredata.optstore.initialize_from_top_level_project_call({}, {}, {})
+                env.coredata.optstore.initialize_from_top_level_project_call({})
                 env.add_lang_args('c', cls, MachineChoice.HOST)
 
                 link_args = env.coredata.optstore.get_value_for(OptionKey('c_link_args'))
@@ -5239,7 +5259,8 @@ class AllPlatformTests(BasePlatformTests):
                       envvars: T.Dict[str, str]) -> T.List[str]:
             with mock.patch.dict(os.environ, envvars):
                 env = get_fake_env()
-            env.coredata.optstore.initialize_from_top_level_project_call({}, cmdline, {})
+            env.coredata.optstore.set_user_options(cmdline)
+            env.coredata.optstore.initialize_from_top_level_project_call({})
             env.add_lang_args('c', cls, MachineChoice.HOST)
             value = env.coredata.optstore.get_value_for(OptionKey('c_link_args'))
             assert isinstance(value, list), 'for mypy'

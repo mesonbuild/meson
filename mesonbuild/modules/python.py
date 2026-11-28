@@ -307,11 +307,11 @@ class PythonInstallation(ProgramHolder['PythonExternalProgram']):
     @disablerIfNotFound
     @InterpreterObject.method('dependency')
     def dependency_method(self, args: T.List['TYPE_var'], kwargs: FuncDependency) -> 'Dependency':
-        disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
+        required, disabled_by_feature = extract_required_kwarg(kwargs, self.subproject)
         nkwargs = T.cast('DependencyObjectKWs', kwargs.copy())
         nkwargs['required'] = required
-        if disabled:
-            mlog.log('Dependency', mlog.bold('python'), 'skipped: feature', mlog.bold(feature), 'disabled')
+        if disabled_by_feature:
+            mlog.log('Dependency', mlog.bold('python'), 'skipped: feature', mlog.bold(disabled_by_feature), 'disabled')
             return NotFoundDependency('python', self.interpreter.environment)
         else:
             dep = self._dependency_method_impl(nkwargs)
@@ -537,7 +537,7 @@ class PythonModule(ExtensionModule):
     def find_installation(self, state: 'ModuleState', args: T.Tuple[T.Optional[str]],
                           kwargs: 'FindInstallationKw') -> MaybePythonProg:
         feature_check = FeatureNew('Passing "feature" option to find_installation', '0.48.0')
-        disabled, required, feature = extract_required_kwarg(kwargs, state.subproject, feature_check)
+        required, disabled_by_feature = extract_required_kwarg(kwargs, state.subproject, feature_check)
 
         # FIXME: this code is *full* of sharp corners. It assumes that it's
         # going to get a string value (or now a list of length 1), of `python2`
@@ -552,8 +552,8 @@ class PythonModule(ExtensionModule):
             np = [fallback]
         name_or_path = np[0] if np else None
 
-        if disabled:
-            mlog.log('Program', name_or_path or 'python', 'found:', mlog.red('NO'), '(disabled by:', mlog.bold(feature), ')')
+        if disabled_by_feature:
+            mlog.log('Program', name_or_path or 'python', 'found:', mlog.red('NO'), '(disabled by:', mlog.bold(disabled_by_feature), ')')
             return NonExistingExternalProgram()
 
         python = self.installations.get(name_or_path)

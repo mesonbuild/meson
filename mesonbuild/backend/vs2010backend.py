@@ -127,7 +127,7 @@ def get_primary_source_lang(target_sources: T.List[File], custom_sources: T.List
 # reference and re-use the shared 'primary' language intellisense fields of the vcxproj.
 def get_non_primary_lang_intellisense_fields(vslite_ctx: _VSLITE_CTX,
                                              target_id: str,
-                                             primary_src_lang: Language
+                                             primary_src_lang: T.Optional[Language]
                                              ) -> T.Dict[str, T.Dict[str, T.Tuple[str, str, str]]]:
     defs_paths_opts_per_lang_and_buildtype: dict[str, dict[str, tuple[str, str, str]]] = {}
     for buildtype in coredata.get_genvs_default_buildtype_list():
@@ -1633,8 +1633,10 @@ class Vs2010Backend(backends.Backend):
         elif isinstance(target, build.CompileTarget):
             self.gen_compile_target_vcxproj(target, ofname, guid)
             return True
+        elif isinstance(target, build.Jar):
+            raise MesonException(f'Visual Studio backend does not support jar targets such as {target.get_basename()}')
         else:
-            raise MesonException(f'Unknown target type for {target.get_basename()}')
+            raise MesonBugException(f'Unknown target type for {target.get_basename()}')
 
         (sources, headers, objects, _languages) = self.split_sources(target.sources)
         if self.is_unity(target):
@@ -1748,6 +1750,7 @@ class Vs2010Backend(backends.Backend):
         previous_sources: list[str] = []
         if len(sources) + len(gen_src) + len(pch_sources) > 0:
             if self.gen_lite:
+                assert vslite_ctx is not None
                 # Get data to fill in intellisense fields for sources that can't reference the project-wide values
                 defs_paths_opts_per_lang_and_buildtype = get_non_primary_lang_intellisense_fields(
                     vslite_ctx,

@@ -172,8 +172,6 @@ class Dependency(HoldableObject):
         return False
 
     def is_named(self) -> bool:
-        if self.name is None:
-            return False
         return self.name != f'dep{self._id}'
 
     def summary_value(self) -> T.Union[str, mlog.AnsiDecorator, mlog.AnsiText]:
@@ -306,7 +304,7 @@ class InternalDependency(Dependency):
 
     type_name = DependencyTypeName('internal')
 
-    def __init__(self, version: str, incdirs: T.Optional[T.List['IncludeDirs']] = None,
+    def __init__(self, version: T.Optional[str], incdirs: T.Optional[T.List['IncludeDirs']] = None,
                  embed_dirs: list[IncludeDirs] | None = None,
                  compile_args: T.Optional[T.List[str]] = None,
                  link_args: T.Optional[T.List[str]] = None,
@@ -545,7 +543,7 @@ class ExternalLibrary(ExternalDependency):
 
     type_name = DependencyTypeName('library')
 
-    def __init__(self, name: str, link_args: T.List[str], environment: 'Environment',
+    def __init__(self, name: str, link_args: T.List[str] | None, environment: 'Environment',
                  language: Language, for_machine: MachineChoice, silent: bool = False) -> None:
         super().__init__(name, environment, {'language': language, 'native': for_machine})
         self.is_found = False
