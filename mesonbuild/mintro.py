@@ -249,14 +249,10 @@ def _list_buildoptions(coredata: cdata.CoreData, subprojects: T.Optional[T.List[
 
     def add_keys(opts: T.Union[options.MutableKeyedOptionDictType, options.OptionStore], section: str) -> None:
         for key, opt in sorted(opts.items()):
-            # Replicated per-subproject keys resolve through augments and
-            # yielding to report the value in effect for that subproject.
-            # Project options keep their stored value as before.
-            if key.subproject and not coredata.optstore.is_project_option(key):
-                value = coredata.optstore.get_value_for(key)
-            else:
-                value = opt.value
-            optdict = {'name': str(key), 'value': value, 'section': section,
+            value = coredata.optstore.get_value_for(key)
+            # Project options of the toplevel project are listed without a colon.
+            name = key.evolve(subproject=None) if key.subproject == '' else key
+            optdict = {'name': str(name), 'value': value, 'section': section,
                        'machine': key.machine.get_lower_case_name() if coredata.optstore.is_per_machine_option(key) else 'any'}
             if isinstance(opt, options.UserStringOption):
                 typestr = 'string'
@@ -294,14 +290,7 @@ def _list_buildoptions(coredata: cdata.CoreData, subprojects: T.Optional[T.List[
     )
     add_keys(dir_options, 'directory')
 
-    def project_option_key_to_introname(key: OptionKey) -> OptionKey:
-        assert key.subproject is not None
-        if key.subproject == '':
-            return key.evolve(subproject=None)
-        return key
-
-    add_keys({project_option_key_to_introname(k): v
-              for k, v in coredata.optstore.items() if coredata.optstore.is_project_option(k)}, 'user')
+    add_keys({k: v for k, v in coredata.optstore.items() if coredata.optstore.is_project_option(k)}, 'user')
     add_keys(test_options, 'test')
     return optlist
 

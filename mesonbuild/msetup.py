@@ -203,7 +203,7 @@ class MesonApp:
                                     'Some other Meson process is already using this build directory. Exiting.'):
             return self._generate(env, capture, vslite_ctx)
 
-    def check_unused_options(self, coredata: 'coredata.CoreData', cmd_line_options: T.Dict[OptionKey, str],
+    def check_unused_options(self, coredata: 'coredata.CoreData', cmd_line_options: T.Dict[OptionKey, str | None],
                              all_subprojects: PerMachine[T.Dict[str, SubprojectHolder]]) -> None:
         errlist: T.List[str] = []
         known_subprojects: T.Set[str] = set()
@@ -246,7 +246,8 @@ class MesonApp:
             mlog.log('Build type:', mlog.bold('native build'))
         b = build.Build(env)
 
-        intr = interpreter.Interpreter(b, user_defined_options=user_defined_options)
+        env.init_user_options(user_defined_options.cmd_line_options)
+        intr = interpreter.Interpreter(b, user_defined_options)
         # Super hack because mlog.log and mlog.debug have different signatures,
         # and there is currently no way to annotate them correctly, unionize them, or
         # even to write `T.Callable[[*mlog.TV_Loggable], None]`
@@ -295,14 +296,7 @@ class MesonApp:
                 captured_compile_args = intr.backend.generate(capture, vslite_ctx)
 
             build.save(b, dumpfile)
-            if env.first_invocation:
-                # Use path resolved by coredata because they could have been
-                # read from a pipe and wrote into a private file.
-                self.options.cross_file = env.coredata.cross_files
-                self.options.native_file = env.coredata.config_files
-                cmdline.write_cmd_line_file(self.build_dir, self.options)
-            else:
-                cmdline.update_cmd_line_file(self.build_dir, self.options)
+            cmdline.write_cmd_line_file(env)
 
             # Generate an IDE introspection file with the same syntax as the already existing API
             if self.options.profile:
