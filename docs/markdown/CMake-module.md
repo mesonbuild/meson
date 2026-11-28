@@ -137,7 +137,9 @@ and supports the following methods:
  - `dependency(target)` returns a dependency object for any CMake target. The
    `include_type` kwarg *(new in 0.56.0)* controls the include type of the
    returned dependency object similar to the same kwarg in the
-   [[dependency]] function.
+   [[dependency]] function. Include directories explicitly marked `PRIVATE`
+   with CMake's `target_include_directories()` are not exported by this
+   dependency; they remain available when building the CMake target itself.
  - `include_directories(target)` returns an array of Meson [[@inc]]
    objects for the specified target. Using this method is not necessary
    if the dependency object is used.
