@@ -35,6 +35,8 @@ if T.TYPE_CHECKING:
         d_keys: T.Set[OptionKey]
         cross_file: T.List[str]
         native_file: T.List[str]
+        cross_os: T.Optional[str]
+        cross_arch: T.Optional[str]
 
 
 class CmdLineFileParser(configparser.ConfigParser):
@@ -77,16 +79,24 @@ def read_cmd_line_file(build_dir: str, options: SharedCMDOptions) -> None:
         # This will be a string in the form: "['first', 'second', ...]", use
         # literal_eval to get it into the list of strings.
         options.native_file = ast.literal_eval(properties.get('native_file', '[]'))
+    if options.cross_os is None:
+        options.cross_os = properties.get('cross_os')
+    if options.cross_arch is None:
+        options.cross_arch = properties.get('cross_arch')
 
 def write_cmd_line_file(build_dir: str, options: SharedCMDOptions) -> None:
     filename = get_cmd_line_file(build_dir)
     config = CmdLineFileParser()
 
-    properties: T.Dict[str, T.List[str]] = {}
+    properties: T.Dict[str, T.Union[str, T.List[str]]] = {}
     if options.cross_file:
         properties['cross_file'] = options.cross_file
     if options.native_file:
         properties['native_file'] = options.native_file
+    if options.cross_os:
+        properties['cross_os'] = options.cross_os
+    if options.cross_arch:
+        properties['cross_arch'] = options.cross_arch
 
     config['options'] = {str(k): str(v) for k, v in options.cmd_line_options.items()}
     config['properties'] = {k: repr(v) for k, v in properties.items()}
@@ -118,6 +128,10 @@ def format_cmd_line_options(options: SharedCMDOptions) -> str:
         cmdline += [f'--cross-file={f}' for f in options.cross_file]
     if options.native_file:
         cmdline += [f'--native-file={f}' for f in options.native_file]
+    if options.cross_os:
+        cmdline += [f'--cross-os={options.cross_os}']
+    if options.cross_arch:
+        cmdline += [f'--cross-arch={options.cross_arch}']
     return ' '.join([shlex.quote(x) for x in cmdline])
 
 
