@@ -529,8 +529,7 @@ class QtBaseModule(ExtensionModule):
         preserve_path_from = os.path.join(state.source_root, state.subdir) if kwargs['preserve_paths'] else None
         gen = build.Generator(
             state.environment,
-            self.tools['uic'],
-            kwargs['extra_args'] + ['-o', '@OUTPUT@', '@INPUT@'],
+            [self.tools['uic'], *kwargs['extra_args'], '-o', '@OUTPUT@', '@INPUT@'],
             ['ui_@BASENAME@.h'],
             name=f'Qt{self.qt_version} ui')
         sources = self.interpreter.source_strings_to_files(kwargs['sources'])
@@ -594,7 +593,7 @@ class QtBaseModule(ExtensionModule):
                 header_gen_output.append('moc_@BASENAME@.cpp.json')
             moc_gen = build.Generator(
                 state.environment,
-                self.tools['moc'], arguments, header_gen_output,
+                [self.tools['moc'], *arguments], header_gen_output,
                 depends=depends,
                 depfile='moc_@BASENAME@.cpp.d',
                 name=f'Qt{self.qt_version} moc header')
@@ -606,7 +605,7 @@ class QtBaseModule(ExtensionModule):
                 source_gen_output.append('@BASENAME@.moc.json')
             moc_gen = build.Generator(
                 state.environment,
-                self.tools['moc'], arguments, source_gen_output,
+                [self.tools['moc'], *arguments], source_gen_output,
                 depfile='@BASENAME@.moc.d',
                 name=f'Qt{self.qt_version} moc source')
             sources = self.interpreter.source_strings_to_files(kwargs['sources'])
@@ -912,8 +911,7 @@ class QtBaseModule(ExtensionModule):
 
         cache_gen = build.Generator(
             state.environment,
-            self.tools['qmlcachegen'],
-            command_args,
+            [self.tools['qmlcachegen'], *command_args],
             [f'{target_name}_@BASENAME@.cpp'],
             depend_files=[kwargs['qml_qrc']],
             name=f'Qml cache generation for {target_name}')

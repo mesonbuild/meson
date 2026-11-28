@@ -28,7 +28,7 @@ from ..interpreter.type_checking import (
     OBJ_OARG, STR_OARG, INCLUDE_TYPE_VALIDATOR, STR_VARG_1, BOOL_PARG,
 )
 from ..dependencies import Dependency, ExternalLibrary, InternalDependency
-from ..programs import Program
+from ..programs import Program, ExternalProgram
 from ..mesonlib import as_posix, File, HoldableObject, listify, MachineChoice, MesonException
 
 import typing as T
@@ -684,10 +684,6 @@ class ProgramHolder(ObjectHolder[_PROG]):
     def _full_path(self) -> str:
         if not self.found():
             raise InterpreterException('Unable to get the path of a not-found external program')
-        if not self.held_object.runnable():
-            assert isinstance(self.held_object, build.LocalProgram) and \
-                isinstance(self.held_object.program, (build.BuildTarget, build.CustomTargetIndex))
-            return self.interpreter.backend.get_target_filename_abs(self.held_object.program)
         return mesonlib.unwrap(self.held_object.get_path())
 
     @TypedArgs('program.cmd_array')
@@ -704,8 +700,9 @@ class ProgramHolder(ObjectHolder[_PROG]):
     @FeatureNew('Program.version', '0.62.0')
     @InterpreterObject.method('version')
     def version_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
-        if isinstance(self.held_object, build.LocalProgram) and isinstance(self.held_object.program, build.Executable):
-            FeatureNew.single_use('Program.version with an executable', '1.9.0', subproject=self.subproject, location=self.current_node)
+        return self._version()
+
+    def _version(self) -> str:
         if not self.found():
             raise InterpreterException('Unable to get the version of a not-found external program')
         try:
@@ -715,6 +712,20 @@ class ProgramHolder(ObjectHolder[_PROG]):
 
     def found(self) -> bool:
         return self.held_object.found()
+
+
+class LocalProgramHolder(ProgramHolder[build.LocalProgram]):
+    def _full_path(self) -> str:
+        if not self.held_object.runnable():
+            assert isinstance(self.held_object.program, (build.BuildTarget, build.CustomTargetIndex))
+            return self.interpreter.backend.get_target_filename_abs(self.held_object.program)
+        return super()._full_path()
+
+    def _version(self) -> str:
+        if isinstance(self.held_object.program, build.Executable):
+            FeatureNew.single_use('Program.version with an executable', '1.9.0',
+                                  subproject=self.subproject, location=self.current_node)
+        return super()._version()
 
 
 class ExternalLibraryHolder(ObjectHolder[ExternalLibrary]):
@@ -837,9 +848,9 @@ class Test(MesonInterpreterObject):
         self.name = name
         self.suite = listify(suite)
         self.project_name = project
-        self.exe = exe
+        self.exe = build.unwrap_local_program(exe)
         self.is_parallel = is_parallel
-        self.cmd_args = cmd_args
+        self.cmd_args = [build.unwrap_local_program(a) for a in cmd_args]
         self.env = env
         self.expected_fail = expected_fail
         self.expected_exitcode = expected_exitcode
@@ -850,18 +861,17 @@ class Test(MesonInterpreterObject):
         self.verbose = verbose
 
         self.depends: T.List[build.BuildTargetProto] = []
-        for d in depends:
+        # Only worry about targets here.  classify_depends() also returns Files for
+        # programs, but tracking them would need a new field in TestSerialisation,
+        # because introspection data only contain target ids and setup-generated
+        # files have none.
+        targets, _ = build.classify_depends(depends)
+        for d in targets:
             if isinstance(d, build.GeneratedList):
                 raise MesonException('generated_list not allowed as a dependency for test')
-            if isinstance(d, Program):
-                if not isinstance(d, build.LocalProgram):
-                    continue
-                d = d.get_target()
-                if isinstance(d, File):
-                    continue
             self.depends.append(d)
 
-    def get_exe(self) -> T.Union[Program, build.Executable, build.Jar, build.CustomTarget, build.CustomTargetIndex]:
+    def get_exe(self) -> T.Union[ExternalProgram, build.BuildTargetProto]:
         return self.exe
 
     def get_name(self) -> str:

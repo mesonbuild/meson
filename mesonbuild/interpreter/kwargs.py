@@ -23,7 +23,7 @@ from .type_checking import PkgConfigDefineType, SourcesVarargsType
 
 TargetDepends = T.Union[build.BuildTargetProto, build.GeneratedList, Program]
 CustomTargetInputs = T.Union[str, build.BuildTarget, build.GeneratedTypes,
-                             build.ExtractedObjects, Program, File]
+                             build.ExtractedObjects, ExternalProgram, File]
 BuildTargetObjects = T.Union[str, File, build.ExtractedObjects, build.GeneratedTypes]
 RustAbi = Literal['rust', 'c']
 
@@ -335,7 +335,7 @@ class ConfigureFile(TypedDict):
     install_mode: FileMode
     install_tag: T.Optional[str]
     encoding: str
-    command: T.Optional[T.List[T.Union[build.Executable, Program, Compiler, File, str]]]
+    command: T.Optional[T.List[T.Union[build.Executable, ExternalProgram, Compiler, File, str]]]
     input: T.List[FileOrString]
     configuration: T.Optional[T.Union[T.Dict[str, T.Union[str, int, bool]], build.ConfigurationData]]
     macro_name: T.Optional[str]

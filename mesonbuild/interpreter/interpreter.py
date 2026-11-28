@@ -53,6 +53,7 @@ from .interpreterobjects import (
 from .type_checking import (
     BUILD_TARGET_KWS,
     COMMAND_KW,
+    COMMAND_TYPES,
     CT_BUILD_ALWAYS,
     CT_BUILD_ALWAYS_STALE,
     CT_BUILD_BY_DEFAULT,
@@ -152,7 +153,7 @@ if T.TYPE_CHECKING:
                             build.ExtractedObjects, build.StructuredSources]
     # Sources for custom targets, which can also include ExternalProgram
     CustomTargetSources = T.Union[build.TargetSources, build.BuildTarget,
-                                  build.ExtractedObjects, Program]
+                                  build.ExtractedObjects, ExternalProgram]
 
     BuildTargetSource = T.Union[str, build.TargetSources, build.StructuredSources]
 
@@ -434,6 +435,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             build.BothLibraries: OBJ.BothLibrariesHolder,
             build.SharedModule: OBJ.SharedModuleHolder,
             build.Executable: OBJ.ExecutableHolder,
+            build.LocalProgram: OBJ.LocalProgramHolder,
             build.Jar: OBJ.JarHolder,
             build.CustomTarget: OBJ.CustomTargetHolder,
             build.CustomTargetIndex: OBJ.CustomTargetIndexHolder,
@@ -777,25 +779,35 @@ class Interpreter(InterpreterBase, HoldableObject):
         ],
     )
     def func_run_command(self, node: mparser.BaseNode,
-                         args: T.Tuple[T.Union[build.Executable, Program, compilers.Compiler, mesonlib.File, str],
-                                       T.List[T.Union[build.Executable, Program, compilers.Compiler, mesonlib.File, str]]],
+                         args: T.Tuple[T.Union[build.Executable, ExternalProgram, compilers.Compiler, mesonlib.File, str],
+                                       T.List[T.Union[build.Executable, ExternalProgram, compilers.Compiler, mesonlib.File, str]]],
                          kwargs: 'kwtypes.RunCommand') -> RunProcess:
         return self.run_command_impl(args, kwargs)
 
-    def _compiled_exe_error(self, cmd: T.Union[Program, build.Executable]) -> T.NoReturn:
-        descr = cmd.name if isinstance(cmd, build.Executable) else cmd.description()
+    def _compiled_exe_error(self, cmd: build.BuildTargetTypes) -> T.NoReturn:
+        # Provide a better error message, clarifying *where* the compiled executable
+        # comes from if it was resolved from a second-level holder.
         for for_machine in MachineChoice:
             for name, exe in self.build.find_overrides[for_machine].items():
-                if cmd == exe:
-                    raise InterpreterException(f'Program {name!r} was overridden with the compiled executable {descr!r} and therefore cannot be used during configuration')
-        raise InterpreterException(f'Program {descr!r} is a compiled executable and therefore cannot be used during configuration')
+                if isinstance(exe, build.LocalProgram) and exe.program is cmd:
+                    raise InterpreterException(f'Program {name!r} was overridden with the compiled executable {cmd.name!r} and therefore cannot be used during configuration')
+        raise InterpreterException(f'Program {cmd.name!r} is a compiled executable and therefore cannot be used during configuration')
+
+    def _reject_built_programs(self, prog: T.Union[str, mesonlib.File, build.BuildTargetTypes, ExternalProgram, compilers.Compiler],
+                               args: T.Sequence[T.Union[str, mesonlib.File, build.BuildTargetTypes, ExternalProgram, compilers.Compiler]]) -> None:
+        if isinstance(prog, (build.BuildTarget, build.CustomTarget, build.CustomTargetIndex)):
+            self._compiled_exe_error(prog)
+        for a in args:
+            if isinstance(a, (build.BuildTarget, build.CustomTarget, build.CustomTargetIndex)):
+                self._compiled_exe_error(a)
 
     def run_command_impl(self,
-                         args: T.Tuple[T.Union[build.Executable, Program, compilers.Compiler, mesonlib.File, str],
-                                       T.List[T.Union[build.Executable, Program, compilers.Compiler, mesonlib.File, str]]],
+                         args: T.Tuple[T.Union[build.Executable, ExternalProgram, compilers.Compiler, mesonlib.File, str],
+                                       T.List[T.Union[build.Executable, ExternalProgram, compilers.Compiler, mesonlib.File, str]]],
                          kwargs: 'kwtypes.RunCommand',
                          in_builddir: bool = False) -> RunProcess:
         cmd, cargs = args
+        self._reject_built_programs(cmd, cargs)
         env = kwargs['env']
         srcdir = self.environment.get_source_dir()
         builddir = self.environment.get_build_dir()
@@ -806,13 +818,9 @@ class Interpreter(InterpreterBase, HoldableObject):
             check = False
 
         expanded_args: T.List[str] = []
-        if isinstance(cmd, build.Executable):
-            self._compiled_exe_error(cmd)
-        elif isinstance(cmd, Program):
+        if isinstance(cmd, ExternalProgram):
             if not cmd.found():
                 raise InterpreterException(f'command {cmd.get_name()!r} not found or not executable')
-            if not cmd.runnable():
-                self._compiled_exe_error(cmd)
         elif isinstance(cmd, compilers.Compiler):
             expanded_args = cmd.get_exe_args()
             cmd = cmd.get_exe()
@@ -820,7 +828,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             if not prog.found():
                 raise InterpreterException(f'Program {cmd!r} not found or not executable')
             cmd = prog
-        else:
+        elif isinstance(cmd, (mesonlib.File, str)):
             if isinstance(cmd, mesonlib.File):
                 cmd = cmd.absolute_path(srcdir, builddir)
             # Prefer scripts in the current source directory
@@ -829,16 +837,16 @@ class Interpreter(InterpreterBase, HoldableObject):
             if not prog.found():
                 raise InterpreterException(f'Program or command {cmd!r} not found or not executable')
             cmd = prog
+        else:
+            raise MesonBugException(f'Unexpected type {cmd!r}')
         for a in cargs:
             if isinstance(a, str):
                 expanded_args.append(a)
             elif isinstance(a, mesonlib.File):
                 expanded_args.append(a.absolute_path(srcdir, builddir))
-            elif isinstance(a, Program):
+            elif isinstance(a, ExternalProgram):
                 if not a.found():
                     raise InterpreterException(f'command {cmd.get_name()!r} not found or not executable')
-                if not a.runnable():
-                    self._compiled_exe_error(a)
                 expanded_args.append(a.get_path())
             elif isinstance(a, compilers.Compiler):
                 FeatureNew.single_use('Compiler object as a variadic argument to `run_command`', '0.61.0', self.subproject, location=self.current_node)
@@ -847,7 +855,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                     raise InterpreterException(f'Program {cmd!r} not found or not executable')
                 expanded_args.append(prog.get_path())
             else:
-                self._compiled_exe_error(a)
+                raise MesonBugException(f'Unexpected type {cmd!r}')
 
         # If any file that was used as an argument to the command
         # changes, we must re-run the configuration step.
@@ -2134,13 +2142,8 @@ class Interpreter(InterpreterBase, HoldableObject):
         kw_types=[
             CT_INPUT_KW.evolve(required=True),
             MULTI_OUTPUT_KW,
-            # Cannot use the COMMAND_KW because command is allowed to be empty
-            KwargInfo(
-                'command',
-                ContainerTypeInfo(list, (str, build.BuildTarget, build.CustomTarget, build.CustomTargetIndex, Program, mesonlib.File)),
-                listify=True,
-                default=[],
-            ),
+            # The command is allowed to be empty
+            COMMAND_KW.evolve(required=False, types=ContainerTypeInfo(list, COMMAND_TYPES)),
             KwargInfo('fallback', (str, NoneType)),
             KwargInfo('replace_string', str, default='@VCS_TAG@'),
             INSTALL_KW.evolve(since='1.7.0'),
@@ -2438,11 +2441,9 @@ class Interpreter(InterpreterBase, HoldableObject):
                 if '@OUTPUT@' in o:
                     raise InvalidArguments('Tried to use @OUTPUT@ in a rule with more than one output.')
 
-        if isinstance(args[0], build.Executable):
-            exe_prg = build.LocalProgram(args[0], self.project_version)
-        else:
-            exe_prg = args[0]
-        return build.Generator(self.environment, exe_prg, **kwargs)
+        return build.Generator(self.environment, [args[0], *kwargs['arguments']], kwargs['output'],
+                               depfile=kwargs['depfile'], capture=kwargs['capture'],
+                               depends=kwargs['depends'])
 
     @TypedArgs(
         'benchmark',

@@ -336,7 +336,7 @@ class GnomeModule(ExtensionModule):
             mlog.warning(f'Program {name} was not found, installation without DESTDIR will fail', fatal=False)
             return InstallScriptFailure(name, 'Executable was not found')
         try:
-            install_script = state.backend.get_executable_serialisation([exe, *args])
+            install_script = state.backend.get_executable_serialisation([build.unwrap_local_program(exe), *args])
             install_script.skip_if_destdir = skip_if_destdir
             return install_script
         except MesonException as e:
@@ -1644,7 +1644,7 @@ class GnomeModule(ExtensionModule):
             state.test(check_args, env=check_env, workdir=check_workdir, depends=[custom_target])
         res: T.List[T.Union[build.Target, mesonlib.ExecutableSerialisation]] = [custom_target, alias_target]
         if kwargs['install']:
-            res.append(state.backend.get_executable_serialisation(command + t_args, tag='doc'))
+            res.append(state.backend.get_executable_serialisation(custom_target.command, tag='doc'))
         return ModuleReturnValue(custom_target, res)
 
     def _get_build_args(self, c_args: T.List[str], inc_dirs: T.List[T.Union[str, build.IncludeDirs]],

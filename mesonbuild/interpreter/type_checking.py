@@ -9,7 +9,7 @@ import typing as T
 
 from .. import compilers
 from ..build import (CustomTarget, BuildTarget,
-                     CustomTargetIndex, ExtractedObjects, GeneratedList, IncludeDirs, LocalProgram,
+                     CustomTargetIndex, ExtractedObjects, GeneratedList, IncludeDirs,
                      BothLibraries, SharedLibrary, StaticLibrary, Jar, Executable, StructuredSources)
 from ..options import OptionKey
 from ..dependencies import Dependency, DependencyMethods, InternalDependency
@@ -28,8 +28,7 @@ NoneType: T.Type[None] = type(None)
 if T.TYPE_CHECKING:
     from typing_extensions import Literal
 
-    from .kwargs import CustomTargetInputs
-    from ..build import ObjectTypes, GeneratedTypes, CommandTypes, TargetSources, LinkableTypes, StaticTypes
+    from ..build import BuildTargetTypes, ObjectTypes, GeneratedTypes, CommandTypes, TargetSources, LinkableTypes, StaticTypes
     from ..interpreterbase import TYPE_var
     from ..options import ElementaryOptionValues
     from ..mesonlib import EnvInitValueType
@@ -276,7 +275,8 @@ DEPENDS_KW: KwargInfo[T.List[T.Union[BuildTarget, CustomTarget, CustomTargetInde
     ContainerTypeInfo(list, (BuildTarget, CustomTarget, CustomTargetIndex, Program)),
     listify=True,
     default=[],
-    since_values={CustomTargetIndex: '1.5.0', ExternalProgram: '1.12.0'},
+    since_values={ContainerTypeInfo(list, CustomTargetIndex): '1.5.0',
+                  ContainerTypeInfo(list, ExternalProgram): '1.12.0'},
 )
 
 DEPEND_FILES_KW: KwargInfo[T.List[T.Union[str, File]]] = KwargInfo(
@@ -286,12 +286,15 @@ DEPEND_FILES_KW: KwargInfo[T.List[T.Union[str, File]]] = KwargInfo(
     default=[],
 )
 
-COMMAND_KW: KwargInfo[T.List[T.Union[str, CommandTypes, Program, File]]] = KwargInfo(
+COMMAND_TYPES = (str, BuildTarget, CustomTarget, CustomTargetIndex, Program, File)
+
+COMMAND_KW: KwargInfo[T.List[CommandTypes]] = KwargInfo(
     'command',
-    ContainerTypeInfo(list, (str, BuildTarget, CustomTarget, CustomTargetIndex, Program, File), allow_empty=False),
+    ContainerTypeInfo(list, COMMAND_TYPES, allow_empty=False),
     required=True,
     listify=True,
     default=[],
+    since_values={ContainerTypeInfo(list, CustomTargetIndex): '0.60.0'},
 )
 
 
@@ -351,22 +354,12 @@ OUTPUT_KW: KwargInfo[str] = KwargInfo(
     validator=lambda x: _output_validator([x])
 )
 
-def _local_program_convertor(raw: T.List[T.Union[str, File, BuildTarget, GeneratedTypes, ExtractedObjects, Program]]) -> T.List[CustomTargetInputs]:
-    result: T.List[CustomTargetInputs] = []
-    for i in raw:
-        if isinstance(i, LocalProgram):
-            result.append(i.get_target())
-        else:
-            result.append(i)
-    return result
-
-CT_INPUT_KW: KwargInfo[T.List[T.Union[str, File, BuildTarget, GeneratedTypes, ExtractedObjects, Program]]] = KwargInfo(
+CT_INPUT_KW: KwargInfo[T.List[T.Union[str, File, BuildTargetTypes, ExternalProgram, ExtractedObjects, GeneratedList]]] = KwargInfo(
     'input',
-    ContainerTypeInfo(list, (str, File, BuildTarget, CustomTarget, CustomTargetIndex, ExtractedObjects, GeneratedList, Program)),
+    ContainerTypeInfo(list, (*COMMAND_TYPES, ExtractedObjects, GeneratedList)),
     listify=True,
     default=[],
-    convertor=_local_program_convertor,
-    since_values={ExternalProgram: '1.12.0'},
+    since_values={ContainerTypeInfo(list, ExternalProgram): '1.12.0'},
 )
 
 CT_INSTALL_TAG_KW: KwargInfo[T.List[T.Union[str, bool]]] = KwargInfo(
@@ -556,7 +549,7 @@ TEST_KWS_NO_ARGS: T.List[KwargInfo] = [
 TEST_KWS: T.List[KwargInfo] = TEST_KWS_NO_ARGS + [
     KwargInfo(
         'args',
-        ContainerTypeInfo(list, (str, File, BuildTarget, CustomTarget, CustomTargetIndex, Program)),
+        ContainerTypeInfo(list, COMMAND_TYPES),
         listify=True,
         default=[],
         since_values={ExternalProgram: '1.6.0'},

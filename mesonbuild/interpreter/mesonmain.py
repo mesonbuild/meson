@@ -16,7 +16,7 @@ from ..mesonlib import MachineChoice
 from ..options import OptionKey
 from ..programs import Program, ExternalProgram
 from ..interpreter.type_checking import (
-    ENV_METHOD_KW, ENV_SEPARATOR_KW, ENV_PARG, env_convertor,
+    COMMAND_TYPES, ENV_METHOD_KW, ENV_SEPARATOR_KW, ENV_PARG, env_convertor,
 )
 from ..interpreterbase import (MesonInterpreterObject, FeatureNew, FeatureDeprecated, FeatureBroken,
                                noArgsFlattening,
@@ -32,6 +32,7 @@ if T.TYPE_CHECKING:
     from ..compilers.compilers import Compiler, Language
     from ..dependencies.base import DependencyObjectKWs
     from ..interpreterbase import TYPE_kwargs, TYPE_var
+    from ..interpreterbase.decorators import _FeatureValues
     from ..mesonlib import ExecutableSerialisation
     from .interpreter import Interpreter
     from .kwargs import NativeKW
@@ -52,32 +53,35 @@ if T.TYPE_CHECKING:
         separator: str
 
 
-_BUILT_PROG_PARG = PosArgInfo(
-    (str, mesonlib.File, Program),
+# do not include since_values for targets because they are only included to produce
+# a better error message and fail anyway
+_ANY_PROG_PARG_SINCE: _FeatureValues = {mesonlib.File: '0.57.0', ExternalProgram: '0.55.0'}
+_ANY_PROG_PARG_ERR_CHECK = PosArgInfo(
+    (str, mesonlib.File, build.Executable, Program),
+    since_values=_ANY_PROG_PARG_SINCE,
+)
+
+_ANY_PROG_PARG = _ANY_PROG_PARG_ERR_CHECK.evolve(
     since_values={
+        **_ANY_PROG_PARG_SINCE,
         build.Executable: '0.55.0',
-        Program: '0.55.0',
-        mesonlib.File: '0.57.0',
     },
 )
 
-_BUILT_PROG_VARG = VarArgInfo(
-    (str, mesonlib.File, Program),
+_ANY_PROG_VARG_SINCE: _FeatureValues = {mesonlib.File: '0.55.0', ExternalProgram: '0.55.0'}
+_ANY_PROG_VARG_ERR_CHECK = VarArgInfo(
+    COMMAND_TYPES,
+    since_values=_ANY_PROG_VARG_SINCE,
+)
+
+_ANY_PROG_VARG = _ANY_PROG_VARG_ERR_CHECK.evolve(
     since_values={
-        mesonlib.File: '0.55.0',
+        **_ANY_PROG_VARG_SINCE,
         build.BuildTarget: '0.55.0',
         build.CustomTarget: '0.55.0',
         build.CustomTargetIndex: '0.55.0',
-        build.Executable: '0.55.0',
-        Program: '0.55.0',
     },
 )
-
-_ANY_PROG_PARG = PosArgInfo(
-    (str, mesonlib.File, build.Executable, Program),
-    since_values=_BUILT_PROG_PARG.since_values,
-)
-
 
 class MesonMain(MesonInterpreterObject):
     def __init__(self, build: 'build.Build', interpreter: 'Interpreter'):
@@ -86,37 +90,37 @@ class MesonMain(MesonInterpreterObject):
         self.interpreter = interpreter
 
     def _find_source_script(
-            self, name: str, prog: T.Union[str, mesonlib.File, build.Executable, Program],
-            args: T.List[str], *,
-            allow_built_program: bool = False) -> 'ExecutableSerialisation':
-        largs: T.List[T.Union[str, build.Executable, Program]] = []
+            self, name: str, prog: T.Union[str, mesonlib.File, build.Executable, ExternalProgram],
+            args: T.List[str]) -> 'ExecutableSerialisation':
+        largs: T.List[build.BackendCommandTypes] = []
 
-        if isinstance(prog, (build.Executable, Program)):
-            if not allow_built_program and not (isinstance(prog, Program) and prog.runnable()):
-                self.interpreter._compiled_exe_error(prog)
-        elif isinstance(prog, (str, mesonlib.File)):
-            prog = self.interpreter.find_program_impl([prog])
+        if isinstance(prog, (str, mesonlib.File)):
+            largs.append(build.unwrap_local_program(self.interpreter.find_program_impl([prog])))
+        else:
+            largs.append(prog)
+        if isinstance(prog, build.Executable):
+            # This feels really hacky, but I'm not sure how else to fix
+            # this without completely rewriting install script handling.
+            # This is complicated by the fact that the install target
+            # depends on all.
+            prog.get_target().build_by_default = True
 
-        largs.append(prog)
         largs.extend(args)
         es = self.interpreter.backend.get_executable_serialisation(largs, verbose=True)
         es.subproject = self.interpreter.subproject
         return es
 
     def _process_script_args(
-            self, name: str, args: T.Sequence[T.Union[
-                str, mesonlib.File, build.BuildTarget, build.CustomTarget,
-                build.CustomTargetIndex, Program,
-            ]]) -> T.List[str]:
+            self, name: str, args: T.Sequence[T.Union[str, mesonlib.File, build.BuildTargetTypes, ExternalProgram]]) -> T.List[str]:
         script_args = []  # T.List[str]
         for a in args:
-            if isinstance(a, build.LocalProgram):
-                a = a.program
             if isinstance(a, str):
                 script_args.append(a)
             elif isinstance(a, mesonlib.File):
                 script_args.append(a.rel_to_builddir(self.interpreter.environment.source_dir))
-            elif isinstance(a, (build.BuildTarget, build.CustomTarget, build.CustomTargetIndex)):
+            elif isinstance(a, ExternalProgram):
+                script_args.extend(a.get_command())
+            else:
                 script_args.extend([os.path.join(a.get_subdir(), o) for o in a.get_outputs()])
 
                 # This feels really hacky, but I'm not sure how else to fix
@@ -124,17 +128,12 @@ class MesonMain(MesonInterpreterObject):
                 # This is complicated by the fact that the install target
                 # depends on all.
                 a.get_target().build_by_default = True
-            else:
-                script_args.extend(a.get_command())
         return script_args
 
     @TypedArgs(
         'meson.add_install_script',
         pos_types=[_ANY_PROG_PARG],
-        var_types=VarArgInfo(
-            (str, mesonlib.File, build.BuildTarget, build.CustomTarget, build.CustomTargetIndex, Program),
-            since_values=_BUILT_PROG_VARG.since_values,
-        ),
+        var_types=_ANY_PROG_VARG,
         kw_types=[
             KwargInfo('skip_if_destdir', bool, default=False, since='0.57.0'),
             KwargInfo('install_tag', (str, NoneType), since='0.60.0'),
@@ -144,12 +143,13 @@ class MesonMain(MesonInterpreterObject):
     @InterpreterObject.method('add_install_script')
     def add_install_script_method(
             self,
-            args: T.Tuple[T.Union[str, mesonlib.File, build.Executable, Program], T.List[build.CommandTypes]],
+            args: T.Tuple[T.Union[str, mesonlib.File, build.Executable, ExternalProgram],
+                          T.List[T.Union[str, mesonlib.File, build.BuildTargetTypes, ExternalProgram]]],
             kwargs: 'AddInstallScriptKW') -> None:
         if self.interpreter.current_build_project().for_machine is MachineChoice.BUILD:
             return
         script_args = self._process_script_args('add_install_script', args[1])
-        script = self._find_source_script('add_install_script', args[0], script_args, allow_built_program=True)
+        script = self._find_source_script('add_install_script', args[0], script_args)
         script.skip_if_destdir = kwargs['skip_if_destdir']
         script.tag = kwargs['install_tag']
         script.dry_run = kwargs['dry_run']
@@ -157,15 +157,16 @@ class MesonMain(MesonInterpreterObject):
 
     @TypedArgs(
         'meson.add_postconf_script',
-        pos_types=[_ANY_PROG_PARG],
-        var_types=_BUILT_PROG_VARG,
+        pos_types=[_ANY_PROG_PARG_ERR_CHECK],
+        var_types=_ANY_PROG_VARG_ERR_CHECK,
     )
     @InterpreterObject.method('add_postconf_script')
     def add_postconf_script_method(
             self,
-            args: T.Tuple[T.Union[str, mesonlib.File, Program],
-                          T.List[T.Union[str, mesonlib.File, Program]]],
+            args: T.Tuple[T.Union[str, mesonlib.File, ExternalProgram],
+                          T.List[T.Union[str, mesonlib.File, ExternalProgram]]],
             kwargs: 'TYPE_kwargs') -> None:
+        self.interpreter._reject_built_programs(args[0], args[1])
         if self.interpreter.current_build_project().for_machine is MachineChoice.BUILD:
             return
         script_args = self._process_script_args('add_postconf_script', args[1])
@@ -174,16 +175,17 @@ class MesonMain(MesonInterpreterObject):
 
     @TypedArgs(
         'meson.add_dist_script',
-        pos_types=[_BUILT_PROG_PARG],
-        var_types=_BUILT_PROG_VARG.evolve(since='0.49.0'),
+        pos_types=[_ANY_PROG_PARG_ERR_CHECK],
+        var_types=_ANY_PROG_VARG_ERR_CHECK.evolve(since='0.49.0'),
     )
     @FeatureNew('meson.add_dist_script', '0.48.0')
     @InterpreterObject.method('add_dist_script')
     def add_dist_script_method(
             self,
-            args: T.Tuple[T.Union[str, mesonlib.File, Program],
-                          T.List[T.Union[str, mesonlib.File, Program]]],
+            args: T.Tuple[T.Union[str, mesonlib.File, ExternalProgram],
+                          T.List[T.Union[str, mesonlib.File, ExternalProgram]]],
             kwargs: 'TYPE_kwargs') -> None:
+        self.interpreter._reject_built_programs(args[0], args[1])
         if self.interpreter.subproject != '':
             FeatureNew.single_use('Calling "add_dist_script" in a subproject',
                                   '0.58.0', self.interpreter.subproject, location=self.current_node)
@@ -321,7 +323,7 @@ class MesonMain(MesonInterpreterObject):
     )
     @InterpreterObject.method('override_find_program')
     @apply_machine_map
-    def override_find_program_method(self, args: T.Tuple[str, T.Union[mesonlib.File, Program, build.Executable]],
+    def override_find_program_method(self, args: T.Tuple[str, T.Union[mesonlib.File, ExternalProgram, build.Executable]],
                                      kwargs: NativeKW) -> None:
         name, exe = args
         if isinstance(exe, mesonlib.File):

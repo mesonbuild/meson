@@ -57,12 +57,17 @@ if T.TYPE_CHECKING:
     from .mparser import BaseNode
     from .options import ElementaryOptionValues
 
-    TargetSources: TypeAlias = T.Union['File', 'GeneratedTypes']
+    # for use in the interpreter only
     CommandTypes: TypeAlias = T.Union['programs.Program', 'BuildTargetTypes', File, str]
     GeneratedTypes: TypeAlias = T.Union['CustomTarget', 'CustomTargetIndex', 'GeneratedList']
     BuildTargetTypes: TypeAlias = T.Union['BuildTarget', 'CustomTarget', 'CustomTargetIndex']
     LinkableTypes: TypeAlias = T.Union['LinkableTargetProto', 'BothLibraries']
     StaticTypes: TypeAlias = T.Union['StaticTargetProto', 'BothLibraries']
+
+    # for use in the backend too
+    TargetSources: TypeAlias = T.Union['File', 'GeneratedTypes']
+    BackendTargetDepends: TypeAlias = T.Union['AnyTargetProto', 'GeneratedList']
+    BackendCommandTypes: TypeAlias = T.Union['programs.ExternalProgram', 'BuildTargetProto', File, str]
     ObjectTypes: TypeAlias = T.Union['File', 'ExtractedObjects']
     RustCrateType: TypeAlias = Literal['bin', 'lib', 'rlib', 'dylib', 'cdylib', 'staticlib', 'proc-macro']
     _LibraryType: TypeAlias = Literal['auto', 'shared', 'static']
@@ -121,7 +126,7 @@ if T.TYPE_CHECKING:
 
     class CommandTargetProto(AnyTargetProto, Protocol):
         @property
-        def command(self) -> list[CommandTypes]: ...
+        def command(self) -> list[BackendCommandTypes]: ...
         @property
         def absolute_paths(self) -> bool: ...
         @property
@@ -231,6 +236,7 @@ else:
 
 
 _T = T.TypeVar('_T')
+_Target = T.TypeVar('_Target', bound='AnyTargetProto')
 
 DEFAULT_STATIC_LIBRARY_NAMES: T.Mapping[str, T.Tuple[str, str]] = {
     'unix': ('lib', 'a'),
@@ -2185,8 +2191,7 @@ class FileMaybeInTargetPrivateDir:
 
 class Generator(HoldableObject):
     def __init__(self, env: Environment,
-                 exe: programs.Program,
-                 arguments: T.List[str],
+                 command: T.List[CommandTypes],
                  output: T.List[str],
                  # how2dataclass
                  *,
@@ -2196,21 +2201,31 @@ class Generator(HoldableObject):
                  depend_files: T.Optional[T.Sequence[File]] = None,
                  name: str = 'Generator'):
         self.environment = env
-        self.exe = exe
+        self.command: T.List[BackendCommandTypes]
         self.depfile = depfile
         self.capture = capture
-        self.depends: T.List[TargetDepends] = list(depends or [])
-        self.depend_files: T.List[File] = list(depend_files or [])
-        self.arglist = arguments
+        self.depends, extra_depend_files = classify_depends(depends or [])
+        self.depend_files: T.List[File] = list(depend_files or []) + extra_depend_files
         self.outputs = output
         self.name = name
 
+        exe = command[0]
+        if isinstance(exe, programs.Program) and not exe.found():
+            # A program that was not found is reported when files are processed,
+            # in GeneratedList, so that an unused generator does not fail.  It cannot
+            # be a LocalProgram, so just cast.
+            self.command = T.cast('T.List[BackendCommandTypes]', list(command))
+        else:
+            self.command, exe_depend_files, exe_depends = flatten_command(command)
+            self.depend_files += exe_depend_files
+            self.depends += exe_depends
+
     def __repr__(self) -> str:
         repr_str = "<{0}: {1}>"
-        return repr_str.format(self.__class__.__name__, self.exe)
+        return repr_str.format(self.__class__.__name__, self.get_exe())
 
-    def get_exe(self) -> programs.Program:
-        return self.exe
+    def get_exe(self) -> BackendCommandTypes:
+        return self.command[0]
 
     def get_base_outnames(self, inname: str) -> T.List[str]:
         plainname = os.path.basename(inname)
@@ -2228,7 +2243,11 @@ class Generator(HoldableObject):
     def get_arglist(self, inname: str) -> T.List[str]:
         plainname = os.path.basename(inname)
         basename = os.path.splitext(plainname)[0]
-        return [x.replace('@BASENAME@', basename).replace('@PLAINNAME@', plainname) for x in self.arglist]
+        arglist: T.List[str] = []
+        for x in self.command[1:]:
+            assert isinstance(x, str)
+            arglist.append(x.replace('@BASENAME@', basename).replace('@PLAINNAME@', plainname))
+        return arglist
 
     def process_files(self, files: T.Iterable[TargetSources | BuildTarget],
                       subdir: str = '',
@@ -2236,13 +2255,15 @@ class Generator(HoldableObject):
                       extra_args: T.Optional[T.List[str]] = None,
                       env: T.Optional[EnvironmentVariables] = None,
                       extra_depends: T.Optional[T.Sequence[TargetDepends]] = None) -> 'GeneratedList':
+        extra_depends_targets, extra_depend_files = classify_depends(extra_depends or [])
         output = GeneratedList(
             self,
             subdir,
             preserve_path_from,
             extra_args=extra_args if extra_args is not None else [],
             env=env if env is not None else EnvironmentVariables(),
-            extra_depends=list(extra_depends) if extra_depends is not None else [])
+            extra_depends=extra_depends_targets)
+        output.depend_files += extra_depend_files
 
         for e in files:
             if isinstance(e, (BuildTarget, CustomTarget, CustomTargetIndex)):
@@ -2280,10 +2301,10 @@ class GeneratedList(HoldableObject):
     preserve_path_from: T.Optional[str]
     extra_args: T.List[str]
     env: T.Optional[EnvironmentVariables]
-    extra_depends: T.List[TargetDepends]
+    extra_depends: T.Sequence[BackendTargetDepends]
 
     def __post_init__(self) -> None:
-        self.name = self.generator.exe
+        self.name = self.generator.get_exe()
         self.depends: T.Set[BuildTarget | GeneratedTypes] = set()
         self.infilelist: T.List[FileMaybeInTargetPrivateDir] = []
         self.outfilelist: T.List[str] = []
@@ -2297,23 +2318,11 @@ class GeneratedList(HoldableObject):
             self.env: EnvironmentVariables = EnvironmentVariables()
 
         if self.extra_depends is None:
-            self.extra_depends: T.List[TargetDepends] = []
+            self.extra_depends: T.List[BackendTargetDepends] = []
 
-        if isinstance(self.generator.exe, programs.Program):
-            if not self.generator.exe.found():
-                raise InvalidArguments('Tried to use not-found external program as generator')
-        if isinstance(self.generator.exe, LocalProgram):
-            t = self.generator.exe.get_target()
-            if isinstance(t, File):
-                self.depend_files.append(t)
-            else:
-                self.extra_depends.append(t)
-        else:
-            path = self.generator.exe.get_path()
-            if os.path.isabs(path):
-                # Can only add a dependency on an external program which we
-                # know the absolute path of
-                self.depend_files.append(File.from_absolute_file(path))
+        exe = self.generator.get_exe()
+        if isinstance(exe, programs.Program) and not exe.found():
+            raise InvalidArguments('Tried to use not-found external program as generator')
 
     def get_preserved_path_segment(self, infile: FileMaybeInTargetPrivateDir) -> str:
         in_abs = infile.absolute_path(self.generator.environment.source_dir, self.generator.environment.build_dir)
@@ -3030,7 +3039,7 @@ class SharedModule(SharedLibrary):
     def get_default_install_dir(self) -> T.Tuple[str, str]:
         return self.environment.get_shared_module_dir(), '{moduledir_shared}'
 
-class BothLibraries(SecondLevelHolder):
+class BothLibraries(HoldableObject, SecondLevelHolder):
     typename: T.ClassVar[str] = 'both libraries'
 
     def __init__(self, shared: SharedLibrary, static: StaticLibrary, preferred_library: Literal['shared', 'static']) -> None:
@@ -3068,19 +3077,33 @@ class BothLibraries(SecondLevelHolder):
         return True
 
 
-def flatten_command(cmd: T.Iterable[CommandTypes],
-                    subproject: SubProject) -> tuple[list[CommandTypes], list[File], list[BuildTargetProto]]:
-    final_cmd: list[CommandTypes] = []
+@T.overload
+def unwrap_local_program(c: T.Union[programs.Program, BuildTargetTypes]
+                         ) -> T.Union[programs.ExternalProgram, BuildTargetProto]: ...
+
+@T.overload
+def unwrap_local_program(c: CommandTypes) -> BackendCommandTypes: ...
+
+def unwrap_local_program(c: CommandTypes) -> BackendCommandTypes:
+    '''Replace a LocalProgram with the program that it wraps.'''
+    if isinstance(c, LocalProgram):
+        return c.program
+    if isinstance(c, programs.Program) and not isinstance(c, programs.ExternalProgram):
+        raise MesonBugException(f'Argument {c!r} is not a LocalProgram or an ExternalProgram')
+    return c
+
+
+def flatten_command(cmd: T.Iterable[CommandTypes]) -> tuple[list[BackendCommandTypes], list[File], list[BuildTargetProto]]:
+    final_cmd: list[BackendCommandTypes] = []
     depend_files: list[File] = []
     dependencies: list[BuildTargetProto] = []
     for c in cmd:
-        if isinstance(c, LocalProgram):
-            c = c.program
+        c = unwrap_local_program(c)
         if isinstance(c, str):
             pass
         elif isinstance(c, File):
             depend_files.append(c)
-        elif isinstance(c, programs.Program):
+        elif isinstance(c, programs.ExternalProgram):
             if not c.found():
                 raise InvalidArguments('Tried to use not-found external program in "command"')
             # We know path is not none if c.found()
@@ -3093,12 +3116,37 @@ def flatten_command(cmd: T.Iterable[CommandTypes],
         elif isinstance(c, (BuildTarget, CustomTarget)):
             dependencies.append(c)
         elif isinstance(c, CustomTargetIndex):
-            FeatureNew.single_use('CustomTargetIndex for command argument', '0.60', subproject)
             dependencies.append(c.target)
         else:
             raise MesonBugException(f'Argument {c!r} in "command" is invalid')
         final_cmd.append(c)
     return final_cmd, depend_files, dependencies
+
+
+def classify_depends(deps: T.Iterable[_Target | GeneratedList | programs.Program]
+                     ) -> tuple[list[_Target | GeneratedList], list[File]]:
+    '''Replace the programs in a list of dependencies with the target or file that they wrap.
+
+    A LocalProgram is replaced with what it wraps.  An ExternalProgram is replaced
+    with its file if the path is known, and is otherwise dropped.  Return the
+    other dependencies and the files.'''
+    targets: list[BackendTargetDepends] = []
+    files: list[File] = []
+    for d in deps:
+        if isinstance(d, LocalProgram):
+            d = d.get_target()
+        elif isinstance(d, programs.Program):
+            path = d.get_path()
+            # Can only add a dependency on an external program which we
+            # know the absolute path of
+            if not os.path.isabs(path):
+                continue
+            d = File.from_absolute_file(path)
+        if isinstance(d, File):
+            files.append(d)
+        else:
+            targets.append(d)
+    return T.cast('list[_Target | GeneratedList]', targets), files
 
 
 class CustomTargetBase(StaticTargetProto, metaclass=SimpleABC):
@@ -3148,7 +3196,7 @@ class CustomTarget(Target, CustomTargetBase, CommandTargetProto):
 
     typename = 'custom'
     absolute_paths: bool
-    command: list[CommandTypes]
+    command: list[BackendCommandTypes]
 
     def __init__(self,
                  name: str,
@@ -3193,7 +3241,7 @@ class CustomTarget(Target, CustomTargetBase, CommandTargetProto):
         self.depend_files = list(depend_files or [])
         self.dependencies: T.List[BuildTargetProto] = []
         # must be after depend_files and dependencies
-        c, df, d = flatten_command(command, build_project.subproject)
+        c, df, d = flatten_command(command)
         self.command = c
         self.depend_files.extend(df)
         self.dependencies.extend(d)
@@ -3214,22 +3262,8 @@ class CustomTarget(Target, CustomTargetBase, CommandTargetProto):
         # Whether to enable using response files for the underlying tool
         self.rsp_syntax = rsp_syntax
 
-        self.extra_depends: T.List[T.Union[GeneratedList, BuildTargetProto]] = []
-        if extra_depends:
-            for d in extra_depends:
-                if isinstance(d, LocalProgram):
-                    d = d.get_target()
-                elif isinstance(d, programs.Program):
-                    path = d.get_path()
-                    # Can only add a dependency on an external program which we
-                    # know the absolute path of
-                    if not os.path.isabs(path):
-                        continue
-                    d = File.from_absolute_file(path)
-                if isinstance(d, File):
-                    self.depend_files.append(d)
-                else:
-                    self.extra_depends.append(d)
+        self.extra_depends, extra_depend_files = classify_depends(extra_depends or [])
+        self.depend_files.extend(extra_depend_files)
 
     def install_dir_names(self) -> T.List[T.Optional[str]]:
         install_dir_names: T.List[T.Optional[str]] = []
@@ -3242,8 +3276,8 @@ class CustomTarget(Target, CustomTargetBase, CommandTargetProto):
         repr_str = "<{0} {1}: {2}>"
         return repr_str.format(self.__class__.__name__, self.get_id(), self.command)
 
-    def get_target_dependencies(self) -> T.List[TargetDepends | File | ExtractedObjects]:
-        deps: T.List[TargetDepends | File | ExtractedObjects] = []
+    def get_target_dependencies(self) -> T.List[BackendTargetDepends | File | ExtractedObjects]:
+        deps: T.List[BackendTargetDepends | File | ExtractedObjects] = []
         deps.extend(self.dependencies)
         deps.extend(self.extra_depends)
         for c in self.sources:
@@ -3454,12 +3488,13 @@ class RunTarget(Target, CommandTargetProto):
 
     typename = 'run'
     absolute_paths: bool = False
-    command: list[CommandTypes]
+    command: list[BackendCommandTypes]
+    dependencies: list[BackendTargetDepends]
 
     def __init__(self, name: str,
                  command: T.Sequence[CommandTypes],
                  # the RunTarget case is used by gnome.yelp()
-                 dependencies: T.Sequence[AnyTargetProto | programs.Program],
+                 dependencies: T.Sequence[_Target | GeneratedList | programs.Program],
                  subdir: str,
                  environment: Environment,
                  build_project: BuildProject,
@@ -3467,8 +3502,9 @@ class RunTarget(Target, CommandTargetProto):
                  default_env: bool = True):
         # These don't produce output artifacts
         super().__init__(name, subdir, False, MachineChoice.BUILD, environment, build_project)
-        self.dependencies = list(dependencies)
-        self.command, self.depend_files, d = flatten_command(command, build_project.subproject)
+        self.dependencies, extra_depend_files = classify_depends(dependencies)
+        self.command, self.depend_files, d = flatten_command(command)
+        self.depend_files += extra_depend_files
         self.dependencies.extend(d)
         self.env = env
         self.default_env = default_env
@@ -3477,7 +3513,7 @@ class RunTarget(Target, CommandTargetProto):
         repr_str = "<{0} {1}: {2}>"
         return repr_str.format(self.__class__.__name__, self.get_id(), self.command[0])
 
-    def get_dependencies(self) -> T.Iterable[AnyTargetProto | programs.Program]:
+    def get_dependencies(self) -> T.Iterable[BackendTargetDepends]:
         return self.dependencies
 
     def get_generated_sources(self) -> T.Iterable[GeneratedTypes]:
@@ -3502,7 +3538,7 @@ class AliasTarget(RunTarget):
 
     typename = 'alias'
 
-    def __init__(self, name: str, dependencies: T.Sequence[Target],
+    def __init__(self, name: str, dependencies: T.Sequence[AnyTargetProto],
                  subdir: str, environment: Environment,
                  build_project: BuildProject):
         super().__init__(name, [], dependencies, subdir, environment, build_project)
@@ -3712,7 +3748,7 @@ class ConfigurationData(HoldableObject):
     def keys(self) -> T.Iterable[str]:
         return self.values.keys()
 
-class LocalProgram(programs.Program):
+class LocalProgram(programs.Program, SecondLevelHolder):
     def __init__(self, program: T.Union[programs.ExternalProgram, Executable, CustomTarget, CustomTargetIndex], version: str,
                  file: T.Optional[File] = None) -> None:
         super().__init__()
@@ -3760,10 +3796,13 @@ class LocalProgram(programs.Program):
         # Only the backend knows the actual path to the build program.
         raise MesonBugException('Cannot call get_path() on program that is a build target.')
 
-    def get_target(self) -> T.Union[File, Executable, CustomTarget, CustomTargetIndex]:
+    def get_target(self) -> T.Union[File, BuildTargetProto]:
         if self.file:
             return self.file
         assert not isinstance(self.program, programs.ExternalProgram)
+        return self.program
+
+    def get_default_object(self) -> T.Union[programs.ExternalProgram, Executable, CustomTarget, CustomTargetIndex]:
         return self.program
 
     def description(self) -> str:
