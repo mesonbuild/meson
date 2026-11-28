@@ -3178,6 +3178,7 @@ class CustomTarget(Target, CustomTargetBase, CommandTargetProto):
                  backend: T.Optional['Backend'] = None,
                  description: str = 'Generating {} with a custom command',
                  build_subdir: str = '',
+                 output_install_root: str = '',
                  ):
         # TODO expose keyword arg to make MachineChoice.HOST configurable
         super().__init__(name, subdir, False, MachineChoice.HOST, environment,
@@ -3213,6 +3214,8 @@ class CustomTarget(Target, CustomTargetBase, CommandTargetProto):
 
         # Whether to enable using response files for the underlying tool
         self.rsp_syntax = rsp_syntax
+
+        self.output_install_root = output_install_root
 
         self.extra_depends: T.List[T.Union[GeneratedList, BuildTargetProto]] = []
         if extra_depends:
