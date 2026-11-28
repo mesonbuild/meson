@@ -15,14 +15,28 @@ pkgs=(
   doxygen vulkan-devel vulkan-validation-layers-devel openssh lksctp-tools-devel objfw mercurial gtk-sharp3-devel libpcap-devel gpgme-devel
   qt5-qtbase-devel qt5-qttools-devel qt5-linguist qt5-qtbase-private-devel
   qt6-qtdeclarative-devel qt6-qtbase-devel qt6-qttools-devel qt6-linguist qt6-qtbase-private-devel
-  libwmf-devel valgrind cmake openmpi-devel nasm gnustep-base-devel gettext-devel ncurses-devel
+  libwmf-devel valgrind cmake openmpi-devel nasm gnustep-base-devel gettext-devel ncurses-devel hwloc-devel
   libxml2-devel libxslt-devel libyaml-devel glib2-devel json-glib-devel libgcrypt-devel wayland-devel wayland-protocols-devel
+  openblas-devel blas-devel lapack-devel intel-oneapi-mkl-devel
   # HACK: remove npm once we switch back to hotdoc sdist
   nodejs-npm
 )
 
 # Sys update
 dnf -y upgrade
+
+# Add Intel oneAPI repository for mkl
+cat > /etc/yum.repos.d/oneAPI.repo <<EOF
+[oneAPI]
+name=Intel® oneAPI repository
+baseurl=https://yum.repos.intel.com/oneapi
+enabled=1
+gpgcheck=1
+repo_gpgcheck=1
+gpgkey=https://yum.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB
+# use low priority or it will replace openmpi-devel
+priority=10000
+EOF
 
 # Install deps
 dnf -y install "${pkgs[@]}"
