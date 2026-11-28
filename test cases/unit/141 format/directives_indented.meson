@@ -1,0 +1,8 @@
+# indented and loosely spelled directives
+if true
+#meson-format   off
+  y  =  [1,
+  2]
+    #  meson-format on
+z=1
+endif

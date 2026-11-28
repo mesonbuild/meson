@@ -1,0 +1,4 @@
+# format-test: space_array = true
+
+a = []
+a3 = [1, 2, 3]

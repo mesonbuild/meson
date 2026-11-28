@@ -1,0 +1,5 @@
+# format-test: simplify_string_literals = false
+
+'''This is not a multiline'''
+f'This is not a fstring'
+'''This isn't convertible'''

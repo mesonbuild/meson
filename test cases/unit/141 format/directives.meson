@@ -1,0 +1,6 @@
+x=[1,2]
+# meson-format off
+y  =  [1,
+  2]
+# meson-format on
+z=[1,2]
