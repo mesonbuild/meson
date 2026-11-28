@@ -210,9 +210,12 @@ def cargo_parse(cargo_ver: str) -> T.Callable[[str], bool]:
 
         # https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#comparison-requirements
         if op == '<=':
-            # Bump the last *specified* component and convert to `<`.
-            nextver = semver.next_ver(semver.specified_count - 1)
-            out.append((operator.lt, nextver))
+            if semver.specified_count == 3:
+                out.append((operator.le, semver))
+            else:
+                # Bump the last *specified* component and convert to `<`.
+                nextver = semver.next_ver(semver.specified_count - 1)
+                out.append((operator.lt, nextver))
 
         elif op == '~':
             # Tilde requirements are the same as asterisk, so 1.* == ~1
