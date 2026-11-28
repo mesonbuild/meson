@@ -391,6 +391,11 @@ set the path using `CUDA_PATH` explicitly.
 Cuda does not honor the `prefer_static` option, and will link statically unless
 the `static` keyword argument is set to `false`.
 
+A special set of modules called `cudart`, `cudart_static` and `cudart_none` can
+be used to control the Cuda Runtime used. If none of these are passed
+`cudart_static` is automatically added unless the `static` keyword argument is
+set to `false`, then `cudart` is chosen.
+
 ## CUPS
 
 `method` may be `auto`, `config-tool`, `pkg-config`, `cmake` or `extraframework`.
