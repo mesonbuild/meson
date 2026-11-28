@@ -11,4 +11,4 @@ raise SystemExit({})
 for i, a in enumerate(sys.argv[1:]):
     with open(a, 'w', encoding='utf-8') as f:
         print(program.format(i), file=f)
-    os.chmod(a, 0o755)
+    os.chmod(a, 0o700)

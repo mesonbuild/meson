@@ -782,6 +782,7 @@ class LinuxlikeTests(BasePlatformTests):
         self.addCleanup(os.umask, save_umask)
         shutil.copytree(orig_testdir, testdir, copy_function=shutil.copyfile)
         # Preserve the executable status of subdir/sayhello though.
+        # Group and other permissions are intentional: simulate a checkout with umask 002.
         os.chmod(os.path.join(testdir, 'subdir', 'sayhello'), 0o775)
         self.init(testdir)
         # Run the build under a 027 umask now.
@@ -1985,10 +1986,10 @@ class LinuxlikeTests(BasePlatformTests):
         declaredepdir = tmpdir / 'test'
         declaredepdir.mkdir()
         try:
-            tmpdir.chmod(0o444)
+            tmpdir.chmod(0o400)
             self.init(testdir, extra_args=f'-Ddir={declaredepdir}')
         finally:
-            tmpdir.chmod(0o755)
+            tmpdir.chmod(0o700)
 
     def check_has_flag(self, compdb, src, argument):
         for i in compdb:
