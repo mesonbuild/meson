@@ -1378,7 +1378,7 @@ class XCodeBackend(backends.Backend):
     def generate_custom_target_shell_build_phases(self, objects_dict: PbxDict) -> None:
         # Custom targets are shell build phases in Xcode terminology.
         for tname, t in self.custom_targets.items():
-            (srcs, ofilenames, cmd) = self.eval_custom_target_command(t, absolute_outputs=True)
+            (srcs, ofilenames, cmd) = self.eval_custom_target_command(t, self.absolute_command_paths())
             fixed_cmd, _ = self.as_meson_exe_cmdline(cmd[0],
                                                      cmd[1:],
                                                      capture=ofilenames[0] if t.capture else None,
