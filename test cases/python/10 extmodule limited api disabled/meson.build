@@ -8,3 +8,9 @@ module = py.extension_module('my_module',
   'module.c',
   limited_api: '3.7',
 )
+
+py_limited = py_mod.find_installation(limited_api: '3.7')
+
+module = py_limited.extension_module('my_module_inherited',
+  'module.c',
+)

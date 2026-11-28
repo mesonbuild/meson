@@ -61,6 +61,7 @@ if T.TYPE_CHECKING:
 
         # Only in the python dependency
         embed: bool
+        limited_api: str
 
         # Only passed internally, not part of the DSL API
         paths: T.List[str]
