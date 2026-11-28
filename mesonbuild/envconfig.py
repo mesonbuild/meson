@@ -94,6 +94,7 @@ KNOWN_SYSTEMS = frozenset({
     'darwin',
     'dragonfly',
     'freebsd',
+    'fuchsia',
     'gnu',
     'haiku',
     'linux',
