@@ -1,0 +1,3 @@
+# Create imported target @EXECUTABLE_NAME@
+add_executable(@EXECUTABLE_NAME@ IMPORTED)
+
