@@ -1266,6 +1266,13 @@ class SdccDynamicLinker(DynamicLinker):
     def get_search_args(self, dirname: str) -> T.List[str]:
         return ['-L' + dirname]
 
+    def get_debugfile_name(self, targetfile: str) -> str:
+        return targetfile
+
+    def get_debugfile_args(self, targetfile: str) -> T.List[str]:
+        # the .cdb lands next to the -o output, so the name needs no argument of its own
+        return ['--debug']
+
 
 class CompCertDynamicLinker(DynamicLinker):
 

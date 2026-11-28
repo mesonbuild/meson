@@ -2,8 +2,9 @@
 
 Meson can now detect and use `sdcc` to compile C code for small 8-bit
 microcontrollers.  Static libraries are created with `sdar`, and executables are
-produced in the Intel HEX (`.ihx`) format.  The new CPU families `f8`, `hc08`,
-`mcs51`, `padauk`, `stm8` and `z80` are recognized in cross files.
+produced in the Intel HEX (`.ihx`) format, along with a `.cdb` debug file when
+`debug` is enabled.  The new CPU families `f8`, `hc08`, `mcs51`, `padauk`,
+`stm8` and `z80` are recognized in cross files.
 
 SDCC selects the target architecture with the `-m` option, which must be
 passed both when compiling and when linking.  Add it to the `c` entry of the

@@ -239,3 +239,40 @@ class LinuxCrossMingwTests(BaseLinuxCrossTests):
             '-Dbuild.pkg_config_path=' + os.path.join(testdir, 'build_extra_path'),
             '-Dpkg_config_path=' + os.path.join(testdir, 'host_extra_path'),
         ])
+
+
+def should_run_sdcc_tests():
+    try:
+        return subprocess.call(['sdcc', '--version'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) == 0
+    except FileNotFoundError:
+        return False
+
+@unittest.skipUnless(should_run_sdcc_tests(), "requires SDCC")
+class SdccCrossTests(BaseLinuxCrossTests):
+    '''
+    Tests that cross-compilation with SDCC works
+    '''
+
+    def setUp(self):
+        super().setUp()
+        self.meson_cross_files = [os.path.join(self.src_root, 'cross', 'sdcc-mcs51.txt')]
+
+    def test_debug_file(self):
+        '''
+        SDCC only writes the .cdb when the link gets --debug as well, so a
+        debug executable has to pass it there and declare the .cdb as an output.
+        '''
+        testdir = os.path.join(self.unit_test_dir, '147 sdcc debug file')
+        self.init(testdir, extra_args=['-Ddebug=true'])
+        self.build()
+        self.assertPathExists(os.path.join(self.builddir, 'prog.cdb'))
+        self.assertPathDoesNotExist(os.path.join(self.builddir, 'nodebug.cdb'))
+        with open(os.path.join(self.builddir, 'build.ninja'), encoding='utf-8') as f:
+            self.assertRegex(f.read(), r'build prog\.ihx \| prog\.cdb: ')
+
+    def test_no_debug_file(self):
+        testdir = os.path.join(self.unit_test_dir, '147 sdcc debug file')
+        self.init(testdir, extra_args=['-Ddebug=false'])
+        self.build()
+        self.assertPathExists(os.path.join(self.builddir, 'prog.ihx'))
+        self.assertPathDoesNotExist(os.path.join(self.builddir, 'prog.cdb'))
