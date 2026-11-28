@@ -317,11 +317,12 @@ def check_for_stampfile(fname: str) -> str:
 
 class Installer:
 
-    def __init__(self, options: 'ArgumentType', lf: T.TextIO):
+    def __init__(self, options: 'ArgumentType', lf: T.TextIO, log_file: str):
         self.did_install_something = False
         self.printed_symlink_error = False
         self.options = options
         self.lf = lf
+        self.log_file = log_file
         self.preserved_file_count = 0
         self.dry_run = options.dry_run
         # [''] means skip none,
@@ -746,6 +747,9 @@ class Installer:
             localenv.update({'MESON_INSTALL_'+k.upper(): os.path.join(d.prefix, v) for k, v in mapp.items()})
             localenv.update({'MESON_INSTALL_DESTDIR_'+k.upper(): get_destdir_path(destdir, fullprefix, v) for k, v in mapp.items()})
 
+            self.lf.flush()
+            localenv.update({'MESON_INSTALL_LOG_FILE': self.log_file})
+
             self.did_install_something = True  # Custom script must report itself if it does nothing.
             self.log(f'Running custom install script {name!r}')
             try:
@@ -754,6 +758,8 @@ class Installer:
                 print(f'FAILED: install script \'{name}\' could not be run.')
                 # POSIX shells return 127 when a command could not be found
                 sys.exit(127)
+            finally:
+                self.lf.seek(0, os.SEEK_END)
             if rc != 0:
                 print(f'FAILED: install script \'{name}\' failed with exit code {rc}.')
                 sys.exit(rc)
@@ -881,6 +887,7 @@ def run(opts: 'ArgumentType') -> int:
     datafilename = 'meson-private/install.dat'
     private_dir = os.path.dirname(datafilename)
     log_dir = os.path.join(private_dir, '../meson-logs')
+    log_file = os.path.join(log_dir, 'install-log.txt')
     if not os.path.exists(os.path.join(opts.wd, datafilename)):
         sys.exit('Install data not found. Run this command in build directory root.')
     if not opts.no_rebuild:
@@ -891,10 +898,10 @@ def run(opts: 'ArgumentType') -> int:
         if not rebuild_all(opts.wd, backend):
             sys.exit(-1)
     os.chdir(opts.wd)
-    with open(os.path.join(log_dir, 'install-log.txt'), 'w', encoding='utf-8') as lf:
-        installer = Installer(opts, lf)
+    with open(log_file, 'w', encoding='utf-8') as lf:
+        installer = Installer(opts, lf, log_file)
         append_to_log(lf, '# List of files installed by Meson')
-        append_to_log(lf, '# Does not contain files installed by custom scripts.')
+        append_to_log(lf, '# Does not contain files installed by custom scripts unless they write to the install log.')
         if opts.profile:
             import cProfile as profile
             fname = os.path.join(private_dir, 'profile-installer.log')

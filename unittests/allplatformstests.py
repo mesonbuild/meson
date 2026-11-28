@@ -5427,6 +5427,19 @@ class AllPlatformTests(BasePlatformTests):
         self.assertIn("DRYRUN: Writing file file.dat", outputs)
 
 
+    def test_install_script_custom_log(self):
+        testdir = os.path.join(self.common_test_dir, '53 install script')
+        self.init(testdir)
+        self.build()
+
+        cmd = self.meson_command + ['install', '--destdir', self.installdir]
+        self._run(cmd, workdir=self.builddir)
+
+        with open(os.path.join(self.builddir, 'meson-logs', 'install-log.txt'), encoding='utf-8') as f:
+            log_contents = f.read()
+        self.assertIn(os.path.join(self.installdir, 'usr/diiba/daaba/file.dat'), log_contents)
+
+
     def test_introspect_install_plan(self):
         testdir = os.path.join(self.unit_test_dir, '98 install all targets')
         introfile = os.path.join(self.builddir, 'meson-info', 'intro-install_plan.json')
