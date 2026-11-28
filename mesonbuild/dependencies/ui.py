@@ -44,7 +44,9 @@ class GLDependencySystem(SystemDependency):
             # FIXME: Detect version using self.clib_compiler
             return
         else:
-            links = self.clib_compiler.find_library('GL', [])
+            for libname in 'GL', 'OpenGL':
+                if links := self.clib_compiler.find_library(libname, []):
+                    break
             has_header = self.clib_compiler.has_header('GL/gl.h', '')[0]
             if links and has_header:
                 self.is_found = True
