@@ -1085,6 +1085,13 @@ def _pkgconfig_define_convertor(x: T.List[str]) -> PkgConfigDefineType:
         return tuple(zip(keys, vals))
     return None
 
+def _pkgconfig_define_validator(x: T.List[str]) -> T.Optional[str]:
+    keys = itertools.islice(x, 0, None, 2)
+    vals = itertools.islice(x, 1, None, 2)
+    if any(not val for _, val in zip(keys, vals)):
+        return 'pkgconfig_define values must not be empty'
+    return None
+
 def _pkgconfig_define_feature_validator(x: list[str]) -> T.Iterable[FeatureCheckBase]:
     if len(x) > 2:
         yield FeatureNew(
@@ -1096,6 +1103,7 @@ PKGCONFIG_DEFINE_KW: KwargInfo[list[str]] = KwargInfo(
     ContainerTypeInfo(list, str, pairs=True),
     default=[],
     convertor=_pkgconfig_define_convertor,
+    validator=_pkgconfig_define_validator,
     feature_validator=_pkgconfig_define_feature_validator,
 )
 
