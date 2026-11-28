@@ -561,9 +561,12 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
             if linker is None:
                 linker = guess_nix_linker(env, compiler, cls, version, for_machine)
 
-            return cls(
+            clang = cls(
                 ccache, compiler, version, for_machine, env,
                 defines=defines, full_version=full_version, linker=linker)
+            if isinstance(clang, cpp.ClangCPPCompiler):
+                clang.scan_deps = _detect_clang_scan_deps(env, for_machine, compiler)
+            return clang
 
         if 'Intel(R) C++ Intel(R)' in err:
             version = search_version(err)
@@ -1567,6 +1570,38 @@ def _get_gnu_compiler_defines(compiler: T.List[str], lang: str) -> T.Dict[str, s
         if len(rest) == 2:
             defines[rest[0]] = rest[1]
     return defines
+
+def _detect_clang_scan_deps(env: Environment, for_machine: MachineChoice,
+                            compiler: T.List[str]) -> T.Optional[T.List[str]]:
+    """Find the clang-scan-deps to use with a Clang compiler.
+
+    In order: the clang-scan-deps entry of the machine file, the one next to
+    the compiler (so it has the same version), and finally any one found in PATH.
+    """
+    from ..tooldetect import get_llvm_tool_names
+
+    entry = env.lookup_binary_entry(for_machine, 'clang-scan-deps')
+    if entry:
+        return entry
+
+    exe = shutil.which(compiler[0])
+    if exe:
+        # The compiler may be a symlink, such as c++, to a versioned clang
+        for path in dict.fromkeys([exe, os.path.realpath(exe)]):
+            directory, name = os.path.split(path)
+            if name.lower().endswith('.exe'):
+                name = name[:-4]
+            m = re.fullmatch(r'clang(?:\+\+)?(.*)', name)
+            if m:
+                found = shutil.which('clang-scan-deps' + m.group(1), path=directory)
+                if found:
+                    return [found]
+
+    for tool in get_llvm_tool_names('clang-scan-deps'):
+        found = shutil.which(tool)
+        if found:
+            return [found]
+    return None
 
 def _get_clang_compiler_defines(compiler: T.List[str], lang: str) -> T.Dict[str, str]:
     """
